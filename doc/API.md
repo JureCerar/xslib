@@ -4,17 +4,17 @@
 
 - [Molecular file types - General](#molecular-file-types-general)
 - [Molecular file types - File specific data](#molecular-file-types-file-specific-data)
-	- [`pdb_file` format](#pdbfile-format)
-	- [`gro_file` format](#grofile-format)
-	- [`trj_file` format](#trjfile-format)
-	- [`xyz_file` format](#xyzfile-format)
-	- [`frame_file` object format](#framefile-object-format)
+	- [`pdb_file` format](#pdb_file-format)
+	- [`gro_file` format](#gro_file-format)
+	- [`trj_file` format](#trj_file-format)
+	- [`xyz_file` format](#xyz_file-format)
+	- [`frame_file` object format](#frame_file-object-format)
 - [Supporting file types](#supporting-file-types)
-	- [`ndx_file` format](#ndxfile-format)
-	- [`tpl_file` format](#tplfile-format)
+	- [`ndx_file` format](#ndx_file-format)
+	- [`tpl_file` format](#tpl_file-format)
 - [Data file types](#data-file-types)
-	- [`pdh_file` format](#pdhfile-format)
-	- [`csv_file` format](#csvfile-format)
+	- [`pdh_file` format](#pdh_file-format)
+	- [`csv_file` format](#csv_file-format)
 - [Functions and Subroutines](#functions-and-subroutines)
 	- [`xslibINFO`](#xslibinfo)
 	- [`str()`](#str)
@@ -31,6 +31,7 @@
 	- [`getTime()`](#gettime)
 	- [`elapsedTime()`](#elapsedtime)
 	- [`variance()`](#variance)
+	- [`pathname()`](#pathname)
 	- [`baseName()`](#basename)
 	- [`extension()`](#extension)
 	- [`stripComment()`](#stripcomment)
@@ -526,8 +527,8 @@ function getDistance (a, b) result (distance)
 Returns angle between three points (A-B-C).
 ```fortran
 function getAngle (a, b, c) result (angle)
-	real, dimension(3)	:: a, b, c
-	real				:: angle
+	real, dimension(3)  :: a, b, c
+	real                :: angle
 ```
 
 ### `getDihedral()`
@@ -589,22 +590,31 @@ subroutine variance (value, mean, var, n)
 ```
 <!-- ------------------------------------------------------------------------- -->
 
+### `pathName()`
+Returns path name of file.  
+*e.g. "./path/to/file.txt" &rarr; "./path/to/"*
+```fortran
+function pathName (name) result (path)
+	character*(*)               :: name
+	character*(:), allocatable  :: path
+```
+
 ### `baseName()`
 Returns base name of file.  
-*e.g. "/path/to/file.txt" &rarr; "file"*
+*e.g. "./path/to/file.txt" &rarr; "file"*
 ```fortran
 function baseName (name) result (base)
-	character*(*)				:: name
-	character*(:), allocatable	:: base
+	character*(*)               :: name
+	character*(:), allocatable  :: base
 ```
 
 ### `extension()`
 Returns file extension.    
-*e.g. "/path/to/file.txt" &rarr; "txt"*
+*e.g. "./path/to/file.txt" &rarr; "txt"*
 ```fortran
 function extension (name) result (ext)
-	character*(*)				:: name
-	character*(:), allocatable	:: ext
+	character*(*)               :: name
+	character*(:), allocatable  :: ext
 ```
 
 ### `stripComment()`
@@ -618,7 +628,7 @@ function stripComment (string, cmt) result (strip)
 
 ### `backup()`
 Renames file if it already exits.    
-*e.g. "file.txt" &rarr; "#file.txt.n#" (n=1,2,..)*
+*e.g. "./path/to/file.txt" &rarr; "./path/to/#file.txt.n#" (n=1,2,..)*
 ```fortran
 subroutine backup (file)
 	character*(*) :: file

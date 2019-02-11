@@ -83,7 +83,6 @@ contains
 		allocate (this%type(this%ntypes), STAT=stat)
 		if (stat /= 0) call error("Not enough memory.", NAME="tpl%read()")
 
-
 		! Actual read loop
 		stat = 0
 		next = 1
@@ -134,7 +133,6 @@ contains
 
 				! Read (pseudo)atoms
 				cnt = 1
-				print *, this%type(next)%natoms
 				do while (cnt <= this%type(next)%natoms)
 					! Read line
 					read (unit, "(a)", END=100) buffer
@@ -143,7 +141,6 @@ contains
 
 					! Read name, partial charge (optional), and ID (optional)
 					read (buffer, *, IOSTAT=dmy) this%type(next)%name(cnt), this%type(next)%pcharge(cnt), this%type(next)%id(cnt)
-					print *, this%type(next)%name(cnt), this%type(next)%pcharge(cnt), this%type(next)%id(cnt)
 					! Only name needs to be defined
 					if (this%type(next)%name(cnt) == "") go to 200
 

@@ -1,6 +1,6 @@
 # XsLib - Extra-small Library
 
-![Version](https://img.shields.io/badge/Current_release-v0.3.0-blue.svg)
+![Version](https://img.shields.io/badge/Current_release-v0.3.1-blue.svg)
 ![Language](https://img.shields.io/badge/Language-Fortran_C-brightgreen.svg)
 ![Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
@@ -57,8 +57,7 @@ pkg-config xslib --libs --cflags
 
 ## Acknowledgments
 
-- This library includes [libxdrfile](https://github.com/wesbarnett/libxdrfile) library by [James W. Barnett](https://github.com/wesbarnett) for reading .xtc and .trr files.
-- This library also includes modified version of [libgmxfort](https://github.com/wesbarnett/libgmxfort) by [James W. Barnett](https://github.com/wesbarnett).
+- This library includes modified versions of [libxdrfile](https://github.com/wesbarnett/libxdrfile) and its Fortran wrapper [libgmxfort](https://github.com/wesbarnett/libgmxfort) for reading GROMACS .ndx, .trr, and .xtc files created by [James W. Barnett](https://github.com/wesbarnett).
 
 ## License
 

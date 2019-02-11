@@ -3,6 +3,13 @@
 #### To-do:
 - [ ] Finish writing API documentation.
 - [ ] Return multi-file functionality to `frame_file` in more "graceful" manner.
+- [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
+
+#### v0.3.1 - Coming soon
+- [x] Added `pathname()` function.  
+- [x] Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did opposite of backup).  
+- [x] Removed unnecessary write to STDOUT in `tpl%read()`.  
+- [ ] Check if it works.
 
 #### v0.3.0 - 03.02.2019:
 - Added to GitHub.  

@@ -368,6 +368,27 @@ contains
 		return
 	end function basename
 
+	! Returns basename of file. Eg. "/path/to/file.txt" = "/path/to/"
+	! TODO: Add feature to ignore "/" if preceded by "\"
+	function pathname (file) result (path)
+		implicit none
+		character*(*)				:: file
+		character*(:), allocatable	:: path
+		integer						:: n
+
+		! Find "/" symbol
+		n = index(file, "/", BACK=.true.)
+		if (n==0) then	! Current directory
+			path="./"
+
+		else ! Extract path
+			path = file(:n)
+
+		end if
+
+		return
+	end function pathname
+
 	! Returns extension of file. Eg. "/path/to/file.txt" = "txt"
 	function extension (file) result (ext)
 		implicit none
@@ -458,7 +479,7 @@ contains
 		use iso_fortran_env
 		implicit none
 		character*(*), intent(in)	:: file
-		character*512				:: temp
+		character*512				:: temp, path, base, ext
 		logical						:: exist
 		integer						:: i
 
@@ -466,9 +487,14 @@ contains
 		inquire (FILE=trim(file), EXIST=exist)
 		if (.not. exist) return
 
-		! If it exists rename it to: #file.ext.1#
+		! If it exists extract path, base and ext
+		path = pathname(file)
+		base = basename(file)
+		ext = extension(file)
+
+		! Create 'new' name - path/to/#file.ext.1#
 		do i = 1, 1000
-			write (temp, "('#',a,'.',i0,'#')") trim(file), i
+			write (temp, "(a,'#',a,'.',i0,'#')") trim(path), trim(base)//"."//trim(ext), i
 			! Check if this 'new' file exists
 			inquire (FILE=trim(temp), EXIST=exist)
 			if (.not. exist) then
