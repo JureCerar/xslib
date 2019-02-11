@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+<<<<<<< HEAD
 - [Molecular file types - General](#molecular-file-types-general)
 - [Molecular file types - File specific data](#molecular-file-types-file-specific-data)
 	- [`pdb_file` format](#pdb_file-format)
@@ -44,9 +45,52 @@
 	- [`toLower()` and `toUpper()`](#tolower-and-toupper)
 	- [`progressBar()`](#progressbar)
 	- [`linest()`](#linest)
+=======
+- [Molecular file types: General](#molecular-file-types-general)
+- [Molecular file types: File specific data](#molecular-file-types-file-specific-data)
+  - [`pdb_file` format](#pdb_file-format)
+  - [`gro_file` format](#gro_file-format)
+  - [`trj_file` format](#trj_file-format)
+  - [`xyz_file` format](#xyz_file-format)
+  - [`frame_file` object format](#frame_file-object-format)
+- [Supporting file types](#supporting-file-types)
+  - [`ndx_file` format](#ndx_file-format)
+  - [`tpl_file` format](#tpl_file-format)
+- [Data file types](#data-file-types)
+  - [`pdh_file` format](#pdh_file-format)
+  - [`csv_file` format](#csv_file-format)
+- [Functions and Subroutines](#functions-and-subroutines)
+  - [`xslibINFO`](#xslibinfo)
+  - [`str()`](#str)
+  - [`error()` and `warning()`](#error-and-warning)
+  - [`newUnit()`](#newunit)
+  - [`cross()`](#cross)
+  - [`minImg()`](#minimg)
+  - [`getDistance()`](#getdistance)
+  - [`getAngle()`](#getangle)
+  - [`getDihedral()`](#getdihedral)
+  - [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
+  - [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
+  - [`timeStamp()`](#timestamp)
+  - [`getTime()`](#gettime)
+  - [`elapsedTime()`](#elapsedtime)
+  - [`variance()`](#variance)
+  - [`baseName()`](#basename)
+  - [`extension()`](#extension)
+  - [`stripComment()`](#stripcomment)
+  - [`backup()`](#backup)
+  - [`nextFreeName()`](#nextfreename)
+  - [`isEmpty()`](#isempty)
+  - [`isWord()`](#isword)
+  - [`replaceText()`](#replacetext)
+  - [`tab2space()`](#tab2space)
+  - [`toLower()` and `toUpper()`](#tolower-and-toupper)
+  - [`progressBar()`](#progressbar)
+  - [`linest()`](#linest)
+>>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 - [Notes](#notes)
 
-## Molecular file types - General
+## Molecular file types: General
 
 XsLib supports the use of multiple molecular coordinate files:  
 - [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS default coordinate file.  
@@ -56,10 +100,10 @@ XsLib supports the use of multiple molecular coordinate files:
 
 They are implemented as derived type variables consisting of data and procedure bound to that type. They can be used with `type(obj_file)`, for example:
 ```fortran
-type(xyz_file)	:: xyz
-type(pdb_file)	:: pdb
-type(gro_file)	:: gro
-type(trj_file)	:: trj !.xtc and .trr
+type(xyz_file) :: xyz
+type(pdb_file) :: pdb
+type(gro_file) :: gro
+type(trj_file) :: trj !.xtc and .trr
 ```
 **NOTE:** For procedures that are common to all derived types, the derived type will be refered to as `obj`.  
 
@@ -94,7 +138,7 @@ write (*,*) obj%frameArray(1)%coor(2,3)
 If you want to inquire the box size and number of atoms prior to actually reading the file it can be done with:
 ```fortran
 integer :: natoms
-real 	:: box(3)
+real    :: box(3)
 
 box = obj%box()
 natoms = obj%natoms()
@@ -109,16 +153,16 @@ nframes = 10
 natoms = 100
 call obj%allocate(nframes)
 do i = 1, nframes
-	call obj%frameArray(i)%allocate(natoms, INITIALIZE=.true.)
+  call obj%frameArray(i)%allocate(natoms, INITIALIZE=.true.)
 
 end do
 ```
 The optional `INITIALIZE` argument formats the newly allocated data to empty values or 0. Alternatively, it can be done with `...%initialize()` procedure.
 The stored data can be printed to file UNIT, FILE or STDOUT:
 ```fortran
-call obj%write(FILE="path/to/file.obj")
-! or
 call obj%write(UNIT=unit)
+! or
+call obj%write(FILE="path/to/file.obj")
 ! or
 call obj%write()
 ```
@@ -131,7 +175,7 @@ call obj%frameArray(1)%deallocate()
 call obj%deallocate()
 ```
 
-## Molecular file types - File specific data
+## Molecular file types: File specific data
 
 Each file type contains additional information (unique to format) that is listed down bellow:
 
@@ -141,26 +185,26 @@ For more information on variables please read [PDB Manual](https://www.rcsb.org/
 
 ```fortran
 type, private :: pdb_frame
-	real 						:: box(3)
-	integer						:: natoms
-	character*20, allocatable	:: record_type(:), atom_name(:), alt_loc_indicator(:), residue_name(:), chain_identifier(:)
-	character*20, allocatable	:: res_insert_code(:), segment_identifier(:), element_symbol(:)
-	integer, allocatable		:: atom_serial_number(:), residue_sequence_number(:)
-	real, allocatable			:: coor(:,:)
-	real, allocatable			:: occupancy(:), temp_factor(:), charge(:)
+  real                       :: box(3)
+  integer                    :: natoms
+  character*20, allocatable  :: record_type(:), atom_name(:), alt_loc_indicator(:), residue_name(:), chain_identifier(:)
+  character*20, allocatable  :: res_insert_code(:), segment_identifier(:), element_symbol(:)
+  integer, allocatable       :: atom_serial_number(:), residue_sequence_number(:)
+  real, allocatable          :: coor(:,:)
+  real, allocatable          :: occupancy(:), temp_factor(:), charge(:)
 
 type pdb_file
-	integer							:: nframes
-	type(pdb_frame), allocatable	:: frameArray(:)
+  integer                       :: nframes
+  type(pdb_frame), allocatable  :: frameArray(:)
 contains
-	procedure 	:: open
-	procedure 	:: close
-	procedure	:: allocate
-	procedure	:: read_next
-	procedure	:: read
-	procedure	:: box
-	procedure	:: natoms
-	procedure	:: write
+  procedure  :: open
+  procedure  :: close
+  procedure  :: allocate
+  procedure  :: read_next
+  procedure  :: read
+  procedure  :: box
+  procedure  :: natoms
+  procedure  :: write
 ```
 
 Because .pdb file contains a lot (and I mean really A LOT) of usually "unnecessary" data an option to read only coordinates can used:
@@ -175,26 +219,26 @@ For more information please read [GRO manual](link).
 
 ```fortran
 type, private :: gro_frame
-	character*512				:: title
-	real						:: time
-	integer						:: natoms
-	real						:: box(3)
-	integer, allocatable		:: res_num(:), atom_num(:)
-	character*5, allocatable	:: res_name(:), atom_name(:)
-	real, allocatable			:: coor(:,:), vel(:,:)
+  character*512             :: title
+  real                      :: time
+  integer                   :: natoms
+  real                      :: box(3)
+  integer, allocatable      :: res_num(:), atom_num(:)
+  character*5, allocatable  :: res_name(:), atom_name(:)
+  real, allocatable         :: coor(:,:), vel(:,:)
 
 type gro_file
-	integer							:: nframes, framesLeft
-	type(gro_frame), allocatable	:: frameArray(:)
+  integer                       :: nframes, framesLeft
+  type(gro_frame), allocatable  :: frameArray(:)
 contains
-	procedure	:: open
-	procedure	:: close
-	procedure 	:: allocate
-	procedure	:: read_next
-	procedure	:: read
-	procedure	:: write
-	procedure	:: natoms
-	procedure	:: box
+  procedure  :: open
+  procedure  :: close
+  procedure  :: allocate
+  procedure  :: read_next
+  procedure  :: read
+  procedure  :: write
+  procedure  :: natoms
+  procedure  :: box
 ```
 
 To read only coordinates use:
@@ -208,27 +252,27 @@ This is a direct port of gmxfort library so for more detailed API please read [t
 
 ```fortran
 type, private :: trj_frame
-	real(C_FLOAT), allocatable 	:: xyz(:,:)
-	integer(C_INT) 				:: steep
-	real(C_FLOAT) 				:: box(3,3), prec, time
+  real(C_FLOAT), allocatable  :: xyz(:,:)
+  integer(C_INT)              :: steep
+  real(C_FLOAT)               :: box(3,3), prec, time
 
 type, public :: trj_file
-	type(xdrfile), pointer 			:: xd
-	type(trj_frame), allocatable	:: frameArray(:)
-	type(ndx_file) 					:: ndx
-	integer 						:: NFRAMES, FRAMES_REMAINING
-	integer 						:: NUMATOMS, N
-	logical 						:: read_only_index_group
+  type(xdrfile), pointer        :: xd
+  type(trj_frame), allocatable  :: frameArray(:)
+  type(ndx_file)                :: ndx
+  integer                       :: NFRAMES, FRAMES_REMAINING
+  integer                       :: NUMATOMS, N
+  logical                       :: read_only_index_group
 contains
-	procedure :: open
-	procedure :: read
-	procedure :: read_next
-	procedure :: close
-	procedure :: x
-	procedure :: natoms
-	procedure :: box
-	procedure :: time
-	procedure :: step
+  procedure :: open
+  procedure :: read
+  procedure :: read_next
+  procedure :: close
+  procedure :: x
+  procedure :: natoms
+  procedure :: box
+  procedure :: time
+  procedure :: step
 ```
 
 ### `xyz_file` format
@@ -237,11 +281,11 @@ More information about the format can be read [here](link).
 
 ```fortran
 type, private :: xyz_frame
-	integer 					:: natoms
-	character*512				:: comment
-	character*5, allocatable	:: name(:)
-	real, allocatable			:: coor(:,:)
-	real						:: box(3)	!FUN FACT: .xyz file does not actually contain box info
+  integer                   :: natoms
+  character*512             :: comment
+  character*5, allocatable  :: name(:)
+  real, allocatable         :: coor(:,:)
+  real                      :: box(3)  !FUN FACT: .xyz file does not actually contain box info
 ```
 
 ### `frame_file` object format
@@ -253,15 +297,15 @@ type, private :: xyz_frame
 
 ```Fortran
 type frame_data
-	integer				:: natoms
-	real				:: box(3)
-	real, allocatable	:: coor(:,:)
+  integer            :: natoms
+  real               :: box(3)
+  real, allocatable  :: coor(:,:)
 contains
-	procedure	:: open
-	procedure	:: read_next
-	procedure	:: close
-	procedure	:: get_nframes
-	procedure	:: get_box
+  procedure :: open
+  procedure :: read_next
+  procedure :: close
+  procedure :: get_nframes
+  procedure :: get_box
 ```
 To open file use:
 ```fortran
@@ -300,20 +344,20 @@ call ndx%read("path/to/file.ndx")
 Data can be accessed as:
 ```Fortran
 do n = 1, ndx%ngroups
-	write (*,"(3(a,i0))") "Group ", n, " '"//ndx%group(n)%title//"' (", ndx%group(n)%numatoms), " atoms)"
-	do i = 1, ndx%group(n)%numatoms
-		write (*,*) ndx%group(n)%loc(i)
+  write (*,"(3(a,i0))") "Group ", n, " '"//ndx%group(n)%title//"' (", &
+  ndx%group(n)%numatoms), " atoms)"
+  do i = 1, ndx%group(n)%numatoms
+    write (*,*) ndx%group(n)%loc(i)
 
-	end do
+  end do
 end do
 ```
 To write data to file UNIT, FILE or STDOUT use:
 ```fortran
-! Write to file UNIT
 call ndx%write(UNIT=unit)
-! or to FILE
+! or
 call ndx%write(FILE="path/to/file.ndx")
-! or STDOUT
+! or
 call ndx%write()
 ```
 
@@ -352,13 +396,15 @@ Once file is read you can access the data in two ways: access particle of each m
 ```Fortran
 ! Access all particles sequentially as list
 do i = 1, tpl%natoms
-	write (*,*)  tpl%name(i) ! pcharge(i), id(i)
+  write (*,*)  tpl%name(i) ! pcharge(i), id(i)
+
 end do
 ! or access particle of each molecule type
 do n = 1, tpl%nTypes
-	do i = 1, tpl%type(n)%natoms
-	write (*,*) tpl%type(n)%name(i) ! pcharge(i), id(i)
-	end do
+  do i = 1, tpl%type(n)%natoms
+    write (*,*) tpl%type(n)%name(i) ! pcharge(i), id(i)
+
+  end do
 end do
 ! Both cases yield same result  
 ```
@@ -368,32 +414,32 @@ You can print the read data to file UNIT, FILE or STDOUT by using:
 ```Fortran
 ! Write to file UNIT
 call tpl%write(UNIT=unit)
-! or to file
+! or
 call tpl%write(FILE="path/to/file.tpl")
-! or to STDOUT
+! or
 call tpl%write()
 ```
 
 ```fortran
 type, private :: tpl_frame
-	integer					:: natoms, nmol
-	integer, pointer		:: id(:)
-	character*3, pointer	:: name(:)
-	real, pointer			:: pcharge(:)
+  integer              :: natoms, nmol
+  integer, pointer     :: id(:)
+  character*3, pointer :: name(:)
+  real, pointer        :: pcharge(:)
 
 type tpl_file
-	integer, private					:: unit
-	real								:: box(3) 		! Simulation box side
-	integer								:: nTypes		! Number of different types
-	type(tpl_frame), allocatable		:: type(:)		! Type of molecule
-	! Concentrated data (contains actual data)
-	integer								:: natoms
-	integer, pointer					:: id(:)
-	character*3, pointer				:: name(:)
-	real, pointer						:: pcharge(:)
+  integer, private             :: unit
+  real                         :: box(3)     ! Simulation box side
+  integer                      :: nTypes    ! Number of different types
+  type(tpl_frame), allocatable :: type(:)    ! Type of molecule
+  ! Contains actual data
+  integer                      :: natoms
+  integer, pointer             :: id(:)
+  character*3, pointer         :: name(:)
+  real, pointer                :: pcharge(:)
 contains
-	procedure	:: read
-	procedure 	:: write
+  procedure  :: read
+  procedure  :: write
 ```
 
 ## Data file types
@@ -410,21 +456,20 @@ call pdh%read("path/to/file.pdh")
 The data is stored as:
 ```fortran
 type pdh_file
-	character*80		:: text
-	character*4			:: key_words(16)
-	integer				:: int_const(8)
-	integer				:: num_points
-	real				:: real_const(10)
-	real, allocatable	:: x(:), y(:), y_error(:)
+  character*80      :: text
+  character*4       :: key_words(16)
+  integer           :: int_const(8)
+  integer           :: num_points
+  real              :: real_const(10)
+  real, allocatable :: x(:), y(:), y_error(:)
 ```
 
 File can be also written to file UNIT, FILE, or STDOUT
 ```Fortran
-! Write to file UNIT
 call pdh%write(UNIT=unit)
-! or to file
+! or
 call pdh%write(FILE="path/to/file.tpl")
-! or to STDOUT
+! or
 call pdh%write()
 ```
 
@@ -433,8 +478,8 @@ xslib also includes crude implementation of [Comma Separated Value (.csv)](https
 
 You can read the file by using:
 ```fortran
-real, allocatable 			:: data(:,:)
-character*(n), allocatable 	:: header(:)
+real, allocatable           :: data(:,:)
+character*(n), allocatable  :: header(:)
 
 call csv%read("path/to/file/.csv", data, HEADER=header)
 ```
@@ -443,11 +488,10 @@ call csv%read("path/to/file/.csv", data, HEADER=header)
 The data can also be written (with custom data delimiter) to file UNIT, FILE or STDOUT:  
 
 ```fortran
-! Writing to FILE
 call csv%write(data(:,:), HEADER=header(:), FILE="out.csv")
-! or to file UNIT
+! or
 call csv%write(data(:,:), HEADER=header(:), UNIT=unit)
-! or to STDOUT (here with custom data delimiter)
+! or (here with custom data delimiter)
 call csv%write(data(:,:), HEADER=header(:), DELIMITER=";")
 ```
 
@@ -463,7 +507,7 @@ call csv%write(data(:,:), HEADER=header(:), DELIMITER=";")
 Basic information about xslib library: version, compile date and time.  
 *v0.0.0 -- May 18 2018 12:34:56*
 ```fortran
-character*64, parameter	:: xslibINFO
+character*64, parameter  :: xslibINFO
 ```
 
 <!-- common.f90 -->
@@ -472,21 +516,25 @@ character*64, parameter	:: xslibINFO
 Transform scalar of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument.
 ```fortran
 interface str
-	procedure	:: itoa, i8toa, ftoa, f8toa, ctoa, btoa
+  procedure  :: itoa, i8toa, ftoa, f8toa, ctoa, btoa
 
 function str (value, fmt) result (string)
-	integer, real, complex, logical	:: value
-	character*(*)					:: fmt
-	character*(:), allocatable		:: string
+  integer, real, complex, logical  :: value
+  character*(*)                    :: fmt
+  character*(:), allocatable       :: string
 ```
 
 ### `error()` and `warning()`
 Writes error/warning message to STDERR. Calling `error()` also terminates the program and returns exit status 1 to shell.
 *i.e. <name\> ERROR/WARNING - <message\>*  
 ```fortran
-subroutine error/warning (message, name)
-	character*(*)			:: message
-	character*(*), optional	:: name
+subroutine error (message, name)
+  character*(*)            :: message
+  character*(*), optional  :: name
+
+subroutine warning (message, name)
+  character*(*)            :: message
+  character*(*), optional  :: name
 ```
 
 ### `newUnit()`
@@ -494,7 +542,7 @@ Finds next free file unit and returns it as `newUnit`. Optionally the output can
 **DEPRECATED:** Use `open (NEWUNIT=unit, ...)`
 ```fortran
 integer function newUnit (unit)
-	integer, optional, intent(out)  :: unit
+  integer, optional, intent(out)  :: unit
 ```
 
 <!-- ### utilities.f90 ### -->
@@ -503,7 +551,7 @@ integer function newUnit (unit)
 Returns vector product: v &times; u.
 ```fortran
 function cross (v, u)
-	real, dimmension(3)	:: v, u, cross
+  real, dimmension(3)  :: v, u, cross
 ```
 
 ### `minImg()`
@@ -511,7 +559,7 @@ Return reduced coordinates according to [minimal image convention](https://en.wi
 _i.e a=a-box*floor(a/box+0.5)_
 ```fortran
 function minImg (r, box)
-	real, dimension(3)	:: r, box, minImg
+  real, dimension(3)  :: r, box, minImg
 ```
 
 ### `getDistance()`
@@ -519,31 +567,39 @@ Returns distance between two points.
 **NOTE:** This is (awkward) alternative to `norm2(a-b)`; use the latter if possible.
 ```fortran
 function getDistance (a, b) result (distance)
-	real, dimension(3)	:: a, b
-	real 				:: distance
+  real, dimension(3)  :: a, b
+  real                :: distance
 ```
 
 ### `getAngle()`
 Returns angle between three points (A-B-C).
 ```fortran
 function getAngle (a, b, c) result (angle)
+<<<<<<< HEAD
 	real, dimension(3)  :: a, b, c
 	real                :: angle
+=======
+  real, dimension(3)  :: a, b, c
+  real                :: angle
+>>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 ```
 
 ### `getDihedral()`
 Return [dihedral angle (theta)](https://en.wikipedia.org/wiki/Dihedral_angle) between four points (A-B-|-C-D).
 ```fortran
 function getDihedral (a, b, c, d) result (dihedral)
-	real, dimension(3)	:: a, b, c, d
-	real 				:: dihedral
+  real, dimension(3)  :: a, b, c, d
+  real                :: dihedral
 ```
 
 ### `deg2rad()` and  `rad2deg()`
 Translates angle from degrees to radians and back.
 ```fortran
-function deg2rad/rad2deg (in) result (out)
+function deg2rad (in) result (out)
    real :: in, out
+
+function rad2deg (in) result (out)
+  real :: in, out
 ```
 
 ### `crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`
@@ -552,8 +608,17 @@ _crt_ = cartesian (x,y,z),
 _sph_ = spherical (r,theta,phi), and   
 _cyl_ = cylindrical (r,theta,z)  
 ```fortran
-function crt2sph/sph2cart/crt2cyl/cyl2crt (in) result (out)
-	real, dimension(3) :: in, out
+function crt2sph (in) result (out)
+  real, dimension(3) :: in, out
+
+function sph2cart (in) result (out)
+  real, dimension(3) :: in, out
+
+function crt2cyl (in) result (out)
+  real, dimension(3) :: in, out
+
+function cyl2crt (in) result (out)
+  real, dimension(3) :: in, out
 ```
 <!-- ------------------------------------------------------------------------------ -->
 
@@ -561,14 +626,14 @@ function crt2sph/sph2cart/crt2cyl/cyl2crt (in) result (out)
 Returns time and date in format *hh:mm:ss dd-mm-yyyy*.
 ```fortran
 function timeStamp () result (string)
-	character*19 	:: string
+  character*19   :: string
 ```
 
 ### `getTime()`
 Function wrapper for `system_clock(COUNT=time)`.
 ```fortran
 function getTime () result (time)
-	integer :: time
+  integer :: time
 ```
 
 ### `elapsedTime()`
@@ -576,8 +641,8 @@ Converts time in [ms] or [s] to string in format *ddd:hh:mm:ss.sss*. Use with `s
 **NOTE:** `integer` = [ms] and `real*8` = [s]
 ```fortran
 function elapsedTime (time) result (string)
-	integer or real*8	:: time
-	character*16		:: string
+  integer or real*8  :: time
+  character*16       :: string
 ```
 
 ### `variance()`
@@ -585,8 +650,8 @@ Calculates [on-line variance](https://en.wikipedia.org/wiki/Algorithms_for_calcu
 **NOTE:** True variance must be "corrected" after calculation as `var=var/(n-1)`
 ```fortran
 subroutine variance (value, mean, var, n)
-	real or real*8 	:: value(:),  mean(:), var(:)
-	integer			:: n
+  real or real*8  :: value(:),  mean(:), var(:)
+  integer         :: n
 ```
 <!-- ------------------------------------------------------------------------- -->
 
@@ -604,8 +669,13 @@ Returns base name of file.
 *e.g. "./path/to/file.txt" &rarr; "file"*
 ```fortran
 function baseName (name) result (base)
+<<<<<<< HEAD
 	character*(*)               :: name
 	character*(:), allocatable  :: base
+=======
+  character*(*)               :: name
+  character*(:), allocatable  :: base
+>>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 ```
 
 ### `extension()`
@@ -613,8 +683,13 @@ Returns file extension.
 *e.g. "./path/to/file.txt" &rarr; "txt"*
 ```fortran
 function extension (name) result (ext)
+<<<<<<< HEAD
 	character*(*)               :: name
 	character*(:), allocatable  :: ext
+=======
+  character*(*)               :: name
+  character*(:), allocatable  :: ext
+>>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 ```
 
 ### `stripComment()`
@@ -622,8 +697,8 @@ Removes all characters trailing comment sign `cmt`.
 *e.g. "text #comment" &rarr; "text"*
 ```fortran
 function stripComment (string, cmt) result (strip)
-	character*(*)				:: string, cmt
-	character*(:), allocatable	:: strip
+  character*(*)               :: string, cmt
+  character*(:), allocatable  :: strip
 ```
 
 ### `backup()`
@@ -631,7 +706,7 @@ Renames file if it already exits.
 *e.g. "./path/to/file.txt" &rarr; "./path/to/#file.txt.n#" (n=1,2,..)*
 ```fortran
 subroutine backup (file)
-	character*(*) :: file
+  character*(*) :: file
 ```
 
 ### `nextFreeName()`
@@ -639,8 +714,8 @@ Returns next free available variation of the file name.
 *e.g. "out.txt" &rarr; "out.n.txt" (n=1,2,..)*
 ```fortran
 function nextFreeName (name) result (freeName)
-	character*(*) 				:: name
-	character(:), allocatable	:: freeName
+  character*(*)              :: name
+  character(:), allocatable  :: freeName
 ```
 
 ### `isEmpty()`
@@ -648,14 +723,14 @@ Check if string is empty ("tab" or "space" do not count).
 **DEPRECATED:** Use `verify(string, " ")==0`
 ```fortran
 logical function isEmpty (string)
-	character*(*)	:: string
+  character*(*)  :: string
 ```
 
 ### `isWord()`
 Check if string is a word *i.e.* contains any ASCII letters.
 ```fortran
 logical function isWord (string)
-	character*(*)	:: string
+  character*(*)  :: string
 ```
 
 ### `replaceText()`
@@ -663,25 +738,29 @@ Replaces `text` with `rep` within `string`.
 *e.g. "This is bad." &rarr; "This is good."*
 ```fortran
 function replaceText (string, text, rep) result (out)
-	character(*)				:: string, text, rep
-	character*(:), allocatable	:: out
+  character(*)                :: string, text, rep
+  character*(:), allocatable  :: out
 ```
 
 ### `tab2space()`
 Transforms *tab* to four *space* characters.
 ```fortran
 function tab2space (string) result (out)
-	character(*)				:: string
-	character*(:), allocatable	:: out
+  character(*)                :: string
+  character*(:), allocatable  :: out
 ```
 
 ### `toLower()` and `toUpper()`
 Transforms string to lower or all upper case, respectively.  
 *e.g. "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."*
 ```fortran
-function toLower/toUpper (string) result (out)
-	character*(*) 			:: string
-	character(len(string))	:: out
+function toLower (string) result (out)
+  character*(*)           :: string
+  character(len(string))  :: out
+
+function toUpper (string) result (out)
+  character*(*)           :: string
+  character(len(string))  :: out
 ```
 
 ### `progressBar()`
@@ -689,9 +768,9 @@ Writes gradual progress bar to STDOUT (on the same output line). The size of the
 *e.g. 50.0% |############------------| [message]*
 ```fortran
 subroutine progressBar (progress, size, message)
-	real, 					:: progress
-	integer, optional		:: size
-	character(*), optional	:: message
+  real,                   :: progress
+  integer, optional       :: size
+  character(*), optional  :: message
 ```
 
 <!-- ------------------------------------------------------------------------- -->
@@ -700,8 +779,8 @@ subroutine progressBar (progress, size, message)
 Calculates [simple linear regression](https://en.wikipedia.org/wiki/Simple_linear_regression) (k&middot;y+n) for array of kind real - `c=[k,n]`. Variance (optional) is returned as `d=[dk,dn]`, and R<sup>2</sup> value (optional) as `R2`.
 ```fortran
 function linest (x, y, d, R2) result(c)
-	real, 			:: x(:), y(:), c(2)
-	real, optional	:: d(2), R2
+  real,           :: x(:), y(:), c(2)
+  real, optional  :: d(2), R2
 ```
 
 <!-- ============================================== -->
