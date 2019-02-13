@@ -6,6 +6,7 @@
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
 
 #### v0.3.1 - Coming soon
+- [x] `str()` is no longer interface, but polymorphic function.  
 - [x] Added `pathname()` function.  
 - [x] Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did opposite of backup).  
 - [x] Removed unnecessary write to STDOUT in `tpl%read()`.  

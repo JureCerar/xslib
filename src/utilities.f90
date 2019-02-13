@@ -492,7 +492,7 @@ contains
 		base = basename(file)
 		ext = extension(file)
 
-		! Create 'new' name - path/to/#file.ext.1#
+		! Create 'new' name - path/to/#file.ext.n# n=1,...
 		do i = 1, 1000
 			write (temp, "(a,'#',a,'.',i0,'#')") trim(path), trim(base)//"."//trim(ext), i
 			! Check if this 'new' file exists
