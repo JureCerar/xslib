@@ -112,13 +112,15 @@ program example
 	write (*,*) frame%get_box()
 	write (*,*) frame%get_natoms()
 
-	!$OMP PARALLEL NUM_THREADS(nthreads) PRIVATE(tid, stat) FIRSTPRIVATE(frame)
+	!$OMP PARALLEL IF(.FALSE.) NUM_THREADS(nthreads) PRIVATE(tid, stat) FIRSTPRIVATE(frame)
 	!$ tid = OMP_get_thread_num()
 
 	!$OMP DO SCHEDULE (dynamic)
-	do i = 1, frame%nframes()
+	do i = 1, nframes
 		write (*,*) "Thread "//str(tid)//" reading frame: "//str(i)//"/"//str(nframes)
+		! $OMP CRITICAL
 		stat = frame%read_next()
+		! $OMP END CRITICAL
 		write (*,*) frame%coor(:,1)
 
 	end do

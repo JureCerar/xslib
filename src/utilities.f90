@@ -51,7 +51,7 @@ contains
 		return
 	end function getDistance
 
-	! Caluclates angle between three points.
+	! Calculates angle between three points.
 	function getAngle (a, b, c) result (angle)
 		implicit none
 		real, dimension(3)	:: a, b, c
@@ -76,6 +76,19 @@ contains
 
 		return
 	end function getAngle
+	
+	! Alternative calculates angle between three points.
+	function getAngle2 (a, b, c) result (angle)
+		implicit none
+		real, dimension(3)	:: a,b,c
+		real								:: angle
+		real, dimension(3)	:: u,v
+		u = a-b
+		v = c-b
+		angle = atan2(norm2(cross(u,v)),dot_product(u,v))
+		return
+	end function getAngle2
+	
 
 	! Get dihedral angle (theta) between four points
 	function getDihedral (a, b, c, d) result (dihedral)
@@ -667,6 +680,83 @@ contains
 
 		return
 	end subroutine progressBar
+
+	! Program options write template.
+	! >_switch__<typexx>__(value...)
+	! >____message...
+
+	subroutine printOpt (switch, message, type, value)
+		implicit none
+		character*(*)			:: switch
+		character*(*), optional	:: message, type
+		class(*), optional 		:: value
+		character*32			:: buffer
+
+		! Write switch
+		write (buffer,"(a)") trim(switch)
+		write (*,"(x,a6,$)") buffer
+
+		! Write type + `< >`
+		if (present(type)) then
+			write (buffer, "(3a,8x)") "<", trim(type), ">"
+		else
+			write (buffer, "(8x)")
+		end if
+		write (*,"(2x,a8,$)") buffer
+
+		! Write value based on type + `( )`
+		if (present(value)) then
+			select type (value)
+			type is (integer)
+				write (buffer,"(i0)") value
+				write (*,100) "(", trim(adjustl(buffer)), ")"
+
+			type is (integer(KIND=8))
+				write (*,100) "(", trim(adjustl(buffer)), ")"
+
+			type is (real)
+				write (buffer, "(f8.3)") value
+				write (*,100) "(", trim(adjustl(buffer)), ")"
+
+			type is (real(KIND=8))
+				write (buffer, "(f12.6)") value
+				write (*,100) "(", trim(adjustl(buffer)), ")"
+
+			type is (complex)
+				write (buffer, "(f8.3)") real(value)
+				write (*,"(2x,2a,$)") "(", trim(adjustl(buffer))
+
+				write (buffer, "(f8.3)") abs(aimag(value))
+				if (aimag(value)<0.) then
+					write (*,100) "-", trim(buffer), "i)"
+				else
+					write (*,100) "+", trim(buffer), "i)"
+				end if
+
+			type is (logical)
+				write (buffer,"(a)") "F"
+				if (value) write (buffer,"(a)") "T"
+				write (*,100) "(", trim(adjustl(buffer)), ")"
+
+			type is (character*(*))
+				write (*,100) "(", trim(value), ")"
+
+			class default
+				write (*,"(a,$)") "(????)"
+
+			end select
+		end if
+
+		100 format (2x,3a,$)
+
+		! write end of line
+		write (*,"(x)")
+
+		! Write message if present
+		if (present(message)) write (*,"(6x,a)") trim(message)
+
+		return
+	end subroutine printOpt
 
 	! =======================================================
 	! REGRESION OPERATIONS

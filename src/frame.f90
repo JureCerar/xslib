@@ -19,7 +19,7 @@ module xslib_frame
 		procedure			:: close => close_frame
 		procedure			:: nframes => nframes_frame
 		procedure			:: get_natoms => get_natoms_frame
-		procedure			:: get_Box => get_box_frame
+		procedure			:: get_box => get_box_frame
 	end type frame_file
 
 	! Hidden information

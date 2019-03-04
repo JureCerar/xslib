@@ -1,16 +1,20 @@
 # Changelog
 
 #### To-do:
+- [ ] Pack everything into SINGLE module (for easier usage). 
 - [ ] Finish writing API documentation.
 - [ ] Return multi-file functionality to `frame_file` in more "graceful" manner.
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
+- [ ] Add `tpl2ndx()` as part of standard procedures.
 
 #### v0.3.1 - Coming soon
 - [x] `str()` is no longer interface, but polymorphic function.  
+- [x] `str()` can now handle arrays.  
 - [x] Added `pathname()` function.  
-- [x] Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did opposite of backup).  
+- [x] Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did the opposite of backup).  
 - [x] Removed unnecessary write to STDOUT in `tpl%read()`.  
-- [ ] Check if it works.
+- [x] Bug-fixes in `str_ARRAY()`
+- [x] Added alternative - `getAngle2()`
 
 #### v0.3.0 - 03.02.2019:
 - Added to GitHub.  

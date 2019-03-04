@@ -1,10 +1,9 @@
 module xslib_common
 	implicit none
 
-	! LEGACY CODE:
-	! interface str
-	! 	module procedure :: itoa, i8toa, ftoa, f8toa, ctoa, btoa
-	! end interface
+	interface str
+		module procedure :: str_SCALAR, str_ARRAY
+	end interface
 
 	interface errorHandling
 		module procedure :: error
@@ -48,78 +47,132 @@ contains
 
 	! -------------------------------------------------
 
-	! Trnasforms scalar of any kind to character of shorter possible lenght.
-	recursive function str (value, fmt) result (string)
+	! Trnasforms scalar of any kind to character.
+	recursive function str_SCALAR (scalar, fmt) result (string)
 		implicit none
-		class(*)					:: value
+		class(*)					:: scalar
 		character*(*), optional		:: fmt
 		character*(:), allocatable	:: string
-		character*32				:: deffmt, buffer
 
 		! Act according to the type of variable
-		select type (value)
+		select type (scalar)
 		type is (integer)
-			! Default format
-			deffmt = "(i0)"
-			! Overide format if externally defined
-			if (present(fmt)) deffmt = fmt
-			! Write to buffer
-			write (buffer, deffmt) value
-			! Write buffer back to result
-			string = trim(adjustl(buffer))
+			allocate (character*32::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
+			else
+				write (string, "(i0)") scalar
+			end if
+			string = trim(adjustl(string))
 
 		type is (integer(KIND=8))
-			deffmt = "(i0)"
-			if (present(fmt)) deffmt = fmt
-			write (buffer, deffmt) value
-			string = trim(adjustl(buffer))
+			allocate (character*64::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
+			else
+				write (string, "(i0)") scalar
+			end if
+			string = trim(adjustl(string))
 
 		type is (real)
-			deffmt = "(f0.3)"
-			if (present(fmt)) deffmt = fmt
-			write (buffer, deffmt) value
-			string = trim(adjustl(buffer))
+			allocate (character*32::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
+			else
+				write (string, *) scalar
+			end if
+			string = trim(adjustl(string))
 
 		type is (real(KIND=8))
-			deffmt = "(f0.6)"
-			if (present(fmt)) deffmt = fmt
-			write (buffer, deffmt) value
-			string = trim(adjustl(buffer))
+			allocate (character*64::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
+			else
+				write (string, *) scalar
+			end if
+			string = trim(adjustl(string))
 
 		type is (complex)
-			deffmt = "(f0.3)"
-			if (present(fmt)) deffmt = fmt
-
-			if (aimag(value) > 0) then
-				write (buffer, *) str(real(value), FMT=deffmt)//"+"// &
-				str(aimag(value), FMT=deffmt)//"i"
+			allocate (character*64::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
 			else
-				write (buffer, *) str(real(value), FMT=deffmt)//"-"// &
-				str(abs(aimag(value)), FMT=deffmt)//"i"
+				if (aimag(scalar)>0.) then
+					write (string, "(a)") str(real(scalar))//"+"//str(aimag(scalar))//"i"
+				else
+					write (string, "(a)") str(real(scalar))//"-"//str(abs(aimag(scalar)))//"i"
+				end if
 			end if
-			string = trim(adjustl(buffer))
+			string = trim(adjustl(string))
+
+		type is (complex(KIND=8))
+			allocate (character*128::string)
+			if (present(fmt)) then
+				write (string, fmt) scalar
+			else
+				if (aimag(scalar)>0.) then
+					write (string, "(a)") str(real(scalar))//"+"//str(aimag(scalar))//"i"
+				else
+					write (string, "(a)") str(real(scalar))//"-"//str(abs(aimag(scalar)))//"i"
+				end if
+			end if
+			string = trim(adjustl(string))
 
 		type is (logical)
-			if (value) then
-				string = "T"
+			allocate (character*1::string)
+			if (scalar) then
+				string="T"
 			else
-				string = "F"
+				string="F"
 			end if
 
 		type is (character*(*))
-			string = trim(adjustl(value))
+			string = trim(adjustl(scalar))
 
 		class default
 			! Can't have everything
-			! buffer = "???"
 			string = "???"
 
 		end select
 
-		! string = trim(adjustl(buffer))
+		return
+	end function str_SCALAR
+
+	! Trnasforms array of any kind to character.
+	recursive function str_ARRAY (array, fmt, delimiter) result (string)
+		implicit none
+		class(*)										:: array(:)
+		character*(*), optional			:: fmt, delimiter
+		character*(:), allocatable	:: string
+		integer											:: i
+		! Initialize
+		string=""
+		if (present(delimiter)) then
+			if (present(fmt)) then
+				string=str(array(1),FMT=fmt)
+				do i = 2, size(array)
+					string=string//delimiter//str(array(i),FMT=fmt)
+				end do
+				string=trim(adjustl(string))
+			else
+				string=str(array(1))
+				do i = 2, size(array)
+					string=string//delimiter//str(array(i))
+				end do
+				string=trim(adjustl(string))
+			end if
+
+		else
+			if (present(fmt)) then
+				string = str_ARRAY(array, FMT=fmt, DELIMITER=" ")
+			else
+				string = str_ARRAY(array, DELIMITER=" ")
+			end if
+
+		end if
 
 		return
-	end function str
+	end function str_ARRAY
 
 	! -------------------------------------------------
 	! Individual transformations for Integer, Real, Complex and logical to string

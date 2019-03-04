@@ -128,8 +128,28 @@ program example
 	string="THIS is FOO bar."
 	write (*,*) trim(string), " -> ", toUpper(string)
 	write (*,*) trim(string), " -> ", toLower(string)
+	
+	! ======================================
+	
+	! Different combos
+	call printOpt ("-a")
+	call printOpt ("-b", "Argument.")
+	call printOpt ("-c", "Argument.", TYPE="int")
+	call printOpt ("-d", "Argument.", TYPE="int", VALUE=1)
+	call printOpt ("-e", "Argument.", VALUE=1)
+	call printOpt ("-f", VALUE=1)
+	call printOpt ("-g", TYPE="int", VALUE=1)
+	! What if argument is too long
+	call printOpt ("1234567890", "123456789012345678901234567890", TYPE="1234567890", VALUE="12345678901234567890")
+	! Different types
+	call printOpt ("-x", TYPE="int", VALUE=1)
+	call printOpt ("-x", TYPE="real", VALUE=1.)
+	call printOpt ("-x", TYPE="double", VALUE=1.0d0)
+	call printOpt ("-x", TYPE="bool", VALUE=.true.)
+	call printOpt ("-x", TYPE="char", VALUE="abcd")
 
 	! ======================================
+	
 	int = 10*1000
 	do i = 0, int
 		float = real(i)/int
