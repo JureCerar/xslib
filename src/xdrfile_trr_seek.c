@@ -20,7 +20,7 @@
 
 #include "xdrfile.h"
 #include "xdrfile_trr.h"
-#include "trr_seek.h"
+#include "xdrfile_trr_seek.h"
 
 int read_trr_n_frames(char *fn, int *n_frames, int *est_nframes,
                       int64_t **offsets) {

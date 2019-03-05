@@ -16,7 +16,7 @@
 
 #include "xdrfile.h"
 #include "xdrfile_xtc.h"
-#include "xtc_seek.h"
+#include "xdrfile_xtc_seek.h"
 #include <stdio.h>
 #include <stdlib.h>
 
