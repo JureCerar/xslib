@@ -1,20 +1,23 @@
 # Changelog
 
 #### To-do:
-- [ ] Pack everything into SINGLE module (for easier usage). 
+- [ ] Pack everything into SINGLE module (for easier usage).
 - [ ] Finish writing API documentation.
 - [ ] Return multi-file functionality to `frame_file` in more "graceful" manner.
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
 - [ ] Add `tpl2ndx()` as part of standard procedures.
+- [ ] Fix `str_ARRAY()` to properly work on composite array.
 
-#### v0.3.1 - Coming soon
-- [x] `str()` is no longer interface, but polymorphic function.  
-- [x] `str()` can now handle arrays.  
-- [x] Added `pathname()` function.  
-- [x] Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did the opposite of backup).  
-- [x] Removed unnecessary write to STDOUT in `tpl%read()`.  
-- [x] Bug-fixes in `str_ARRAY()`
-- [x] Added alternative - `getAngle2()`
+#### v0.3.1 - TBA
+- `str()` is no longer interface, but polymorphic function.  
+- `str()` can now handle arrays (very crudely).  
+- Added `pathname()` function.  
+- Fixed bug where `backup()` function would not work correctly if full path was passed (basically it did the opposite of backup).  
+- `frame_file` is now a polymorphic.
+- Bug-fixes in `str_ARRAY()`
+- Added alternative (more stable) `getAngle2()`.  
+- **IMPORTANT:** Fixed xdrfile dependency flaw in CMake.
+- Changed file names to *xslib_<name\>.f90* and *xdrlib_<name\>.c* .  
 
 #### v0.3.0 - 03.02.2019:
 - Added to GitHub.  
