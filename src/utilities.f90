@@ -42,7 +42,7 @@ contains
 	function getDistance (a, b) result (distance)
 		implicit none
 		real, dimension(3)	:: a, b
-		real				:: distance
+		real								:: distance
 
 		! distance = sqrt(dot_product(a,b))
 		! distance = norm2(a-b)
@@ -55,8 +55,8 @@ contains
 	function getAngle (a, b, c) result (angle)
 		implicit none
 		real, dimension(3)	:: a, b, c
-		real				:: l1, l2
-		real				:: angle
+		real								:: l1, l2
+		real								:: angle
 		real, dimension(3)	:: r1, r2
 
 		!     a
@@ -76,7 +76,7 @@ contains
 
 		return
 	end function getAngle
-	
+
 	! Alternative calculates angle between three points.
 	function getAngle2 (a, b, c) result (angle)
 		implicit none
@@ -88,15 +88,15 @@ contains
 		angle = atan2(norm2(cross(u,v)),dot_product(u,v))
 		return
 	end function getAngle2
-	
+
 
 	! Get dihedral angle (theta) between four points
 	function getDihedral (a, b, c, d) result (dihedral)
 		implicit none
 		real, dimension(3)	:: a, b, c, d
-		real 				:: dihedral
+		real 								:: dihedral
 		real, dimension(3)	:: b1, b2, b3, n1, n2, n3
-		real				:: x, y
+		real								:: x, y
 
 		!	a		  d
 		!	 \		 /
@@ -178,7 +178,7 @@ contains
 	! Spherical to cartesian: (r, theta phi)-> (x, y, z)
 	function sph2crt (sph) result (crt)
 		implicit none
-		real	sph(3)
+		real	:: sph(3)
 		real	:: crt(3)
 		! x = r*sin(theta)*cos(phi)
 		crt(1) = sph(1)*sin(sph(2))*cos(sph(3))
@@ -228,7 +228,7 @@ contains
 	function timeStamp () result (string)
 		implicit none
 		character*19	:: string
-		integer			:: time(8)
+		integer				:: time(8)
 
 		call date_and_time (VALUES=time)
 		write (string, 200) time(5:7),time(3),time(2),time(1)
@@ -254,8 +254,8 @@ contains
 		! 1 day 18 hours 53 minutes 43 seconds 128 millsec = 154423128 millisec
 		implicit none
 		integer, intent(in)	:: time 	!milisec
-		character*16		:: string
-		integer				:: days, hours, min, sec, msec
+		character*16				:: string
+		integer							:: days, hours, min, sec, msec
 
 		days 	= int(time/86400000)
 		hours 	= int(mod(time/3600000,24))
@@ -277,9 +277,9 @@ contains
 		! 1 day 18 hours 53 minutes 43 seconds 128 millsec = 154423.128 sec
 		implicit none
 		real*8, intent(in)	:: time 	!seconds
-		real 				:: itime
-		character*16		:: string
-		integer				:: days, hours, min, sec, msec
+		real 								:: itime
+		character*16				:: string
+		integer							:: days, hours, min, sec, msec
 
 		itime = real(time, KIND=4)
 
@@ -308,10 +308,10 @@ contains
 	! On-line variance calculation for sigle real value.
 	subroutine variance_REAL (val, mean, var, n)
 		implicit none
-		real, intent(in)	:: val
+		real, intent(in)		:: val
 		real, intent(inout)	:: mean, var
 		integer, intent(in) :: n
-		real :: delta
+		real 								:: delta
 		delta = val-mean
 		mean = mean+delta/real(n)
 		var = var+delta*(val-mean)
@@ -321,10 +321,10 @@ contains
 	! On-line variance calculation for real array.
 	subroutine variance_ARRAY (val, mean, var, n)
 		implicit none
-		real, intent(in)	:: val(:)
+		real, intent(in)		:: val(:)
 		real, intent(inout)	:: mean(:), var(:)
 		integer, intent(in) :: n
-		integer :: i, np
+		integer 						:: i, np
 		do i = 1, size(val)
 			call variance_REAL(val(i), mean(i), var(i), n)
 		end do
@@ -350,7 +350,7 @@ contains
 		real*8, intent(in)		:: val(:)
 		real*8, intent(inout)	:: mean(:), var(:)
 		integer, intent(in) 	:: n
-		integer 				:: i
+		integer 							:: i
 		do i = 1, size(val)
 			call variance_REAL8(val(i), mean(i), var(i), n)
 		end do
@@ -363,9 +363,9 @@ contains
 	! Returns basename of file. Eg. "/path/to/file.txt" = "file"
 	function basename (file) result (base)
 		implicit none
-		character*(*)				:: file
+		character*(*)								:: file
 		character*(:), allocatable	:: base
-		integer						:: m, n
+		integer											:: m, n
 
 		! Find "/" symbol
 		m = index(file, "/", BACK=.true.)
@@ -385,9 +385,9 @@ contains
 	! TODO: Add feature to ignore "/" if preceded by "\"
 	function pathname (file) result (path)
 		implicit none
-		character*(*)				:: file
+		character*(*)								:: file
 		character*(:), allocatable	:: path
-		integer						:: n
+		integer											:: n
 
 		! Find "/" symbol
 		n = index(file, "/", BACK=.true.)
@@ -405,9 +405,9 @@ contains
 	! Returns extension of file. Eg. "/path/to/file.txt" = "txt"
 	function extension (file) result (ext)
 		implicit none
-		character*(*)				:: file
+		character*(*)								:: file
 		character*(:), allocatable	:: ext
-		integer						:: n
+		integer											:: n
 
 		n = index(file, ".", BACK=.true.)
 		if (n == 0) then
@@ -425,9 +425,8 @@ contains
 		character*(*), intent(in)	:: string
 		character*(*), intent(in)	:: cmt
 		character*(len(string))		:: res
-
-		character*32				:: fmt
-		integer 					:: i
+		character*32							:: fmt
+		integer 									:: i
 
 		i = index(string, cmt)
 
@@ -452,11 +451,11 @@ contains
 	! Retuns next free available file name. Eg. "out.txt" = "out.1.txt"
 	function nextFreeName (string) result (res)
 		implicit none
-		character*(*) 				:: string
-		character(:), allocatable	:: res
+		character*(*) 							:: string
+		character(:), allocatable		:: res
 		character*(len(string)+11)	:: tmp, base, ext
-		logical 					:: exists
-		integer						:: i
+		logical 										:: exists
+		integer											:: i
 
 		! initialize
 		res=""
@@ -492,9 +491,9 @@ contains
 		use iso_fortran_env
 		implicit none
 		character*(*), intent(in)	:: file
-		character*512				:: temp, path, base, ext
-		logical						:: exist
-		integer						:: i
+		character*512							:: temp, path, base, ext
+		logical										:: exist
+		integer										:: i
 
 		! Check if file exists
 		inquire (FILE=trim(file), EXIST=exist)
@@ -511,7 +510,7 @@ contains
 			! Check if this 'new' file exists
 			inquire (FILE=trim(temp), EXIST=exist)
 			if (.not. exist) then
-				write (error_unit, "(a)") "File '"//trim(file)//"' already exists. Backing it up as: '"//trim(temp)//"'"
+				write (error_unit, "(x,a)") "File '"//trim(file)//"' already exists. Backing it up as: '"//trim(temp)//"'"
 				call rename (trim(file), trim(temp))
 				return
 
@@ -525,7 +524,7 @@ contains
 	logical function isEmpty (string)
 		implicit none
 		character*(*)	:: string
-		integer			:: n
+		integer				:: n
 
 		if (verify(trim(string), " 	")==0) then
 			isEmpty = .true.
@@ -557,7 +556,7 @@ contains
 	! Replace "text" with "rep" within string
 	function replaceText (string, text, rep) result (out)
 		implicit none
-		character(*)			:: string, text, rep
+		character(*)						:: string, text, rep
 		character(len(string))	:: out
 
 		integer	:: i, n
@@ -578,9 +577,9 @@ contains
 	! Transforms TAB to 4*SPACE
 	function tab2space (string) result(out)
 		implicit none
-		character(*)			:: string
+		character(*)						:: string
 		character(len(string))	:: out
-		integer	:: i, n
+		integer									:: i, n
 
 		out = trim(string)
 		n = len(out)
@@ -594,11 +593,11 @@ contains
 
 	! Return string in all lower case.
 	function toLower (string) result(res)
-		character(*) 			:: string
+		character(*) 						:: string
 		character(len(string))	:: res
-		integer, parameter	:: offset=ichar("a")-ichar("A")
-		integer				:: i
-		character*1			:: chr
+		integer, parameter			:: offset=ichar("a")-ichar("A")
+		integer									:: i
+		character*1							:: chr
 
 		! Initialize
 		res=string
@@ -615,11 +614,11 @@ contains
 
 	! Returns string in all upper case
 	function toUpper (string) result(res)
-		character(*) 			:: string
+		character(*) 						:: string
 		character(len(string))	:: res
-		integer, parameter	:: offset=ichar("a")-ichar("A")
-		integer				:: i
-		character*1			:: chr
+		integer, parameter			:: offset=ichar("a")-ichar("A")
+		integer									:: i
+		character*1							:: chr
 
 		! initialize
 		res=string
@@ -639,8 +638,8 @@ contains
 	! NOTE: Write to output is "forbiden" until progress reaches 1.0; Use "MESSAGE"
 	subroutine progressBar (progress, size, message)
 		implicit none
-		real, intent(in)					:: progress ! Progres real in rage 0.0 - 1.0
-		integer, optional, intent(in)		:: size		! Size of the progress bar
+		real, intent(in)										:: progress ! Progres real in rage 0.0 - 1.0
+		integer, optional, intent(in)				:: size		! Size of the progress bar
 		character(*), intent(in), optional	:: message	! Adittiona message to be printed
 
 		integer			:: i, n, s
@@ -687,10 +686,10 @@ contains
 
 	subroutine printOpt (switch, message, type, value)
 		implicit none
-		character*(*)			:: switch
+		character*(*)						:: switch
 		character*(*), optional	:: message, type
-		class(*), optional 		:: value
-		character*32			:: buffer
+		class(*), optional 			:: value
+		character*32						:: buffer
 
 		! Write switch
 		write (buffer,"(a)") trim(switch)
@@ -764,12 +763,12 @@ contains
 	! Returns simple linear regresion (SLR) of x,y as C(:) = [k,n]
 	function linest (x, y, d, R2) result (c)
 		implicit none
-		real, intent(in)			:: x(:), y(:)
+		real, intent(in)						:: x(:), y(:)
 		real, intent(out), optional	:: d(2), R2
-		real						:: c(2)
+		real												:: c(2)
 		! internal
-		real :: np, AveX, AveY
-		real :: Sxx, Syy, Sxy
+		real 												:: np, AveX, AveY
+		real 												:: Sxx, Syy, Sxy
 
 		! Initialize
 		c = 0.

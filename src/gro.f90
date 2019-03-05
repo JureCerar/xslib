@@ -6,13 +6,13 @@ module xslib_gro
 
 	! .GRO file format
 	type gro_frame
-		character*512				:: title=""
-		real						:: time=0.0
-		integer						:: natoms=0
-		real						:: box(3)=[0.,0.,0.]
-		integer, allocatable		:: res_num(:), atom_num(:)
+		character*512							:: title=""
+		real											:: time=0.0
+		integer										:: natoms=0
+		real											:: box(3)=[0.,0.,0.]
+		integer, allocatable			:: res_num(:), atom_num(:)
 		character*5, allocatable	:: res_name(:), atom_name(:)
-		real, allocatable			:: coor(:,:), vel(:,:)
+		real, allocatable					:: coor(:,:), vel(:,:)
 	contains
 		procedure	:: allocate => allocate_gro_frame
 		procedure	:: deallocate => deallocate_gro_frame
@@ -21,32 +21,29 @@ module xslib_gro
 
 
 	type gro_file
-		integer, private				:: unit
-		integer							:: nframes, framesLeft
+		integer, private							:: unit
+		integer												:: nframes, framesLeft
 		type(gro_frame), allocatable	:: frameArray(:)
 	contains
 		procedure	:: open => open_gro
 		procedure	:: close => close_gro
-		procedure 	:: allocate => allocate_gro
+		procedure	:: allocate => allocate_gro
 		procedure	:: read_next => read_next_gro
 		procedure	:: read => read_gro
 		procedure	:: write => write_gro
 		procedure	:: natoms => natoms_gro
 		procedure	:: box => box_gro
-		!
-		! procedure	:: renumber => renumber_gro
-		! procedure	:: add => add_gro
 	end type gro_file
 
 contains
 
 	! Allocate .GRO file.; if np = 0 only deallocate
 	subroutine allocate_gro_frame (this, np, onlycoor, initialize)
-		class(gro_frame)	:: this	! .GRO data file
+		class(gro_frame)		:: this	! .GRO data file
 		integer, intent(in)	:: np	! Number of points to allocate
 		class(*), optional	:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
-		integer				:: stat
-		character*128		:: message
+		integer							:: stat
+		character*128				:: message
 
 		! Error check
 		if (np < 0) then
@@ -79,14 +76,15 @@ contains
 	! Deallocate and allocate .GRO file.
 	subroutine deallocate_gro_frame (this)
 		class(gro_frame)	:: this	! .GRO data file
-		integer				:: stat
+		integer						:: stat
 
 		this%natoms = 0
 		stat = 0
 
 		if (allocated(this%coor)) deallocate(this%coor, STAT=stat)
 		if (allocated(this%res_num)) deallocate( this%res_num, this%res_name, this%atom_name, &
-										this%atom_num, this%coor, this%vel, STAT=stat)
+		  																		 & this%atom_num, this%coor, this%vel, STAT=stat)
+
 		return
 	end subroutine deallocate_gro_frame
 
@@ -94,7 +92,7 @@ contains
 	subroutine initialize_gro_frame (this)
 		implicit none
 		class(gro_frame)	:: this	! .GRO data
-		integer				:: i, stat	! 0 = ok, 1 = memory not allocated
+		integer						:: i, stat	! 0 = ok, 1 = memory not allocated
 
 		! Initialize
 		stat = 0
@@ -129,25 +127,24 @@ contains
 	! Open .gro file
 	subroutine open_gro (this, file)
 		implicit none
-		class(gro_file)				:: this
+		class(gro_file)						:: this
 		character*(*), intent(in)	:: file
 		! Internal
-		integer			:: i, np, stat
-		character*3		:: dmy
+		integer										:: i, np, stat
 
 		! Open file
 		open (NEWUNIT=this%unit, FILE=trim(file), STATUS="old", IOSTAT=stat)
-			if (stat /= 0) call error ("Cannot open file: '"//trim(file)//"'", NAME="gro%open()")
+		if (stat /= 0) call error ("Cannot open file: '"//trim(file)//"'", NAME="gro%open()")
 
 		! Count number of frames as occurance of END until EOF
 		this%nframes = 0
 		do while (stat == 0)
-			read (this%unit, "(a)", END=100) dmy ! Title
+			read (this%unit, *, END=100) ! Title
 			read (this%unit, *, END=100) np	 ! number of particles
 			! If we go this far another frame must exist
 			this%nframes = this%nframes+1
 			do i = 1, np+1 ! + last line is box size
-				read (this%unit, "(a)", END=200) ! dummy read
+				read (this%unit, *, END=200) ! dummy read
 			end do
 
 		end do
@@ -166,7 +163,7 @@ contains
 	subroutine close_gro (this)
 		implicit none
 		class(gro_file)	:: this
-		integer			:: stat
+		integer					:: stat
 		close (this%unit, IOSTAT=stat)
 		return
 	end subroutine close_gro
@@ -174,9 +171,9 @@ contains
 	! Allocate frameArray of GRO object file
 	subroutine allocate_gro (this, np)
 		implicit none
-		class(gro_file)		:: this
-		integer				:: np
-		integer 			:: stat
+		class(gro_file)	:: this
+		integer					:: np
+		integer 				:: stat
 		character*128		:: message
 
 		if (np < 0) then
@@ -198,13 +195,13 @@ contains
 	! Read multiple frames.
 	function read_next_gro (this, nframes, onlycoor) result (framesRead)
 		implicit none
-		class(gro_file)					:: this		! .GRO data file
+		class(gro_file)								:: this		! .GRO data file
 		integer, intent(in), optional	:: nframes	! how many frames to read
-		class(*), optional				:: onlycoor	! if present read only coordinates
-		integer							:: framesRead
-		integer							:: i, n, np, ok, stat, line
-		logical							:: opened, coor
-		character*128					:: message
+		class(*), optional						:: onlycoor	! if present read only coordinates
+		integer												:: framesRead
+		integer												:: i, n, np, ok, stat, line
+		logical												:: opened, coor
+		character*128									:: message
 
 		! If number of frames in not defined read only one frame
 		np = 1
@@ -291,8 +288,8 @@ contains
 	subroutine read_gro (this, file)
 		implicit none
 		class(gro_file)	:: this
-		character*(*)	:: file
-		integer			:: stat
+		character*(*)		:: file
+		integer					:: stat
 
 		call this%open(file)
 		stat = this%read_next(this%nframes)
@@ -305,11 +302,11 @@ contains
 	subroutine write_gro (this, unit, file)
 		use iso_fortran_env
 		implicit none
-		class(gro_file)			:: this		! .GRO data file
-		integer, optional		:: unit		! File UNIT id
+		class(gro_file)					:: this		! .GRO data file
+		integer, optional				:: unit		! File UNIT id
 		character*(*), optional	:: file
-		integer					:: i, n, u, stat
-		logical					:: opened, vel
+		integer									:: i, n, u, stat
+		logical									:: opened, vel
 
 		! Check if fully allocated
 		if (.not. allocated(this%frameArray)) call error ("Data not allocated.", NAME="gro%write()")
@@ -378,10 +375,10 @@ contains
 	! Return Box size from file
 	function box_gro (this) result (box)
 		implicit none
-		class(gro_file)		:: this
-		real				:: box(3)
-		logical				:: opened
-		integer				:: i, np
+		class(gro_file)	:: this
+		real						:: box(3)
+		logical					:: opened
+		integer					:: i, np
 
 		! Return ERROR if file is not opened
 		inquire (UNIT=this%unit, OPENED=opened)
@@ -412,10 +409,10 @@ contains
 	! Return Number of atoms present in file
 	function natoms_gro (this) result (natoms)
 		implicit none
-		class(gro_file)		:: this
-		integer				:: natoms
-		logical				:: opened
-		integer				:: i, np
+		class(gro_file)	:: this
+		integer					:: natoms
+		logical					:: opened
+		integer					:: i, np
 
 		! Return ERROR if file is not opened
 		inquire (UNIT=this%unit, OPENED=opened)
@@ -436,46 +433,46 @@ contains
 		return
 	end function natoms_gro
 
-	! Re-numbers .GRO format that is out of sequence
-	subroutine renumber_gro (this)
-		implicit none
-		class(gro_file)	:: this
-		integer			:: i, n, atom_cnt, res_cnt, compare
-
-		do n = 1, size(this%frameArray(:))
-			! Initialize
-			atom_cnt = 1
-			res_cnt = 1
-
-			! Create initial compare from first entry
-			compare = this%frameArray(n)%res_num(1)
-
-			do i = 1, this%frameArray(n)%natoms
-				! Renumber residue
-				if (this%frameArray(n)%res_num(i) == compare) then
-					! If same resnum as previous atom
-					this%frameArray(n)%res_num(i) = res_cnt
-
-				else
-					! If not from same residue as previous atoms, move counter
-					compare = this%frameArray(n)%res_num(i)
-					res_cnt = res_cnt+1
-					if (res_cnt >= int(1e5)) res_cnt = 1 ! Counter limit
-
-					this%frameArray(n)%res_num(i) = res_cnt
-
-				end if
-
-				! Renumber atoms
-				this%frameArray(n)%atom_num(i) = atom_cnt
-				atom_cnt = atom_cnt+1
-				if (atom_cnt >= int(1e5)) atom_cnt = 1	! Counter limit
-
-			end do
-		end do
-
-		return
-	end subroutine renumber_gro
+	! ! Re-numbers .GRO format that is out of sequence
+	! subroutine renumber_gro (this)
+	! 	implicit none
+	! 	class(gro_file)	:: this
+	! 	integer					:: i, n, atom_cnt, res_cnt, compare
+	!
+	! 	do n = 1, size(this%frameArray(:))
+	! 		! Initialize
+	! 		atom_cnt = 1
+	! 		res_cnt = 1
+	!
+	! 		! Create initial compare from first entry
+	! 		compare = this%frameArray(n)%res_num(1)
+	!
+	! 		do i = 1, this%frameArray(n)%natoms
+	! 			! Renumber residue
+	! 			if (this%frameArray(n)%res_num(i) == compare) then
+	! 				! If same resnum as previous atom
+	! 				this%frameArray(n)%res_num(i) = res_cnt
+	!
+	! 			else
+	! 				! If not from same residue as previous atoms, move counter
+	! 				compare = this%frameArray(n)%res_num(i)
+	! 				res_cnt = res_cnt+1
+	! 				if (res_cnt >= int(1e5)) res_cnt = 1 ! Counter limit
+	!
+	! 				this%frameArray(n)%res_num(i) = res_cnt
+	!
+	! 			end if
+	!
+	! 			! Renumber atoms
+	! 			this%frameArray(n)%atom_num(i) = atom_cnt
+	! 			atom_cnt = atom_cnt+1
+	! 			if (atom_cnt >= int(1e5)) atom_cnt = 1	! Counter limit
+	!
+	! 		end do
+	! 	end do
+	!
+	! 	return
+	! end subroutine renumber_gro
 
 	! Append GRO data file to existing GRO data
 	! subroutine add_gro (gro, add, err, msg)

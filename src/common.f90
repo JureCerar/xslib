@@ -11,12 +11,11 @@ module xslib_common
 
 contains
 
-	! Write error message to errout and terminate the program.
-	! <name> ERROR: <message>
+	! Write error message to errout and terminate the program: <name> ERROR: <message>
 	subroutine error (message, name)
-		use, intrinsic	:: iso_fortran_env
+		use, intrinsic :: iso_fortran_env
 		implicit none
-		character*(*), intent(in)			:: message
+		character*(*), intent(in)						:: message
 		character*(*), optional, intent(in)	:: name
 
 		if (present(name)) then
@@ -28,12 +27,11 @@ contains
 		call exit (1)
 	end subroutine error
 
-	! Write warning (but does not terminate) message to errout.
-	! <name> WARNING: <message>
+	! Write warning (but does not terminate) message to errout : <name> WARNING: <message>
 	subroutine warning (message, name)
-		use, intrinsic	:: iso_fortran_env
+		use, intrinsic :: iso_fortran_env
 		implicit none
-		character*(*), intent(in)			:: message
+		character*(*), intent(in)						:: message
 		character*(*), optional, intent(in)	:: name
 
 		if (present(name)) then
@@ -50,14 +48,14 @@ contains
 	! Trnasforms scalar of any kind to character.
 	recursive function str_SCALAR (scalar, fmt) result (string)
 		implicit none
-		class(*)					:: scalar
-		character*(*), optional		:: fmt
+		class(*)										:: scalar
+		character*(*), optional			:: fmt
 		character*(:), allocatable	:: string
 
 		! Act according to the type of variable
 		select type (scalar)
 		type is (integer)
-			allocate (character*32::string)
+			allocate (character*32 :: string)
 			if (present(fmt)) then
 				write (string, fmt) scalar
 			else
@@ -66,7 +64,7 @@ contains
 			string = trim(adjustl(string))
 
 		type is (integer(KIND=8))
-			allocate (character*64::string)
+			allocate (character*64 :: string)
 			if (present(fmt)) then
 				write (string, fmt) scalar
 			else
@@ -75,7 +73,7 @@ contains
 			string = trim(adjustl(string))
 
 		type is (real)
-			allocate (character*32::string)
+			allocate (character*32 :: string)
 			if (present(fmt)) then
 				write (string, fmt) scalar
 			else
@@ -84,7 +82,7 @@ contains
 			string = trim(adjustl(string))
 
 		type is (real(KIND=8))
-			allocate (character*64::string)
+			allocate (character*64 :: string)
 			if (present(fmt)) then
 				write (string, fmt) scalar
 			else
@@ -106,7 +104,7 @@ contains
 			string = trim(adjustl(string))
 
 		type is (complex(KIND=8))
-			allocate (character*128::string)
+			allocate (character*128 :: string)
 			if (present(fmt)) then
 				write (string, fmt) scalar
 			else
@@ -119,7 +117,7 @@ contains
 			string = trim(adjustl(string))
 
 		type is (logical)
-			allocate (character*1::string)
+			allocate (character*1 :: string)
 			if (scalar) then
 				string="T"
 			else
@@ -177,17 +175,20 @@ contains
 	! -------------------------------------------------
 	! Individual transformations for Integer, Real, Complex and logical to string
 
-	! Integer to character, in "fmt" format (optional).
+
 	function itoa (int, fmt) result (string)
-		character*(:), allocatable			:: string
-		integer, intent(in)					:: int
+		! Integer to character, in "fmt" format (optional).
+		character*(:), allocatable					:: string
+		integer, intent(in)									:: int
 		character*(*), intent(in), optional	:: fmt
-		character*32						:: tmp, ifmt
+		character*32												:: tmp
 
-		ifmt = "(i0)" ! Default format
-		if (present(fmt)) ifmt = fmt
+		if (present(fmt)) then
+			write (tmp, fmt) int
+		else
+			write (tmp, "(i0)") int
+		end if
 
-		write (tmp, ifmt) int
 		string = trim(adjustl(tmp))
 
 		return
@@ -195,15 +196,18 @@ contains
 
 	! Integer*8 to character, in "fmt" format (optional).
 	function i8toa (int, fmt) result (string)
-		character*(:), allocatable			:: string
-		integer*8, intent(in)				:: int
+		implicit none
+		character*(:), allocatable					:: string
+		integer*8, intent(in)								:: int
 		character*(*), intent(in), optional	:: fmt
-		character*32						:: tmp, ifmt
+		character*32												:: tmp
 
-		ifmt = "(i0)" ! Default format
-		if (present(fmt)) ifmt = fmt
+		if (present(fmt)) then
+			write (tmp, fmt) int
+		else
+			write (tmp, "(i0)") int
+		end if
 
-		write (tmp, ifmt) int
 		string = trim(adjustl(tmp))
 
 		return
@@ -211,16 +215,18 @@ contains
 
 	! Real to character, in "fmt" format (optional).
 	function ftoa (float, fmt) result (string)
-		! Real to character
-		character*(:), allocatable			:: string
-		real, intent(in)					:: float
+		implicit none
+		character*(:), allocatable					:: string
+		real, intent(in)										:: float
 		character*(*), intent(in), optional	:: fmt
-		character*32						:: tmp, ifmt
+		character*32												:: tmp
 
-		ifmt = "(f0.3)"
-		if (present(fmt)) ifmt = fmt
+		if (present(fmt)) then
+			write (tmp, fmt) float
+		else
+			write (tmp, "(f0.3)") float
+		end if
 
-		write (tmp, ifmt) float
 		string = trim(adjustl(tmp))
 
 		return
@@ -228,16 +234,18 @@ contains
 
 	! Real to character, in "fmt" format (optional).
 	function f8toa (float, fmt) result (string)
-		! Real to character
-		character*(:), allocatable			:: string
-		real*8, intent(in)					:: float
+		implicit none
+		character*(:), allocatable					:: string
+		real*8, intent(in)									:: float
 		character*(*), intent(in), optional	:: fmt
-		character*32						:: tmp, ifmt
+		character*32												:: tmp, ifmt
 
-		ifmt = "(f0.6)"
-		if (present(fmt)) ifmt = fmt
+		if (present(fmt)) then
+			write (tmp, fmt) float
+		else
+			write (tmp, "(f0.6)") float
+		end if
 
-		write (tmp, ifmt) float
 		string = trim(adjustl(tmp))
 
 		return
@@ -246,10 +254,10 @@ contains
 	function ctoa (imag,fmt) result (string)
 		implicit none
 		! Real to character
-		character*(:), allocatable			:: string
-		complex, intent(in)					:: imag
+		character*(:), allocatable					:: string
+		complex, intent(in)									:: imag
 		character*(*), intent(in), optional	:: fmt
-		character*32						:: tmp, ifmt
+		character*32												:: tmp, ifmt
 
 		if (.not. present(fmt)) then
 			ifmt = "(f0.3)"	! Default format
@@ -273,7 +281,7 @@ contains
 	function btoa (bool) result (string)
 		implicit none
 		logical, intent(in)	:: bool
-		character*1			:: string
+		character*1					:: string
 
 		if (bool) then
 			string = "T"
@@ -290,7 +298,7 @@ contains
 	integer function newUnit (unit)
 		implicit none
 		integer, optional, intent(out)	:: unit
-		logical							:: opened
+		logical													:: opened
 
 		! First 10 units are usually system reserved
 		do newunit = 10, 9999
@@ -300,8 +308,9 @@ contains
 				return
 
 			end if
-
 		end do
+
+		return
 	end function newUnit
 
 end module xslib_common

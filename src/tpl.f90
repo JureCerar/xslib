@@ -5,25 +5,25 @@ module xslib_tpl
 
 	! .TPL file format
 	type, private :: sub_tpl
-		integer					:: natoms, nmol
-		integer, pointer		:: id(:) => null()
+		integer								:: natoms, nmol
+		integer, pointer			:: id(:) => null()
 		character*3, pointer	:: name(:) => null()
-		real, pointer			:: pcharge(:) => null()
+		real, pointer					:: pcharge(:) => null()
 	end type sub_tpl
 
 	type tpl_file
-		integer, private					:: unit
-		real								:: box(3) 		! Simulation box side
-		integer								:: nTypes		! Number of different types
-		type(sub_tpl), allocatable			:: type(:)		! Type of molecule
+		integer, private						:: unit
+		real												:: box(3) 		! Simulation box side
+		integer											:: nTypes		! Number of different types
+		type(sub_tpl), allocatable	:: type(:)		! Type of molecule
 		! Concentrated data (contains actual data)
-		integer								:: natoms
-		integer, pointer					:: id(:) => null()
+		integer											:: natoms
+		integer, pointer						:: id(:) => null()
 		character*3, pointer				:: name(:) => null()
-		real, pointer						:: pcharge(:) => null()
+		real, pointer								:: pcharge(:) => null()
 	contains
 		procedure	:: read => read_tpl
-		procedure 	:: write => write_tpl
+		procedure :: write => write_tpl
 		procedure	:: assignID => assignID_tpl
 		procedure	:: createList => createList_tpl
 		procedure	:: createMask => createMask_tpl

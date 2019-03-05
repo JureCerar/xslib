@@ -4,11 +4,11 @@ module xslib_xyz
 	public :: xyz_file
 
 	type xyz_frame
-		integer 					:: natoms
-		character*512				:: comment
+		integer 									:: natoms
+		character*512							:: comment
 		character*5, allocatable	:: name(:)
-		real, allocatable			:: coor(:,:)
-		real						:: box(3)	! Actual .xyz does not contain box info
+		real, allocatable					:: coor(:,:)
+		real											:: box(3)	! Actual .xyz does not contain box info
 	contains
 		procedure	:: allocate => allocate_xyz_frame
 		procedure	:: deallocate => deallocate_xyz_frame
@@ -16,8 +16,8 @@ module xslib_xyz
 	end type
 
 	type xyz_file
-		integer, private				:: unit
-		integer 						:: nframes, framesLeft
+		integer, private							:: unit
+		integer 											:: nframes, framesLeft
 		type(xyz_frame), allocatable	:: frameArray(:)
 	contains
 		procedure	:: open => open_xyz

@@ -6,13 +6,13 @@ module xslib_pdb
 
 	! .PDB data format
 	type pdb_frame
-		real 						:: box(3)
-		integer						:: natoms
+		real 											:: box(3)
+		integer										:: natoms
 		character*20, allocatable	:: record_type(:), atom_name(:), alt_loc_indicator(:), residue_name(:), chain_identifier(:)
 		character*20, allocatable	:: res_insert_code(:), segment_identifier(:), element_symbol(:)
-		integer, allocatable		:: atom_serial_number(:), residue_sequence_number(:)
-		real, allocatable			:: coor(:,:) ! (index, x:y:z)
-		real, allocatable			:: occupancy(:), temp_factor(:), charge(:)
+		integer, allocatable			:: atom_serial_number(:), residue_sequence_number(:)
+		real, allocatable					:: coor(:,:) ! (index, x:y:z)
+		real, allocatable					:: occupancy(:), temp_factor(:), charge(:)
 	contains
 		procedure	:: allocate => allocate_pdb_frame
 		procedure	:: deallocate => deallocate_pdb_frame
@@ -21,12 +21,12 @@ module xslib_pdb
 
 
 	type pdb_file
-		integer, private				:: unit, framesLeft
-		integer							:: nframes
+		integer, private							:: unit, framesLeft
+		integer												:: nframes
 		type(pdb_frame), allocatable	:: frameArray(:)
 	contains
-		procedure 	:: open => open_pdb
-		procedure 	:: close => close_pdb
+		procedure :: open => open_pdb
+		procedure :: close => close_pdb
 		procedure	:: allocate => allocate_pdb
 		procedure	:: read_next => read_next_pdb
 		procedure	:: read => read_pdb
@@ -40,11 +40,11 @@ contains
 	! Deallocate and allocate .PDB file.
 	subroutine allocate_pdb_frame (this, np, onlycoor, initialize)
 		implicit none
-		class(pdb_frame)	:: this	! .GRO data file
+		class(pdb_frame)		:: this	! .GRO data file
 		integer, intent(in)	:: np	! Number of points to allocate
 		class(*), optional	:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
-		integer				:: stat
-		character*128		:: message
+		integer							:: stat
+		character*128				:: message
 
 		! Error check
 		if (np < 0) then
@@ -79,7 +79,7 @@ contains
 	subroutine deallocate_pdb_frame (this)
 		implicit none
 		class(pdb_frame)	:: this	! .GRO data file
-		integer				:: stat
+		integer						:: stat
 
 		! number of particles
 		this%natoms = 0
@@ -98,10 +98,10 @@ contains
 	end subroutine deallocate_pdb_frame
 
 	! Initialize .PDB file
-	subroutine  initialize_pdb_frame (this)
+	subroutine initialize_pdb_frame (this)
 		implicit none
 		class(pdb_frame)	:: this
-		integer				:: i, stat
+		integer						:: i, stat
 
 		! non-allocatable
 		this%natoms = 0
@@ -140,10 +140,10 @@ contains
 	! open_pdbfile
 	subroutine open_pdb (this, filename)
 		implicit none
-		class(pdb_file)				:: this
+		class(pdb_file)						:: this
 		character*(*), intent(in)	:: filename
-		integer						:: stat
-		character*4					:: dmy
+		integer										:: stat
+		character*4								:: dmy
 
 		! Open file
 		open (NEWUNIT=this%unit, FILE=trim(filename), STATUS="unknown", IOSTAT=stat)
@@ -169,7 +169,7 @@ contains
 	subroutine close_pdb (this)
 		implicit none
 		class(pdb_file)	:: this
-		integer			:: stat
+		integer					:: stat
 		close(this%unit, IOSTAT=stat)
 		return
 	end subroutine close_pdb
@@ -177,10 +177,10 @@ contains
 	! allocate FrameArray
 	subroutine allocate_pdb (this, np)
 		implicit none
-		class(pdb_file)		:: this
-		integer				:: np
+		class(pdb_file)	:: this
+		integer					:: np
 		character*128		:: message
-		integer				:: stat
+		integer					:: stat
 
 		! Error check
 		if (np < 0) then
@@ -200,14 +200,14 @@ contains
 	! Read single .PDB frame from UNIT. ONLYCOOR = read only coordinates.
 	function read_next_pdb (this, nframes, onlycoor) result (framesRead)
 		implicit none
-		class(pdb_file)					:: this		! .PDB data file
+		class(pdb_file)								:: this		! .PDB data file
 		integer, intent(in), optional	:: nframes	! how many frames to read
-		class(*), optional				:: onlycoor	! if present read only coordinates
-		integer							:: framesRead
-		character*256					:: buffer, file, message
-		character*6						:: dmy
-		integer							:: i, n, np, stat, cnt
-		logical							:: opened, coor
+		class(*), optional						:: onlycoor	! if present read only coordinates
+		integer												:: framesRead
+		character*256									:: buffer, file, message
+		character*6										:: dmy
+		integer												:: i, n, np, stat, cnt
+		logical												:: opened, coor
 
 		! If file unit is esternaly defined
 		np = 1
@@ -321,8 +321,8 @@ contains
 	subroutine read_pdb (this, file)
 		implicit none
 		class(pdb_file)	:: this
-		character*(*)	:: file
-		integer			:: stat
+		character*(*)		:: file
+		integer					:: stat
 
 		call this%open(file)
 		stat = this%read_next(this%nframes)
@@ -336,11 +336,11 @@ contains
 	function box_pdb (this) result (box)
 		implicit none
 		class(pdb_file)	:: this
-		real			:: box(3)
-		logical			:: opened
-		integer			:: stat
-		character*128	:: line
-		character*6		:: dmy
+		real						:: box(3)
+		logical					:: opened
+		integer					:: stat
+		character*128		:: line
+		character*6			:: dmy
 
 		! Initialize box to return -1. if it cannote be found
 		box = -1.
@@ -378,10 +378,10 @@ contains
 	function natoms_pdb (this) result (natoms)
 		implicit none
 		class(pdb_file)	:: this
-		integer			:: natoms
-		logical			:: opened
-		integer			:: stat
-		character*6		:: dmy
+		integer					:: natoms
+		logical					:: opened
+		integer					:: stat
+		character*6			:: dmy
 
 		! Initialize
 		natoms = 0
@@ -425,11 +425,11 @@ contains
 	subroutine write_pdb (this, unit, file)
 		use iso_fortran_env
 		implicit none
-		class(pdb_file)				:: this		! .PDB data file
-		character*(*), optional		:: file
-		integer, optional			:: unit
-		integer						:: i, u, n, stat, serial
-		logical						:: opened
+		class(pdb_file)					:: this		! .PDB data file
+		character*(*), optional	:: file
+		integer, optional				:: unit
+		integer									:: i, u, n, stat, serial
+		logical									:: opened
 
 		! Initialize
 		serial = 1 ! serial number of frame

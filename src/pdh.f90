@@ -6,11 +6,11 @@ module xslib_pdh
 
 	! .PDH file format
 	type pdh_file
-		character*80		:: text
-		character*4			:: key_words(16)
-		integer				:: int_const(8)
-		integer				:: num_points
-		real				:: real_const(10)
+		character*80			:: text
+		character*4				:: key_words(16)
+		integer						:: int_const(8)
+		integer						:: num_points
+		real							:: real_const(10)
 		real, allocatable	:: x(:), y(:), y_error(:)
 	contains
 		procedure	:: allocate => allocate_pdh

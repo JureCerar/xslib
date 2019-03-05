@@ -1,11 +1,11 @@
 module xslib_array
 
 	interface findCrossOver
-		module procedure findCrossOver_int, findCrossOver_real
+		module procedure findCrossOver_INT, findCrossOver_REAL
 	end interface
 
 	interface findKClosest
-		module procedure findKClosest_int, findKClosest_real
+		module procedure findKClosest_INT, findKClosest_REAL
 	end interface
 
 	! Generic swap routine
@@ -17,13 +17,13 @@ module xslib_array
 contains
 
 	! This function return K closest elements to VAL in ARRAY(:).
-	function findKClosest_int (val, array, k) result(r)
+	function findKClosest_INT (val, array, k) result(r)
 		implicit none
 		integer, intent(in) :: val, array(:)
 		integer, intent(in)	:: k
-		integer				:: r(k)
+		integer							:: r(k)
 		! Internal
-		integer :: i, n, right, left, cnt
+		integer 						:: i, n, right, left, cnt
 
 		! Find nearest point
 		n = size(array)
@@ -69,9 +69,9 @@ contains
 		end do
 
 		return
-	end function findKClosest_int
+	end function findKClosest_INT
 
-	function findKClosest_real (val, array, k) result(r)
+	function findKClosest_REAL (val, array, k) result(r)
 		implicit none
 		real, intent(in) 	:: val, array(:)
 		integer, intent(in)	:: k
@@ -123,14 +123,14 @@ contains
 		end do
 
 		return
-	end function findKClosest_real
+	end function findKClosest_REAL
 
 	! Function to find the cross over point (the point
 	! which elements are smaller than or equal to x and after which greater than x
-	recursive function findCrossOver_int (array, low, high, x) result (r)
+	recursive function findCrossOver_INT (array, low, high, x) result (r)
 		implicit none
 		integer, intent(in) :: array(:), x
-		integer				:: mid, low, high, r
+		integer							:: mid, low, high, r
 
 		! Bigger than all
 		if (x >= array(high)) then
@@ -156,12 +156,12 @@ contains
 		end if
 
 		return
-	end function findCrossOver_int
+	end function findCrossOver_INT
 
-	recursive function findCrossOver_real (array, low, high, x) result (r)
+	recursive function findCrossOver_REAL (array, low, high, x) result (r)
 		implicit none
 		real, intent(in)	:: array(:), x
-		integer				:: mid, low, high, r
+		integer						:: mid, low, high, r
 
 		! Bigger than all
 		if (x >= array(high)) then
@@ -187,7 +187,7 @@ contains
 		end if
 
 		return
-	end function findCrossOver_real
+	end function findCrossOver_REAL
 
 	! Swap values of A and B
 	subroutine swap_INT (a, b)

@@ -2,7 +2,6 @@
 
 ## Table of contents
 
-<<<<<<< HEAD
 - [Molecular file types - General](#molecular-file-types-general)
 - [Molecular file types - File specific data](#molecular-file-types-file-specific-data)
 	- [`pdb_file` format](#pdb_file-format)
@@ -45,49 +44,6 @@
 	- [`toLower()` and `toUpper()`](#tolower-and-toupper)
 	- [`progressBar()`](#progressbar)
 	- [`linest()`](#linest)
-=======
-- [Molecular file types: General](#molecular-file-types-general)
-- [Molecular file types: File specific data](#molecular-file-types-file-specific-data)
-  - [`pdb_file` format](#pdb_file-format)
-  - [`gro_file` format](#gro_file-format)
-  - [`trj_file` format](#trj_file-format)
-  - [`xyz_file` format](#xyz_file-format)
-  - [`frame_file` object format](#frame_file-object-format)
-- [Supporting file types](#supporting-file-types)
-  - [`ndx_file` format](#ndx_file-format)
-  - [`tpl_file` format](#tpl_file-format)
-- [Data file types](#data-file-types)
-  - [`pdh_file` format](#pdh_file-format)
-  - [`csv_file` format](#csv_file-format)
-- [Functions and Subroutines](#functions-and-subroutines)
-  - [`xslibINFO`](#xslibinfo)
-  - [`str()`](#str)
-  - [`error()` and `warning()`](#error-and-warning)
-  - [`newUnit()`](#newunit)
-  - [`cross()`](#cross)
-  - [`minImg()`](#minimg)
-  - [`getDistance()`](#getdistance)
-  - [`getAngle()`](#getangle)
-  - [`getDihedral()`](#getdihedral)
-  - [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
-  - [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
-  - [`timeStamp()`](#timestamp)
-  - [`getTime()`](#gettime)
-  - [`elapsedTime()`](#elapsedtime)
-  - [`variance()`](#variance)
-  - [`baseName()`](#basename)
-  - [`extension()`](#extension)
-  - [`stripComment()`](#stripcomment)
-  - [`backup()`](#backup)
-  - [`nextFreeName()`](#nextfreename)
-  - [`isEmpty()`](#isempty)
-  - [`isWord()`](#isword)
-  - [`replaceText()`](#replacetext)
-  - [`tab2space()`](#tab2space)
-  - [`toLower()` and `toUpper()`](#tolower-and-toupper)
-  - [`progressBar()`](#progressbar)
-  - [`linest()`](#linest)
->>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 - [Notes](#notes)
 
 ## Molecular file types: General
@@ -130,8 +86,8 @@ Closing the file does not affect the data stored in `obj` (*i.e.* it does not de
 <!-- ======================================================================================================================== -->
 After calling `obj%read()` or `obj%read_next()` every atom's coordinates are accessible as `obj%frameArray(n)%coor(:,:)`, for example:
 ```Fortran
-! For 1st frame write the 3rd particles's y-coordinate
-write (*,*) obj%frameArray(1)%coor(2,3)
+! 1st frame, 3rd particles's x,y,z-coordinates
+write (*,*) obj%frameArray(1)%coor(:,3)
 ```
 **NOTE:** Fortran language uses row-major indexing *i.e.* `array(row, column)` and that convention is retained here.
 
@@ -197,14 +153,14 @@ type pdb_file
   integer                       :: nframes
   type(pdb_frame), allocatable  :: frameArray(:)
 contains
-  procedure  :: open
-  procedure  :: close
-  procedure  :: allocate
-  procedure  :: read_next
-  procedure  :: read
-  procedure  :: box
-  procedure  :: natoms
-  procedure  :: write
+  procedure :: open
+  procedure :: close
+  procedure :: allocate
+  procedure :: read_next
+  procedure :: read
+  procedure :: box
+  procedure :: natoms
+  procedure :: write
 ```
 
 Because .pdb file contains a lot (and I mean really A LOT) of usually "unnecessary" data an option to read only coordinates can used:
@@ -304,7 +260,8 @@ contains
   procedure :: open
   procedure :: read_next
   procedure :: close
-  procedure :: get_nframes
+  procedure :: nframes
+  procedure :: get_natoms
   procedure :: get_box
 ```
 To open file use:
@@ -315,8 +272,9 @@ The file can be read with:
 ```fortran
 stat = frame%read_next()
 ```
-Additionally, the data on box size and num. of atoms can be obtained with:
+Additionally, the data on num. of frames, box size, and num. of atoms can be obtained with:
 ```fortran
+nframes = frame%nframes()
 box = frame%get_box()
 natoms = frame%get_natoms()
 ```
@@ -513,19 +471,21 @@ character*64, parameter  :: xslibINFO
 <!-- common.f90 -->
 
 ### `str()`
-Transform scalar of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument.
+Transform SCALAR or ARRAY of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument. In case of ARRAY a custom `DELIMITER` can be defined.
 ```fortran
-interface str
-  procedure  :: itoa, i8toa, ftoa, f8toa, ctoa, btoa
-
 function str (value, fmt) result (string)
   integer, real, complex, logical  :: value
-  character*(*)                    :: fmt
+  character*(*), optional          :: fmt
+  character*(:), allocatable       :: string
+
+function str (array, fmt, delimiter) result (string)
+  integer, real, complex, logical  :: array(:)
+  character*(*), optional          :: fmt, delimiter
   character*(:), allocatable       :: string
 ```
 
 ### `error()` and `warning()`
-Writes error/warning message to STDERR. Calling `error()` also terminates the program and returns exit status 1 to shell.
+Writes error/warning message to STDERR. Calling `error()` also terminates the program and returns exit status 1 to shell.  
 *i.e. <name\> ERROR/WARNING - <message\>*  
 ```fortran
 subroutine error (message, name)
@@ -556,7 +516,7 @@ function cross (v, u)
 
 ### `minImg()`
 Return reduced coordinates according to [minimal image convention](https://en.wikipedia.org/wiki/Periodic_boundary_conditions).  
-_i.e a=a-box*floor(a/box+0.5)_
+_i.e. a=a-box*floor(a/box+0.5)_
 ```fortran
 function minImg (r, box)
   real, dimension(3)  :: r, box, minImg
@@ -575,13 +535,12 @@ function getDistance (a, b) result (distance)
 Returns angle between three points (A-B-C).
 ```fortran
 function getAngle (a, b, c) result (angle)
-<<<<<<< HEAD
 	real, dimension(3)  :: a, b, c
 	real                :: angle
-=======
-  real, dimension(3)  :: a, b, c
-  real                :: angle
->>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
+
+function getAngle2 (a, b, c) result (angle)
+	real, dimension(3)  :: a, b, c
+	real                :: angle
 ```
 
 ### `getDihedral()`
@@ -596,7 +555,7 @@ function getDihedral (a, b, c, d) result (dihedral)
 Translates angle from degrees to radians and back.
 ```fortran
 function deg2rad (in) result (out)
-   real :: in, out
+  real :: in, out
 
 function rad2deg (in) result (out)
   real :: in, out
@@ -626,7 +585,7 @@ function cyl2crt (in) result (out)
 Returns time and date in format *hh:mm:ss dd-mm-yyyy*.
 ```fortran
 function timeStamp () result (string)
-  character*19   :: string
+  character*19 :: string
 ```
 
 ### `getTime()`
@@ -669,13 +628,8 @@ Returns base name of file.
 *e.g. "./path/to/file.txt" &rarr; "file"*
 ```fortran
 function baseName (name) result (base)
-<<<<<<< HEAD
-	character*(*)               :: name
-	character*(:), allocatable  :: base
-=======
   character*(*)               :: name
   character*(:), allocatable  :: base
->>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 ```
 
 ### `extension()`
@@ -683,13 +637,8 @@ Returns file extension.
 *e.g. "./path/to/file.txt" &rarr; "txt"*
 ```fortran
 function extension (name) result (ext)
-<<<<<<< HEAD
-	character*(*)               :: name
-	character*(:), allocatable  :: ext
-=======
   character*(*)               :: name
   character*(:), allocatable  :: ext
->>>>>>> 6456754225c5d8c05bbb83bbdcba6eec632fbf70
 ```
 
 ### `stripComment()`

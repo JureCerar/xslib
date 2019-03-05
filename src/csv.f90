@@ -13,15 +13,15 @@ contains
 	! Reads DATA and (optional) HEADER from csv file.
 	subroutine read_csv (this, file, data, header)
 		implicit none
-		class(csv_file)							:: this
-		real, allocatable, intent(inout)		:: data(:,:)
-		character*(*), intent(in)				:: file
+		class(csv_file)												:: this
+		real, allocatable, intent(inout)			:: data(:,:)
+		character*(*), intent(in)							:: file
 		character*(*), allocatable, optional	:: header(:)
-		integer									:: i, unit, stat
-		integer									:: cols, rows
-		character*512							:: buffer
-		real									:: dmy(128)
-		logical 								:: hasHeader
+		integer																:: i, unit, stat
+		integer																:: cols, rows
+		character*512													:: buffer
+		real																	:: dmy(128)
+		logical 															:: hasHeader
 
 		open (NEWUNIT=unit, FILE=trim(file), STATUS="old", IOSTAT=stat)
 			if (stat /= 0) call error ("Could not open file: '"//trim(file)//"'", NAME="csv%read")
@@ -115,14 +115,14 @@ contains
 	subroutine write_csv (this, data, header, unit, file, delimiter)
 		use iso_fortran_env
 		implicit none
-		class(csv_file)			:: this
-		real, intent(in)		:: data(:,:)
+		class(csv_file)					:: this
+		real, intent(in)				:: data(:,:)
 		character*(*), optional	:: header(:), file, delimiter
-		integer, optional		:: unit
-		integer					:: i, j, u, cols, rows, stat
-		logical 				:: opened
-		character*8				:: dl ! delimiter
-		character*64			:: buffer(size(data,2)), fmt
+		integer, optional				:: unit
+		integer									:: i, j, u, cols, rows, stat
+		logical 								:: opened
+		character*8							:: dl ! delimiter
+		character*64						:: buffer(size(data,2)), fmt
 
 		if (present(unit)) then
 			inquire (UNIT=unit, OPENED=opened)
@@ -176,4 +176,5 @@ contains
 
 		return
 	end subroutine write_csv
+
 end module xslib_csv
