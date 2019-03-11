@@ -1,3 +1,11 @@
+# Default build type
+if ( NOT CMAKE_BUILD_TYPE )
+  set ( CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build configuration 'Release' or 'Debug'." FORCE )
+  message ( STATUS "CMAKE_BUILD_TYPE not given, defaulting to RELEASE." )
+else ()
+  message ( STATUS "CMAKE_BUILD_TYPE is: ${CMAKE_BUILD_TYPE}" )
+endif ()
+
 # Compiler options
 IF ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU" )
 	set ( CMAKE_Fortran_FLAGS "-cpp -O3 -march=native -pipe -fopenmp -funroll-loops -finline-functions -flto ${CMAKE_Fortran_FLAGS}" )
@@ -18,6 +26,6 @@ ENDIF ()
 
 # Message back flags
 message ( STATUS "CMAKE_Fortran_FLAGS: ${CMAKE_Fortran_FLAGS}" )
-IF ( "${CMAKE_BUILD_TYPE} " STREQUAL "DEBUG " )
+IF ( ${CMAKE_BUILD_TYPE} STREQUAL "DEBUG" )
 	message ( STATUS "CMAKE_Fortran_FLAGS_DEBUG: ${CMAKE_Fortran_FLAGS_DEBUG}" )
 ENDIF ()

@@ -25,8 +25,9 @@
 
 module xslib_ndx
 	use xslib_common
-    implicit none
-    private
+	use xslib_tpl, only: tpl_file
+  implicit none
+  private
 	public :: ndx_file
 
     type ndxgroups
@@ -37,7 +38,7 @@ module xslib_ndx
 
     type ndx_file
       type (ndxgroups), allocatable 	:: group(:)
-			integer															:: ngroups=0
+			integer													:: ngroups=0
       logical 												:: group_warning=.true.
     contains
 			procedure :: read => read_ndx
@@ -45,9 +46,93 @@ module xslib_ndx
     	procedure :: indexfile_read
     	procedure :: get => indexfile_get
     	procedure :: get_natoms => indexfile_get
+			procedure :: tpl2ndx => tpl2ndx_ndx
     end type ndx_file
 
 contains
+
+	! Transform template (.tpl) to index
+	subroutine tpl2ndx_ndx (this, tpl, system)
+		implicit none
+		class(ndx_file)			:: this
+		type(tpl_file)			:: tpl
+		class(*), optional	:: system
+		integer							:: i, j, n, np, stat, next, current
+
+		! Count number of unique elements
+		current = minval(tpl%id(:))-1
+		this%ngroups = 0 !
+		do
+			! Find next unique element.
+			current = minval(tpl%id(:), MASK=tpl%id(:)>current)
+			! Zero elements do not interest us
+			if (current==0) cycle
+			if (current==huge(current)) exit
+			this%ngroups = this%ngroups+1
+
+		end do
+
+		! ------------------------------------
+
+		! Allocate data
+		if (present(system)) this%ngroups = this%ngroups+1
+		if (allocated(this%group)) deallocate(this%group, STAT=stat)
+		allocate (this%group(this%ngroups), STAT=stat)
+
+		next = 1
+
+		! ------------------------------------
+
+		! Create "System group"
+		if (present(system)) then
+			this%group(next)%title="System"
+			! Allocate memory
+			this%group(next)%natoms=sum(tpl%type(:)%natoms*tpl%type(:)%nmol)
+			if (allocated(this%group(next)%loc)) deallocate(this%group(next)%loc, STAT=stat)
+			allocate (this%group(next)%loc(this%group(next)%natoms), STAT=stat)
+			! Construct the group
+			this%group(next)%loc(:) = [(i,i=1,this%group(next)%natoms)]
+			! Move counter
+			next = next+1
+		end if
+
+		! ------------------------------------
+
+		! Number of all points
+		np = sum(tpl%type(:)%natoms*tpl%type(:)%nmol)
+
+		! Initialize value
+		current = minval(tpl%id(:), DIM=1)-1
+
+		do ! while (current/=huge(current))
+			current = minval(tpl%id(:), DIM=1, MASK=(tpl%id(:)>current))
+			if (current==huge(current)) exit
+			if (current==0) cycle ! id=0 does not interest us
+
+			! Count number of molecules
+			this%group(next)%natoms = 0
+			do n = 1, tpl%ntypes
+				this%group(next)%natoms = this%group(next)%natoms+count(tpl%type(n)%id==current)*tpl%type(n)%nmol
+			end do
+
+			! Set title
+			this%group(next)%title = "Group "//str(next)
+
+			! Allocate data
+			if (allocated(this%group(next)%loc)) deallocate(this%group(next)%loc, STAT=stat)
+			allocate (this%group(next)%loc(this%group(next)%natoms), STAT=stat)
+
+			! Construct OVER ELABORATE mask
+			this%group(next)%loc = pack([(i,i=1,np)], &
+			MASK=[(((tpl%type(n)%id(i)==current,i=1,tpl%type(n)%natoms), j=1,tpl%type(n)%nmol), n=1,tpl%ntypes)])
+
+			! Move counter
+			next = next+1
+
+		end do
+
+		return
+	end subroutine tpl2ndx_ndx
 
 	! Read GROMACS index .ndx file
 	subroutine read_ndx (this, file)
@@ -214,7 +299,6 @@ contains
 
 		return
 	end subroutine write_ndx
-
 
   subroutine indexfile_read(this, filename, N)
 		use iso_fortran_env

@@ -142,32 +142,51 @@ contains
 		class(*)										:: array(:)
 		character*(*), optional			:: fmt, delimiter
 		character*(:), allocatable	:: string
-		integer											:: i
-		! Initialize
-		string=""
-		if (present(delimiter)) then
-			if (present(fmt)) then
-				string=str(array(1),FMT=fmt)
-				do i = 2, size(array)
-					string=string//delimiter//str(array(i),FMT=fmt)
-				end do
-				string=trim(adjustl(string))
-			else
-				string=str(array(1))
-				do i = 2, size(array)
-					string=string//delimiter//str(array(i))
-				end do
-				string=trim(adjustl(string))
-			end if
+		integer											:: i, stat
+    class(*), allocatable       :: pointer(:)
 
-		else
-			if (present(fmt)) then
-				string = str_ARRAY(array, FMT=fmt, DELIMITER=" ")
-			else
-				string = str_ARRAY(array, DELIMITER=" ")
-			end if
+    ! BASIC IDEA
+    ! select type(pointer=>array)
+    ! class default
+  	! 	string=str_SCALAR(pointer(1))
+  	! 	do i = 2, size(pointer)
+  	! 		string=string//delimiter//str_SCALAR(pointer(i))
+  	! 	end do
+  	! 	string=trim(adjustl(string))
+    ! end select
 
-		end if
+    ! Associate pointer to avoid out of bound problems ?!?
+    allocate(pointer(size(array)), SOURCE=array(:), STAT=stat)
+    ! Dummy type select
+    select type(pointer)
+    class default
+      if (present(delimiter)) then
+  			if (present(fmt)) then
+  				string=str_SCALAR(pointer(1),FMT=fmt)
+  				do i = 2, size(pointer)
+  					string=string//delimiter//str_SCALAR(pointer(i),FMT=fmt)
+  				end do
+  				string=trim(adjustl(string))
+  			else
+  				string=str_SCALAR(pointer(1))
+  				do i = 2, size(pointer)
+  					string=string//delimiter//str_SCALAR(pointer(i))
+  				end do
+  				string=trim(adjustl(string))
+  			end if
+
+  		else
+  			if (present(fmt)) then
+  				string = str_ARRAY(pointer, FMT=fmt, DELIMITER=" ")
+  			else
+  				string = str_ARRAY(pointer, DELIMITER=" ")
+  			end if
+
+  		end if
+    end select
+
+    ! Clean-up
+    deallocate (pointer, STAT=stat)
 
 		return
 	end function str_ARRAY

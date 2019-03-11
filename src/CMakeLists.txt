@@ -10,9 +10,9 @@ add_library ( ${CMAKE_PROJECT_NAME} SHARED ${SRC} )
 target_include_directories ( ${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/headers" )
 
 # Add some external definitions
-add_definitions(-D_VERSION="v${VERSION}")
-if ( "${CMAKE_BUILD_TYPE} " STREQUAL "DEBUG " )
-	add_definitions(-D_DEBUG=.true.)
+add_definitions ( -D_VERSION="v${VERSION}" )
+if ( ${CMAKE_BUILD_TYPE} STREQUAL DEBUG )
+	add_definitions ( -D_DEBUG=.true. )
 endif ()
 
 # Where to put files after they are built, and what to name them
@@ -32,9 +32,9 @@ install ( TARGETS ${CMAKE_PROJECT_NAME} LIBRARY DESTINATION lib )
 # Install FORTRAN module and C header files (in include directory)
 install ( DIRECTORY "${CMAKE_BINARY_DIR}/modules/"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
-	FILES_MATCHING PATTERN "*.mod"  
+	FILES_MATCHING PATTERN "*.mod"
 	)
-install ( DIRECTORY "${CMAKE_SOURCE_DIR}/headers/" 
+install ( DIRECTORY "${CMAKE_SOURCE_DIR}/headers/"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
-	FILES_MATCHING PATTERN "*.h" 
+	FILES_MATCHING PATTERN "*.h"
 	)
