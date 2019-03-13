@@ -12,7 +12,6 @@
   - [`pdh_file`](#pdh_file)
   - [`csv_file`](#csv_file)
 
-
 ## Molecular file types  
 
 ### `pdb_file`
@@ -173,7 +172,6 @@ subroutine write (unit, file)
   character*(*), optional :: file
   integer, optional       :: unit
 end subroutine write
-
 ```
 
 ### `trj_file`
@@ -206,23 +204,47 @@ end type
 
 ! --------------------------  
 
-subroutine open (file)
-  character*(*) :: file
+subroutine open (file, ndxfile)
+  character*(*)            :: file
+  character*(*), optional  :: ndxfile
 end subroutine open
 
-subroutine read (file)
-  character*(*) :: file
+subroutine read (file, ndxfile, ndxgroup)
+  character*(*)            :: file
+  character*(*), optional  :: ndxfile, ndxgroup
 end subroutine read
 
-function read_next (nframes) result (framesRead)
+indteger function read_next (nframes)
   integer, optional  :: nframes
-  integer            :: framesRead
 end function read_next
 
 subroutine close ()
 end subroutine close
+
+function x (frame, atom, group)
+  real                    :: x(3)
+  integer                 :: frame, atom
+  character*(*), optional :: group
+end function x
+
+integer function natoms (group)
+  character*(*), optional :: group
+end function natoms
+
+function box (frame)
+  real    :: box(3,3)
+  integer :: frame
+end function box
+
+real function time (frame)
+  integer :: frame
+end function time
+
+integer function step (frame)
+  integer :: frame
+end function step
 ```
-**NOTE: Not completed.**
+
 
 ### `xyz_file`
 ```Fortran
@@ -255,9 +277,9 @@ end type
 
 ! --------------------------
 
-subroutine allocate (npoints, onlycoor, initialize)
+subroutine allocate (npoints, initialize)
   integer, intent(in)	:: npoints
-  class(*), optional	:: onlycoor, initialize
+  class(*), optional	:: initialize
 end subroutine allocate
 
 subroutine deallocate ()
@@ -346,11 +368,165 @@ end function get_box
 ## Supporting file types
 
 ### `ndx_file`
+```fortran
+type, private :: ndxgroups
+  integer, allocatable          :: loc(:)
+  integer                       :: natoms
+  character*(:), allocatable    :: title
+end type ndxgroups
+
+type ndx_file
+  type (ndxgroups), allocatable :: group(:)
+  integer                       :: ngroups=0
+  logical                       :: group_warning=.true.
+contains
+  procedure :: read
+  procedure :: write
+  procedure :: tpl2ndx
+  procedure :: get
+end type ndx_file
+
+! -----------------------------
+
+subroutine read (file)
+  character*(*) :: file
+end subroutine read
+
+subroutine write (file, unit)
+  character*(*), optional :: file
+  integer, optional       :: unit
+end subroutine read
+
+subroutine tpl2ndx_ndx (tpl, system)
+  implicit none
+  type(tpl_file)     :: tpl
+  class(*), optional :: system
+end subroutine tpl2ndx
+
+! -----------------------------
+
+! Gets the number of atoms in a group. If an atom is specified, integer returns the overall index for that atom.
+integer function get (group, i)
+  character*(*)     :: group_name
+  integer, optional :: i
+end function get
+```
 
 ### `tpl_file`
+```fortran
+type, private :: tpl_frame
+  integer              :: natoms, nmol
+  integer, pointer     :: id(:)
+  character*3, pointer :: name(:)
+  real, pointer        :: pcharge(:)
+end type tpl_frame
+
+type tpl_file
+  real                         :: box(3)
+  integer                      :: ntypes=0
+  type(tpl_frame), allocatable :: type(:)
+  ! Contains actual data
+  integer                      :: natoms
+  integer, pointer             :: id(:)
+  character*3, pointer         :: name(:)
+  real, pointer                :: pcharge(:)
+contains
+  procedure :: read
+  procedure :: write
+end type tpl_file
+
+! -------------------------------------
+
+subroutine read (file)
+  character*(*) :: file
+end subroutine read
+
+subroutine write (file, unit)
+  character*(*), optional :: file
+  integer, optional       :: unit
+end subroutine write
+```
 
 ## Data file types  
 
 ### `pdh_file`
+```fortran
+type pdh_file
+  character*80      :: text
+  character*4       :: key_words(16)
+  integer           :: int_const(8)
+  integer           :: num_points
+  real              :: real_const(10)
+  real, allocatable :: x(:), y(:), y_error(:)
+contains
+  procedure	:: allocate
+  procedure	:: deallocate
+  procedure	:: initialize
+  procedure	:: read
+  procedure	:: write
+  procedure	:: smearing
+  procedure	:: bining
+  procedure	:: normalize
+end type pdh_file
 
+! ------------------------------
+
+subroutine allocate (npoints, initialize)
+  integer            :: npoints
+  class(*), optional :: initialize
+end subroutine allocate
+
+subroutine deallocate ()
+end subroutine deallocate
+
+subroutine initialize ()
+end subroutine initialize
+
+subroutine read (file)
+  character*(*) :: file
+end subroutine read
+
+subroutine write (file, unit)
+  character*(*), optional :: file
+  integer, optional       :: unit
+end subroutine write
+
+! ------------------------------
+
+subroutine smearing (width, length)
+  type(pdh_file), optional :: width, length
+end subroutine smearing
+
+! Interpolates "npoints" equidistant points between fist and last point.
+subroutine bining (npoints)
+  integer :: npoints
+end subroutine bining
+
+! Normalizes area under the curve to 1.0; Data must be binned
+subroutine normalize ()
+end subroutine normalize
+
+```
 ### `csv_file`
+```fortran
+type csv_file
+contains
+  procedure :: read
+  procedure :: write
+end type csv_file
+
+! ----------------------------------
+
+subroutine read (file, data, header)
+  real, allocatable	                    :: data(:,:)
+  character*(*),                        :: file
+  character*(*), allocatable, optional	:: header(:)
+end subroutine read
+
+subroutine write (data, header, unit, file, delimiter)
+  real                    :: data(:,:)
+  character*(*), optional :: file, delimiter, header(:)
+  integer, optional       :: unit
+end subroutine write
+
+```

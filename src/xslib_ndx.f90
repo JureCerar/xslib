@@ -30,24 +30,24 @@ module xslib_ndx
   private
 	public :: ndx_file
 
-    type ndxgroups
-      integer, allocatable 						:: loc(:)
-      integer 												:: natoms
-      character (len=:), allocatable 	:: title
-    end type ndxgroups
+  type ndxgroups
+    integer, allocatable 						:: loc(:)
+    integer 												:: natoms
+    character (len=:), allocatable 	:: title
+  end type ndxgroups
 
-    type ndx_file
-      type (ndxgroups), allocatable 	:: group(:)
-			integer													:: ngroups=0
-      logical 												:: group_warning=.true.
-    contains
-			procedure :: read => read_ndx
-			procedure :: write => write_ndx
-    	procedure :: indexfile_read
-    	procedure :: get => indexfile_get
-    	procedure :: get_natoms => indexfile_get
-			procedure :: tpl2ndx => tpl2ndx_ndx
-    end type ndx_file
+  type ndx_file
+    type (ndxgroups), allocatable 	:: group(:)
+		integer													:: ngroups=0
+    logical 												:: group_warning=.true.
+  contains
+		procedure :: read => read_ndx
+		procedure :: write => write_ndx
+  	procedure :: indexfile_read
+  	procedure :: get => indexfile_get
+  	procedure :: get_natoms => indexfile_get
+		procedure :: tpl2ndx => tpl2ndx_ndx
+  end type ndx_file
 
 contains
 
@@ -300,7 +300,7 @@ contains
 		return
 	end subroutine write_ndx
 
-  subroutine indexfile_read(this, filename, N)
+  subroutine indexfile_read (this, filename, N)
 		use iso_fortran_env
 	  implicit none
 	  class(ndx_file), intent(inout) :: this
@@ -455,7 +455,7 @@ contains
 	end subroutine indexfile_read
 
   ! Gets the number of atoms in a group. If an atom is specified, integer returns the overall index for that atom.
-  function indexfile_get(this, group_name, I)
+  function indexfile_get (this, group_name, I)
 		use iso_fortran_env
     implicit none
     integer :: indexfile_get

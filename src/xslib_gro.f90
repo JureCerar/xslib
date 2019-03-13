@@ -104,7 +104,7 @@ contains
 		this%natoms = 0
 
 		if (allocated(this%coor)) then
-			this%natoms = 0
+			this%natoms = size(this%coor, DIM=2)
 			this%coor(:,:) = 0.
 
 			! Allocatable data
@@ -309,8 +309,9 @@ contains
 		logical									:: opened, vel
 
 		! Check if fully allocated
-		if (.not. allocated(this%frameArray)) call error ("Data not allocated.", NAME="gro%write()")
+		if (.NOT. allocated(this%frameArray)) call error ("Data not allocated.", NAME="gro%write()")
 
+		! Choose output method
 		if (present(unit)) then
 			! Check if unit is opened
 			inquire (UNIT=unit, OPENED=opened)
@@ -326,46 +327,41 @@ contains
 
 		end if
 
-		! Print all arrays
+		! ----------------------------------------------------------------------------
+
+		! Write frame by frame
 		do n = 1, size(this%frameArray)
 			! Error check
-			if (.not. allocated(this%frameArray(n)%coor)) call error ("Data not allocated.", NAME="gro%write()")
-			if (.not. allocated(this%frameArray(n)%res_name)) call error ("Cannot write 'COORONLY' data.", NAME="gro%write()")
+			if (.NOT. allocated(this%frameArray(n)%coor)) call error ("Data not allocated.", NAME="gro%write()")
+			if (.NOT. allocated(this%frameArray(n)%res_name)) call error ("Cannot write 'COORONLY' data.", NAME="gro%write()")
 
-			! Does data include viscosities and is allocated
-            if ( allocated(this%frameArray(n)%vel)) then
-				if (any(this%frameArray(n)%vel(:,i) /= 0.)) then
-					vel=.true.
-				end if
-			else
-				vel=.false.
+			! Does data include viscosities and are those allocated?
+			vel=.false.
+      if (allocated(this%frameArray(n)%vel)) then
+				if (any(this%frameArray(n)%vel(:,:) /= 0.)) vel=.true.
+
 			end if
 
 			! GRO title
-			write (unit, "(a)") trim(this%frameArray(n)%title)
-
+			write (u, "(a)") trim(this%frameArray(n)%title)
 			! Number of points
-			write (unit, "(2x,a)") itoa(this%frameArray(n)%natoms)
-
-			! Read data
+			write (u, "(2x,i0)") this%frameArray(n)%natoms
+			! Write data atom by atom
 			do i = 1, this%frameArray(n)%natoms
-				write (unit, 200) this%frameArray(n)%res_num(i), adjustl(this%frameArray(n)%res_name(i)),	&
+				write (u, 200) this%frameArray(n)%res_num(i), adjustl(this%frameArray(n)%res_name(i)),	&
 				adjustr(trim(this%frameArray(n)%atom_name(i))), this%frameArray(n)%atom_num(i), this%frameArray(n)%coor(:,i)
 
 				200 format (i5,2a5,i5,3f8.3,$) ! $ = "AVANCE=NO"
 
 				! Write velocity only if not equal to 0
-				if (vel) then
-					write (unit, "(3f8.3)") this%frameArray(n)%vel(:,i)
-				else
-					write (unit, *) "" ! dummy write
-				end if
-
+				if (vel) write (u, "(3f8.3,$)") this%frameArray(n)%vel(:,i)
+				! New line
+				write (u, *) ""
 
 			end do
 
 			! Box side
-			write (unit, "(3(x,f9.5))") this%frameArray(n)%box(1:3)
+			write (u, "(3(x,f9.5))") this%frameArray(n)%box(1:3)
 
 		end do
 

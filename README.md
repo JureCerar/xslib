@@ -51,8 +51,6 @@ pkg-config xslib --libs --cflags
 
 ## [API documentation](doc/API.md)
 
-*The condensed version of API can be found [here](doc/API_mini.md).*
-
 ## [Changelog](CHANGELOG.md)
 
 ## Acknowledgments
@@ -61,7 +59,7 @@ pkg-config xslib --libs --cflags
 
 ## License
 
-**XsLib** is licensed under the **GNU General Public License v3.0**
+This program is licensed under the **GNU General Public License v3.0**
 
 Copyright (C) [Jure Cerar](https://github.com/JureCerar)
 

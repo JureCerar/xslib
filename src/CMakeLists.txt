@@ -1,7 +1,7 @@
 # Add all files in src/
 file ( GLOB SRC "*.f90" "*.F90" "*.c" )
 message ( STATUS "SOURCE files: ${SRC}" )
-message ( STATUS "Install prefix : ${CMAKE_INSTALL_PREFIX}")
+message ( STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # The main library to build
 add_library ( ${CMAKE_PROJECT_NAME} SHARED ${SRC} )

@@ -2,14 +2,13 @@
 
 #### To-do:
 - [ ] Pack everything into SINGLE module (for easier usage).
-- [ ] Finish writing API documentation.
 - [ ] Return multi-file functionality to `frame_file` in more "graceful" manner.
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
 
-- [ ] Fix `str_ARRAY()` to properly work on composite array.
-
-#### v0.3.1 - TBA
-- Updated CMake.  
+#### v0.3.1 - 14.03.2019
+- Added (somewhat decent) API documentation.
+- Updated CMake.
+- Fixed bugs in 'gro%write()'. #FFS
 - `str()` is no longer interface, but polymorphic function.  
 - `str()` can now handle arrays (very crudely).  
 - `ndx%tpl2ndx()` is now part of standard procedures.
