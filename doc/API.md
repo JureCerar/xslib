@@ -1108,4 +1108,4 @@ end function linest
 ----------------------------------------------
 
 ## Notes
-Most of the routines in xslib won't allow you to do stupid things and will either promptly stop you from hurting yourself by the terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/common.f90*.
+Most of the routines in xslib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/common.f90*.
