@@ -66,22 +66,13 @@ program example
 	write (*,*) crt2cyl(a), cyl2crt(b)
 
 	! ======================================
-	write (*,*) timeStamp()
-
-	! ======================================
-	int = getTime()
-	write (*,*) "Wait for a moment ..."
-	do i = 1, 10000 ! dummy loop
-		float = i/sin(i/3.)**2.
-	end do
-	write (*,*) elapsedTime(getTime()-int)
+	float8 = get_wtime()
+	call msleep (100)
+	write (*,*) write_time(get_wtime()-float8)
 
 	!$ float8 = OMP_get_wtime()
-	!$ write (*,*) "Wait for 1 sec ..."
-	!$ do i = 1, 10000 ! dummy loop
-	!$	float = i/sin(i/3.)**2.
-	!$ end do
-	!$ write (*,*) elapsedTime(OMP_get_wtime()-float8)
+	!$ call msleep (100)
+	!$ write (*,*) write_time(OMP_get_wtime()-float8)
 
 	! ======================================
 	ave=0.

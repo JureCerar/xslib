@@ -2,13 +2,14 @@
 
 #### To-do (someday):
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
+- [ ] Add `frame%write` (trajectory write).
 
-#### v0.3.2 - TBA (currently v0.3.2b)
+#### v0.3.2 - TBA (currently v0.3.2c)
 - [x] Added frame skip to all conf. objects - `obj%next()`.
 - [x] Added `obj%set` routine that allows to simply set first/last frame and stride.
-- [ ] Added `frame%write`.
+- [x] Removed `linest` (now in xslib_array.f90).
 - [x] Removed `elapsedTime`, `getTime` and `timeStamp()`.
-- [x] Added NEW timing routines `get_wtime()`, `write_time`, `msleep()`.
+- [x] Added NEW timing routines `get_wtime()`, `write_time()`, `msleep()`.
 - [x] Added `ndx%display()` to write present groups.
 - [x] Improved write function for all conf. objects to compensate for missing data.
 - [x] Added vector `rotate` function.

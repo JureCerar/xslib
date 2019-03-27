@@ -25,7 +25,7 @@ program example
 	real*8						:: time
 
 	!$ nthreads = OMP_get_max_threads()
-	!$ time = OMP_get_wtime()
+	time = get_wtime()
 
 	! ====================================
 	file = "conf.gro"
@@ -183,7 +183,7 @@ program example
 	! ====================================
 	write (*,*)
 	write (*,*) "Finished."
-	!$ write (*,*) "Elapsed time: "//elapsedTime(OMP_get_wtime()-time)
+	write (*,*) "Elapsed time: ", write_time(get_wtime()-time)
 
 	call exit (0)
 end program example

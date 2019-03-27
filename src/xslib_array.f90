@@ -16,6 +16,60 @@ module xslib_array
 
 contains
 
+
+	! Returns simple linear regresion (SLR) of x,y as C(:) = [k,n]
+	function linest (x, y, d, R2) result (c)
+		implicit none
+		real, intent(in)						:: x(:), y(:)
+		real, intent(out), optional	:: d(2), R2
+		real												:: c(2)
+		! internal
+		real 												:: np, AveX, AveY
+		real 												:: Sxx, Syy, Sxy
+
+		! Initialize
+		c = 0.
+
+		! Number of points
+		np = size(x)
+		if (np < 2 .or. np /= size(y)) then
+			! Error
+			c = -1.
+			return
+		end if
+
+		AveX	= sum(x)/np
+		AveY	= sum(y)/np
+		Sxx		= sum((x(:)-AveX)**2)
+		Syy		= sum((y(:)-AveY)**2)
+		Sxy 	= sum((x(:)-AveX)*(y(:)-aveY))
+
+		! Result
+		c(1) = Sxy/Sxx
+		c(2) = AveY-c(1)*AveX
+
+		! Standard deviation
+		if (present(d)) then
+			if (np > 2) then
+				d(1) = sqrt((Syy-c(1)**2*Sxx)/((np-2)*Sxx))
+				d(2) = sqrt((Syy-c(1)**2*Sxx)/(np-2))*sqrt(1/(np-sum(x)**2/sum(x**2)))
+
+			else
+				d = -1.
+
+			end if
+		end if
+
+		! R^2 value
+		if (present(R2)) then
+			R2 = Sxy**2/(Sxx*Syy)
+
+		end if
+
+		return
+	end function linest
+
+
 	! This function return K closest elements to VAL in ARRAY(:).
 	function findKClosest_INT (val, array, k) result(r)
 		implicit none

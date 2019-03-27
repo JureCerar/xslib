@@ -1,7 +1,6 @@
 module xslib_pdh
 	use xslib_common
-	use xslib_utilities, only: linest
-	use xslib_array, only: findKClosest
+	use xslib_array, only: findKClosest, linest
 	implicit none
 
 	! .PDH file format
