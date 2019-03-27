@@ -640,6 +640,7 @@ contains
   procedure :: read
   procedure :: write
   procedure :: tpl2ndx
+  procedure :: display
   procedure :: get
 end type ndx_file
 ```
@@ -663,6 +664,13 @@ subroutine tpl2ndx_ndx (tpl, system)
   type(tpl_file)     :: tpl
   class(*), optional :: system
 end subroutine tpl2ndx
+
+! Displays present static index groups.
+! >Present static index groups:
+! > Group  X "System" (xxxxx atoms)
+! > ...
+subroutine display ()
+end subroutine display
 
 ! Gets the number of atoms in a group. If an atom is specified, integer returns the overall index for that atom.
 integer function get (group, i)

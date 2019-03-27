@@ -47,6 +47,7 @@ module xslib_ndx
   	procedure :: get => indexfile_get
   	procedure :: get_natoms => indexfile_get
 		procedure :: tpl2ndx => tpl2ndx_ndx
+		procedure :: display => display_ndx
   end type ndx_file
 
 contains
@@ -133,6 +134,26 @@ contains
 
 		return
 	end subroutine tpl2ndx_ndx
+
+	! Displays present static index groups.
+	subroutine display_ndx (this)
+		implicit none
+		class(ndx_file)	:: this
+		integer					:: i
+
+		! Present static index groups:
+		!  Group  X "System" (xxxxx atoms)
+		!  ...
+
+		write (*,*) "Present static index groups:"
+		do i = 1, this%ngroups
+			write (*,*) i, trim(this%group(i)%title), this%group(i)%natoms
+			100 format (2x,"Group  ",i0," '",a,"' (",i0,"atoms)")
+		end do
+		if (this%ngroups==0) write (*,*) " NONE"
+
+		return
+	end subroutine display_ndx
 
 	! Read GROMACS index .ndx file
 	subroutine read_ndx (this, file)
