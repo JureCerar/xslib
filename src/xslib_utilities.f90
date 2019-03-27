@@ -5,11 +5,6 @@ module xslib_utilities
 		module procedure variance_ARRAY, variance_REAL, variance_REAL8, variance_ARRAY8
 	end interface variance
 
-	interface elapsedTime
-		module procedure elapsedTime_INT, elapsedTime_FLOAT8
-	end interface elapsedTime
-
-
 	interface rotate
 			module procedure rotate_AXIS, rotate_VECTOR
 	end interface rotate
@@ -293,83 +288,74 @@ contains
 	! =======================================================
 	! Time and timing
 
-	! Returns time and date in format: "hh:nn:ss dd-mm-yyyy".
-	function timeStamp () result (string)
+	! Returns arbitrary high precision time in seconds.
+	real*8 function get_wtime ()
 		implicit none
-		character*19	:: string
-		integer				:: time(8)
+		integer	:: values(8)
 
-		call date_and_time (VALUES=time)
-		write (string, 200) time(5:7),time(3),time(2),time(1)
-		200	format(i2.2,":",i2.2,":",i2.2,x,i2.2,"-",i2.2,"-",i4.4)
+		call date_and_time(VALUES=values)
+		! values(5) ... The hour of the day
+		! values(6) ... The minutes of the hour
+		! values(7) ... The seconds of the minute
+		! values(8) ... The milliseconds of the second
+
+		get_wtime = values(5)*60.         		! Hours to minutes
+		get_wtime = (get_wtime+values(6))*60. ! Minutes to seconds
+		get_wtime = get_wtime+values(7)				! AddSeconds
+		get_wtime = get_wtime+values(8)/1000.	! Add milliseconds
 
 		return
-	end function timeStamp
+	end function get_wtime
 
-	! Function wrapper for system_clock(COUNT=time)
-	function getTime () result (time)
-		implicit none
-		integer :: time
-
-		call system_clock(COUNT=time)
-
-		return
-	end function getTime
-
-	! Returns elapsed time as string in format: "ddd:hh:mm:ss.sss".
-	! Use with call system_clock(COUNT=time) or getTime()
-	function elapsedTime_INT (time) result (string)
-		! returns time as string in format ddd:hh:mm:ss.sss
-		! 1 day 18 hours 53 minutes 43 seconds 128 millsec = 154423128 millisec
-		implicit none
-		integer, intent(in)	:: time 	!milisec
-		character*16				:: string
-		integer							:: days, hours, min, sec, msec
-
-		days 	= int(time/86400000)
-		hours = int(mod(time/3600000,24))
-		min 	= int(mod(time/60000,60))
-		sec		= int(mod(time/1000,60))
-		msec	= time-days*86400000-hours*3600000-min*60000-sec*1000
-
-
-		write (string, 200) days, hours, min, sec, msec
-		200	format (i3.3, ":", i2.2, ":", i2.2, ":", i2.2, ".", i3.3) ! ddd:hh:mm:ss.sss
-
-		return
-	end function elapsedTime_INT
-
-	! Returns elapsed time as string in format: "ddd:hh:mm:ss.sss".
-	! Use with OMP_get_wtime()
-	function elapsedTime_FLOAT8 (time) result (string)
-		! returns time as string in format ddd:hh:mm:ss.sss
-		! 1 day 18 hours 53 minutes 43 seconds 128 millsec = 154423.128 sec
+	! Transfors time in seconds to string in format: "ddd:hh:mm:ss.sss".
+	! Use with OMP_get_wtime() and get_wtime()
+	! Example: 1d 18h 53m 43s 128ms = 154423.128
+	function write_time (time) result (string)
 		implicit none
 		real*8, intent(in)	:: time 	!seconds
-		real 								:: itime
 		character*16				:: string
+		real 								:: rtime ! remaining time
 		integer							:: days, hours, min, sec, msec
 
-		itime = real(time, KIND=4)
+		days 	= time/864000.
+		rtime = time-days*864000.
 
-		days 	= itime/(24.*3600.)
+		hours = rtime/3600.
+		rtime = rtime-days*3600.
 
-		itime 	= mod(itime,(24.*3600.))
-		hours 	= itime/3600.
+		min 	= rtime/60.
+		rtime	= rtime-min*60.
 
-		itime	= mod(itime,(3600.))
-		min 	= itime/60.
+		sec   = int(rtime)
+		rtime = rtime-sec
 
-		itime 	= mod(itime, 60.)
-		sec		= itime
+		msec	= rtime*1000.
 
-		msec	= (itime-int(itime))*1000.
-
-		write (string, 200) days, hours, min, sec, msec
-		200	format (i3.3, ":", i2.2, ":", i2.2, ":", i2.2, ".", i3.3) ! ddd:hh:mm:ss.sss
+		write (string, "(i3.3,3(':',i2.2),'.', i3.3)") days, hours, min, sec, msec
 
 		return
-	end function elapsedTime_FLOAT8
+	end function write_time
+
+	! Suspend execution for millisecond intervals
+	subroutine msleep (time)
+		use, intrinsic :: iso_c_binding, only: C_INT
+		implicit none
+		integer							:: time
+		integer(KIND=C_INT)	:: t, stat
+
+		interface
+			! usleep - suspend execution for microsecond intervals
+			integer(C_INT) function usleep (usec) bind(C)
+				use, intrinsic :: iso_c_binding, only: C_INT
+				implicit none
+				integer(KIND=C_INT), value :: usec ! microseconds
+			end function
+		end interface
+
+		stat = usleep(int(time*1000, KIND=C_INT))
+
+		return
+	end subroutine
 
 	! =======================================================
 	! On-line variance algorithm
@@ -823,60 +809,5 @@ contains
 
 		return
 	end subroutine printOpt
-
-	! =======================================================
-	! REGRESION OPERATIONS
-
-	! Returns simple linear regresion (SLR) of x,y as C(:) = [k,n]
-	function linest (x, y, d, R2) result (c)
-		implicit none
-		real, intent(in)						:: x(:), y(:)
-		real, intent(out), optional	:: d(2), R2
-		real												:: c(2)
-		! internal
-		real 												:: np, AveX, AveY
-		real 												:: Sxx, Syy, Sxy
-
-		! Initialize
-		c = 0.
-
-		! Number of points
-		np = size(x)
-		if (np < 2 .or. np /= size(y)) then
-			! Error
-			c = -1.
-			return
-		end if
-
-		AveX	= sum(x)/np
-		AveY	= sum(y)/np
-		Sxx		= sum((x(:)-AveX)**2)
-		Syy		= sum((y(:)-AveY)**2)
-		Sxy 	= sum((x(:)-AveX)*(y(:)-aveY))
-
-		! Result
-		c(1) = Sxy/Sxx
-		c(2) = AveY-c(1)*AveX
-
-		! Standard deviation
-		if (present(d)) then
-			if (np > 2) then
-				d(1) = sqrt((Syy-c(1)**2*Sxx)/((np-2)*Sxx))
-				d(2) = sqrt((Syy-c(1)**2*Sxx)/(np-2))*sqrt(1/(np-sum(x)**2/sum(x**2)))
-
-			else
-				d = -1.
-
-			end if
-		end if
-
-		! R^2 value
-		if (present(R2)) then
-			R2 = Sxy**2/(Sxx*Syy)
-
-		end if
-
-		return
-	end function linest
 
 end module xslib_utilities

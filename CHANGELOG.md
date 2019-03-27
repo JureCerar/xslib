@@ -7,8 +7,9 @@
 - [x] Added frame skip to all conf. objects - `obj%next()`.
 - [x] Added `obj%set` routine that allows to simply set first/last frame and stride.
 - [ ] Added `frame%write`.
-- [ ] Added `ndx%writeGroups()`.
-- [ ] Implement regression (lin, poly and MLR)
+- [x] Removed `elapsedTime`, `getTime` and `timeStamp()`.
+- [x] Added NEW timing routines `get_wtime()`, `write_time`, `msleep()`.
+- [x] Added `ndx%display()` to write present groups.
 - [x] Improved write function for all conf. objects to compensate for missing data.
 - [x] Added vector `rotate` function.
 - [x] Aesthetic fixes to CMAKE.

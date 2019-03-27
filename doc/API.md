@@ -28,9 +28,9 @@
 	- [`rotate()`](#rotate)
 	- [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
 	- [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
-	- [`timeStamp()`](#timestamp)
-	- [`getTime()`](#gettime)
-	- [`elapsedTime()`](#elapsedtime)
+	- [`get_wtime()`](#get_wtime)
+	- [`write_time()`](#write_time)
+	- [`msleep()`](#msleep)
 	- [`variance()`](#variance)
 	- [`pathname()`](#pathname)
 	- [`baseName()`](#basename)
@@ -1022,30 +1022,31 @@ end function cyl2crt
 ```
 <!-- ------------------------------------------------------------------------------ -->
 
-### `timeStamp()`
-Returns time and date in format *hh:mm:ss dd-mm-yyyy*.
+### `get_wtime()`
+Returns arbitrary high precision time in seconds.  
 ```fortran
-function timeStamp ()
-  character*19 :: timeStamp
-end function timeStamp
+real*8 function get_wtime ()
+end function get_wtime
 ```
 
-### `getTime()`
-Function wrapper for `system_clock(COUNT=time)`.
+### `write_time()`
+Transfors time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` and `get_wtime()`.  
 ```fortran
-integer function getTime ()
-end function getTime
+function write_time (time) result (string)
+  real*8       :: time ! seconds
+  character*16 :: string
+end function write_time
 ```
 
-### `elapsedTime()`
-Converts time in [ms] or [s] to string in format *ddd:hh:mm:ss.sss*. Use with `system_clock(COUNT=time)`, `getTime()` or `OMP_get_wtime()`.  
-**NOTE:** `integer` = [ms] and `real*8` = [s]
+### `msleep()`
+Suspend execution for millisecond intervals.
 ```fortran
-function elapsedTime (time)
-  integer or real*8  :: time
-  character*16       :: elapsedTime
-end function elapsedTime
+subroutine msleep (time)
+  integer :: time ! millisecond
+end subroutine msleep
 ```
+
+<!-- ------------------------------------------------------------------------- -->
 
 ### `variance()`
 Calculates [on-line variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance) for any real scalar or array, where `n` is data counter for variance aggregate.  
@@ -1178,18 +1179,7 @@ subroutine progressBar (progress, size, message)
 end subroutine progressBar
 ```
 
-<!-- ------------------------------------------------------------------------- -->
-
-### `linest()`
-Calculates [simple linear regression](https://en.wikipedia.org/wiki/Simple_linear_regression) (k&middot;y+n) for array of kind real - `c=[k,n]`. Variance (optional) is returned as `d=[dk,dn]`, and R<sup>2</sup> value (optional) as `R2`.
-```fortran
-function linest (x, y, d, R2) result(c)
-  real,           :: x(:), y(:), c(2)
-  real, optional  :: d(2), R2
-end function linest
-```
-
 ----------------------------------------------
 
 ## Notes
-Most of the routines in xslib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/common.f90*.
+Most of the routines in xslib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*.
