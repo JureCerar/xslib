@@ -16,18 +16,21 @@ module xslib_xyz
 	end type
 
 	type xyz_file
-		integer, private							:: unit
-		integer 											:: nframes, framesLeft
+		integer, private							:: unit, first=1, last=-1, stride=1
+		integer 											:: nframes, allframes, framesLeft
 		type(xyz_frame), allocatable	:: frameArray(:)
 	contains
 		procedure	:: open => open_xyz
 		procedure	:: close => close_xyz
 		procedure	:: allocate => allocate_xyz
+		procedure :: set => setframe_xyz
+		procedure :: next => next_xyz
 		procedure	:: read_next => read_next_xyz
 		procedure	:: read => read_xyz
+		procedure	:: write => write_xyz
 		procedure	:: box => box_xyz
 		procedure	:: natoms => natoms_xyz
-		procedure	:: write => read_xyz
+
 	end type
 
 contains
@@ -91,39 +94,31 @@ contains
 	subroutine open_xyz (this, file)
 		implicit none
 		class(xyz_file)	:: this
-		character*(*)	:: file
-		integer			:: i, np, stat
-		character*3		:: dmy
+		character*(*)		:: file
+		integer					:: i, np, stat
 
 		open (NEWUNIT=this%unit, FILE=trim(file), STATUS="unknown", IOSTAT=stat)
 		if (stat/=0) call error("Cannot open file: "//trim(file), NAME="xyz%open()")
 
-		! XYZ format
-		! <num of atoms>
-		! comment
-		! <name> <x> <y> <z>  ("name" is optional!)
-		! ...
-
 		! Count number of frames as occurance of END until EOF
-	   	this%nframes = 0
-	   	do while (stat==0)
-		   read (this%unit, *, END=100) np ! number of particles
+		this%allframes = 0
+		do while (stat==0)
+			! Skip frames until EoF.
+			stat = this%next()-1
+			if (stat==0) this%allframes = this%allframes+1
+   	end do
 
-		   ! If we go this far another frame must exist
-		   this%nframes = this%nframes+1
+		! Rewind the file
+		100 rewind (this%unit)
 
-		   ! Dummy read next
-		   do i = 1, np+1 ! + first line is comment
-			   read (this%unit, *, END=200) ! dummy read
-		   end do
+		! All frames are left
+		this%nframes = this%allframes
+		this%framesLeft = this%nframes
 
-	   	end do
-
-	   ! Rewind the file
-	   100 rewind (this%unit)
-
-	   ! All frames are left
-	   this%framesLeft = this%nframes
+		! Reset first last and stride values
+		this%first = 1
+		this%last = this%nframes
+		this%stride = 1
 
 		return
 		200 call error("Incorect number of lines.", NAME="xyz%open()")
@@ -133,10 +128,97 @@ contains
 	subroutine close_xyz (this)
 		implicit none
 		class(xyz_file)	:: this
-		integer			:: stat
-		close (this%unit)
+		integer					:: stat
+		close (this%unit, IOSTAT=stat)
 		return
 	end subroutine close_xyz
+
+	! Set first/last frame and add frame stride.
+	subroutine setframe_xyz (this, first, last, stride)
+		implicit none
+		class(xyz_file)		:: this
+		integer, optional	:: first, last, stride
+		integer						:: stat
+		logical 					:: opened
+
+		! Check if file is opened
+		inquire (UNIT=this%unit, OPENED=opened)
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="xyz%set()")
+
+		! Reset file to begining
+		rewind (UNIT=this%unit)
+
+		! Change global variables
+		if (present(first)) this%first = first
+		if (present(last)) this%last = last
+		if (present(stride)) this%stride = stride
+
+		! IF last is "-1" select all
+		if (this%last==-1) this%last = this%allframes
+
+		! Error check for first and last
+		if (this%first < 1) then
+			call warning ("Invalid first frame: '"//str(this%first)//"'. Setting to '1'.")
+			this%first = 1
+		end if
+
+		if (this%last > this%allframes) then
+			call warning ("Invalid last frame: '"//str(this%last)//"'. Setting to '"//str(this%allframes)//"'.")
+			this%last = this%allframes
+		end if
+
+		if (this%stride == 0) then
+			call warning ("Invalid frame stride: '"//str(this%stride)//"'. Setting to '1'.")
+			this%stride = 1
+		end if
+
+		! Modify number of frames and number of frames left
+		this%nframes = ceiling((this%last-this%first+1)/real(this%stride))
+		this%framesleft = this%nframes
+
+		if (this%first/=1) then
+			! Cycle through frames to the "first" frame
+			stat = this%next(this%first-1)
+		end if
+
+		return
+	end subroutine setframe_xyz
+
+	! Skip "stride" number of frames. returning number si the number of frames skipped.
+	function next_xyz (this, stride) result (stat)
+		implicit none
+		class(xyz_file)		:: this
+		integer, optional	:: stride
+		integer						:: i, n, np, nframes, stat
+
+		! Default status
+		stat = 0
+
+		! Number of frames to skip
+		nframes = 1
+		if (present(stride)) nframes = stride
+
+		! XYZ format
+		! <num of atoms>
+		! comment
+		! <name> <x> <y> <z>  ("name" is optional!)
+		! ...
+
+		do n = 1, nframes, 1
+			read (this%unit, *, END=100) np ! number of particles
+			! If we go this far another frame must exist so dummy read ALL next
+			do i = 1, np+1 ! + first line is comment
+			 read (this%unit, *, END=200) ! dummy read
+			end do
+			! At this point frame skip was succesfull
+			stat = stat+1
+		end do
+
+		100 continue
+
+		return
+		200 call error ("Incorrect number of lines?", NAME="xyz%next()")
+	end function next_xyz
 
 	! Allocate .xyz frameArray
 	subroutine allocate_xyz (this, np)
@@ -176,7 +258,7 @@ contains
 
 		! Check if opened
 		inquire (UNIT=this%unit, OPENED=opened)
-		if (.not. opened) call error("File UNIT not assigned.", NAME="xyz%read_next()")
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="xyz%read_next()")
 
 		! XYZ format
 		! <num of atoms>
@@ -228,6 +310,9 @@ contains
 
 			! Return DUMMY BOX info
 			this%frameArray(n)%box(:) = -1.
+
+			! Skip specified number of frames
+			stat = this%next(this%stride-1)
 
 		end do ! for n
 
@@ -294,14 +379,13 @@ contains
 		return
 	end function natoms_xyz
 
-
 	! Write .XYZ data to either UNIT, FILE or STDOUT (if neither are present)
 	subroutine write_xyz (this, file, unit)
 		use iso_fortran_env
 		implicit none
-		class(xyz_file)			:: this
+		class(xyz_file)					:: this
 		character*(*), optional	:: file
-		integer, optional		:: unit
+		integer, optional				:: unit
 		! internal
 		character*128			:: string
 		integer					:: i, n, u, stat
@@ -339,7 +423,7 @@ contains
 
 			! Read lines
 			do i = 1, this%frameArray(n)%natoms
-				write (unit, "(a5,3f10.5)") this%frameArray(n)%name(i), this%frameArray(n)%coor(:,i)
+				write (u, "(a5,3f10.5)") this%frameArray(n)%name(i), this%frameArray(n)%coor(:,i)
 
 			end do
 		end do ! for n

@@ -10,6 +10,11 @@ module xslib_utilities
 	end interface elapsedTime
 
 
+	interface rotate
+			module procedure rotate_AXIS, rotate_VECTOR
+	end interface rotate
+
+
 contains
 
 	! =======================================================
@@ -34,6 +39,9 @@ contains
 		real, dimension(3)	:: r, box, minimg
 
 		minimg(:) = r(:)-box(:)*floor(r(:)/box(:)+0.5)
+
+		! hbox=box/2
+		! minimg(:) = r(:)-sign(hbox,r-hbox)-sign(hbox,r+hbox)
 
 		return
 	end function minImg
@@ -132,6 +140,67 @@ contains
 
 		return
 	end function getDihedral
+
+	! Rotate vector around axis.
+	function rotate_AXIS (in, axis, angle) result (out)
+		use ieee_arithmetic
+		implicit none
+		real, dimension(3)   :: in, out
+		character*(*)        :: axis
+		real                 :: angle
+		real, dimension(3,3) :: rmat ! rotation matrix
+
+		select case (trim(axis))
+		case ("x","X")
+			rmat(1,:) = [         1.,          0.,          0.]
+			rmat(2,:) = [         0.,  cos(angle), -sin(angle)]
+			rmat(3,:) = [         0.,  sin(angle),  cos(angle)]
+
+		case ("y","Y")
+			rmat(1,:) = [ cos(angle),          0.,  sin(angle)]
+			rmat(2,:) = [         0.,          1.,          0.]
+			rmat(3,:) = [-sin(angle),          0.,  cos(angle)]
+
+		case ("z","Z")
+			rmat(1,:) = [ cos(angle), -sin(angle),          0.]
+			rmat(2,:) = [ sin(angle),  cos(angle),          0.]
+			rmat(3,:) = [         0.,          0.,          1.]
+
+		case default
+			! Return NaN an exit
+			out = ieee_value(out, ieee_quiet_nan)
+			return
+
+		end select
+
+		out(:) = matmul(rmat(:,:),in(:))
+
+		return
+	end function rotate_AXIS
+
+	! Rotate vector around second vector
+	function rotate_VECTOR (in, vector, angle) result (out)
+		implicit none
+		real, dimension(3)   :: in, vector, out
+		real                 :: angle
+		real, dimension(3)   :: u
+		real, dimension(3,3) :: rmat
+
+		u = vector/norm2(vector)
+
+		! Rotation matrix
+		! https://en.wikipedia.org/wiki/Rotation_matrix
+
+		associate (a=>angle)
+			rmat(1,:) = [cos(a)+u(1)**2*(1-cos(a)), u(1)*u(2)*(1-cos(a))-u(3)*sin(a), u(1)*u(3)*(1-cos(a))+u(2)*sin(a)]
+			rmat(2,:) = [u(2)*u(1)*(1-cos(a))+u(3)*sin(a), cos(a)+u(2)**2*(1-cos(a)), u(2)*u(3)*(1-cos(a))-u(1)*sin(a)]
+			rmat(3,:) = [u(3)*u(1)*(1-cos(a))-u(2)*sin(a), u(3)*u(2)*(1-cos(a))+u(1)*sin(a), cos(a)+u(3)**2*(1-cos(a))]
+		end associate
+
+		out(:) = matmul(rmat(:,:),in(:))
+
+		return
+	end function rotate_VECTOR
 
 	! =======================================================
 
@@ -258,7 +327,7 @@ contains
 		integer							:: days, hours, min, sec, msec
 
 		days 	= int(time/86400000)
-		hours 	= int(mod(time/3600000,24))
+		hours = int(mod(time/3600000,24))
 		min 	= int(mod(time/60000,60))
 		sec		= int(mod(time/1000,60))
 		msec	= time-days*86400000-hours*3600000-min*60000-sec*1000
@@ -681,9 +750,7 @@ contains
 	end subroutine progressBar
 
 	! Program options write template.
-	! >_switch__<typexx>__(value...)
-	! >____message...
-
+	! >_switch__<type>__--_message..._(value)
 	subroutine printOpt (switch, message, type, value)
 		implicit none
 		character*(*)						:: switch

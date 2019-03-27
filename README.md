@@ -1,18 +1,17 @@
 # XsLib - Extra-small Library
 
 ![Version](https://img.shields.io/badge/Current_release-v0.3.1-blue.svg)
-![Language](https://img.shields.io/badge/Language-Fortran_C-brightgreen.svg)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
+![Language](https://img.shields.io/badge/Language-Fortran,_C-brightgreen.svg)
 ![Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
 <!-- [![Generic badge](https://img.shields.io/badge/<SUBJECT>-<STATUS>-<COLOR>.svg)](https://shields.io/) -->
 
 ## Synopsis
-
-The Extra-small Library (XsLib) is a modern Fortran library consisting of useful utilities functions that "computer chemist" might need during his/her work. The library features function to handle standard molecular coordinate files (.gro, .pdb, and .xyz), trajectory files (.trr and .xtc), supporting files (.ndx and .tpl), and data files (.csv and .pdh). It uses an object-oriented philosophy for reading and storing data for analysis. The library is written with primary purpose of learning modern Fortran language, good coding practices and in hopes that it helps someone else in their pursuit of knowledge.
+The Extra-small Library (XsLib) is a modern Fortran library consisting of useful utilities functions that "computer chemist" might need during his/her work. The library features function to handle standard molecular coordinate files (**.gro**, **.pdb**, and **.xyz**), trajectory files (**.trr** and **.xtc**), supporting files (**.ndx** and **.tpl**), and data files (**.csv** and **.pdh**). It uses an object-oriented philosophy for reading and storing data for analysis. The library is written with primary purpose of learning modern Fortran language, good coding practices and in hopes that it helps someone else in their pursuit of knowledge.
 
 ## Build & Install
-
 Clone or download repository from GitHub:
 ```bash
 git clone https://github.com/JureCerar/xslib
@@ -31,7 +30,6 @@ make install
 ```
 
 ## Usage
-
 To use the library always put `use xslib` in the module section:
 ```fortran
 program main
@@ -54,11 +52,11 @@ pkg-config xslib --libs --cflags
 ## [Changelog](CHANGELOG.md)
 
 ## Acknowledgments
-
 - This library includes modified versions of [libxdrfile](https://github.com/wesbarnett/libxdrfile) and its Fortran wrapper [libgmxfort](https://github.com/wesbarnett/libgmxfort) for reading GROMACS .ndx, .trr, and .xtc files created by [James W. Barnett](https://github.com/wesbarnett).
 
-## License
+<!-- Basically, he is my hero. -->
 
+## License
 This program is licensed under the **GNU General Public License v3.0**
 
 Copyright (C) [Jure Cerar](https://github.com/JureCerar)

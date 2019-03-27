@@ -44,6 +44,9 @@ module xslib_trj
 		integer :: NUMATOMS, N
 		integer :: FRAMES_REMAINING
 		logical :: read_only_index_group
+		! Added by Jure Cerar 26.03.2019
+		integer :: ALLFRAMES
+		integer	:: FIRST=1, LAST=-1, STRIDE=1
 	contains
 		procedure :: open => trajectory_open
 		procedure :: read => trajectory_read
@@ -54,6 +57,9 @@ module xslib_trj
 		procedure :: box => trajectory_get_box
 		procedure :: time => trajectory_get_time
 		procedure :: step => trajectory_get_step
+		! Added by Jure Cerar 26.03.2019
+		procedure :: next => trajectory_dummy_read
+		procedure :: set => trajectory_setframe
 	end type
 
 	! the data type located in libxdrfile
@@ -109,10 +115,8 @@ module xslib_trj
 
 contains
 
-	subroutine trajectory_open(this, filename_in, ndxfile)
-
+	subroutine trajectory_open (this, filename_in, ndxfile)
 		use, intrinsic :: iso_c_binding, only: C_NULL_CHAR, c_f_pointer
-
 		implicit none
 		class(trj_file), intent(inout) :: this
 		type(C_PTR) :: xd_c
@@ -126,7 +130,7 @@ contains
 		inquire(file=trim(filename_in), exist=ex)
 
 		if (ex .eqv. .false.) then
-			call error(trim(filename_in)//" does not exist.", NAME="LIBGMXFORT")
+			call error (trim(filename_in)//" does not exist.", NAME="LIBGMXFORT")
 		end if
 
 		! Set the file name to be read in for C.
@@ -146,14 +150,21 @@ contains
 		end if
 		this%FRAMES_REMAINING = this%NFRAMES
 
+		! Added by Jure Cerar 26.03.2019
+		this%ALLFRAMES=this%NFRAMES
+		! Set first/last/stride
+		this%FIRST=1
+		this%LAST=this%ALLFRAMES
+		this%STRIDE=1
+
 		! Open the file for reading. Convert C pointer to Fortran pointer.
 		xd_c = xdrfile_open(filename,"r")
 		call c_f_pointer(xd_c, this % xd)
 
+		return
 	end subroutine trajectory_open
 
-	subroutine trajectory_read(this, xtcfile, ndxfile, ndxgrp)
-
+	subroutine trajectory_read (this, xtcfile, ndxfile, ndxgrp)
 		implicit none
 		class(trj_file), intent(inout) :: this
 		character (len=*) :: xtcfile
@@ -166,10 +177,12 @@ contains
 
 		call this%close()
 
+		return
 	end subroutine trajectory_read
 
-	function trajectory_read_next(this, F, ndxgrp)
-
+	! Edited by Jure Cerar 26.03.2019
+	! I added frame skip to account for frame stride
+	function trajectory_read_next (this, F, ndxgrp)
 		implicit none
 		integer :: trajectory_read_next
 		class(trj_file), intent(inout) :: this
@@ -212,6 +225,10 @@ contains
 					end if
 				end do
 
+				! Added by Jure Cerar 26.03.2019
+				! Skip designated number of frames
+				stat = this%next(this%stride-1)
+
 			end do
 			deallocate(coor)
 
@@ -229,6 +246,10 @@ contains
 				! C is row-major, whereas Fortran is column major. Hence the following.
 				this%frameArray(I)%box = transpose(box_trans)
 
+				! Added by Jure Cerar 26.03.2019
+				! Skip designated number of frames
+				stat = this%next(this%stride-1)
+
 			end do
 
 		end if
@@ -236,28 +257,105 @@ contains
 		call print_frames_saved(N)
 		trajectory_read_next = N
 
+		return
 	end function trajectory_read_next
 
-	subroutine print_frames_saved(I)
+	! Added by Jure Cerar 26.03.2019
+	! Does what it says; dummy reads from trajectory
+	function trajectory_dummy_read (this, F) result (stat)
+		implicit none
+		class(trj_file), intent(inout)	:: this
+		integer, intent(in), optional		:: F
+		integer													:: stat
+		real, allocatable 							:: coor(:,:)
+		integer 												:: i, n, natoms
+		integer(C_INT) 									:: step
+		real(C_FLOAT) 									:: box(3,3), prec, time
 
+		! If the user specified how many frames to read and it is greater than one, use it
+		n = merge(F, 1, present(F))
+		if (n<1) return ! No action needed
+
+		stat = 0
+
+		allocate(coor(3,this%N))
+		do i = 1, n, 1
+			stat = stat+read_xtc(this%xd, natoms, step, time, box, coor, prec)
+
+		end do
+		deallocate (coor)
+
+		return
+	end function trajectory_dummy_read
+
+	! Added by Jure Cerar 26.03.2019
+	! Sets first/last frame and frame stride
+	subroutine trajectory_setframe (this, first, last, stride)
+		implicit none
+		class(trj_file)		:: this
+		integer, optional :: first, last, stride
+		integer						:: stat
+
+		! Reset file to begining
+		! rewind (UNIT=this%dx) ! => NOTE DOES NOT WORK
+		! Best I can do is prompt error if frame was read
+		if (this%FRAMES_REMAINING/=this%ALLFRAMES) call error ("Trajectory frame was already read.", NAME="LIBGMXFORT")
+
+		! Change global variables
+		this%first = merge(first, 1, present(first))
+		this%last = merge(last, -1, present(last))
+		this%stride = merge(stride, 1, present(stride))
+
+		! IF last is "-1" then set true last
+		if (this%LAST==-1) this%last = this%allframes
+
+		! Error check for first and last
+		if (this%first < 1) then
+			call warning ("Invalid first frame: '"//str(this%first)//"'. Setting to '1'.")
+			this%first = 1
+		end if
+
+		if (this%last > this%allframes) then
+			call warning ("Invalid last frame: '"//str(this%last)//"'. Setting to '"//str(this%allframes)//"'.")
+			this%last = this%allframes
+		end if
+
+		if (this%stride == 0) then
+			call warning ("Invalid frame stride: '"//str(this%stride)//"'. Setting to '1'.")
+			this%stride = 1
+		end if
+
+		! Modify number of frames and number of frames left
+		this%NFRAMES = ceiling((this%LAST-this%FIRST+1)/real(this%STRIDE))
+		this%FRAMES_REMAINING = this%NFRAMES
+
+		! ---------------
+
+		! Cycle through frames to the "first" frame
+		if (this%first/=1) stat = this%next(this%first-1)
+
+		return
+	end subroutine trajectory_setframe
+
+	subroutine print_frames_saved(I)
 		implicit none
 		integer, intent(in) :: I
 
 		! write(error_unit,'(a,i0)') achar(27)//"[1A"//achar(27)//"[K"//"Frames saved: ", I
 
+		return
 	end subroutine print_frames_saved
 
-	subroutine trajectory_close(this)
-
+	subroutine trajectory_close (this)
 		implicit none
 		class(trj_file), intent(inout) :: this
 
 		if (xdrfile_close(this % xd) /=0) call error("Problem closing xtc file.", NAME="LIBGMXFORT")
 
+		return
 	end subroutine trajectory_close
 
-	function trajectory_get_coor(this, frame, atom, group)
-
+	function trajectory_get_coor (this, frame, atom, group)
 		implicit none
 		real :: trajectory_get_coor(3)
 		integer, intent(in) :: frame, atom
@@ -284,10 +382,10 @@ contains
 
 		trajectory_get_coor = this%frameArray(frame)%coor(:,atom_tmp)
 
+		return
 	end function trajectory_get_coor
 
-	function trajectory_get_natoms(this, group)
-
+	function trajectory_get_natoms (this, group)
 		implicit none
 		integer :: trajectory_get_natoms
 		class(trj_file), intent(inout) :: this
@@ -300,10 +398,10 @@ contains
 
 		trajectory_get_natoms = merge(this%ndx%get_natoms(group), this%NUMATOMS, present(group))
 
+		return
 	end function trajectory_get_natoms
 
-	function trajectory_get_box(this, frame)
-
+	function trajectory_get_box (this, frame)
 		implicit none
 		real :: trajectory_get_box(3,3)
 		class(trj_file), intent(in) :: this
@@ -312,10 +410,10 @@ contains
 		call trajectory_check_frame(this, frame)
 		trajectory_get_box = this%frameArray(frame)%box
 
+		return
 	end function trajectory_get_box
 
-	function trajectory_get_time(this, frame)
-
+	function trajectory_get_time (this, frame)
 		implicit none
 		real :: trajectory_get_time
 		class(trj_file), intent(in) :: this
@@ -324,10 +422,10 @@ contains
 		call trajectory_check_frame(this, frame)
 		trajectory_get_time = this%frameArray(frame)%time
 
+		return
 	end function trajectory_get_time
 
-	function trajectory_get_step(this, frame)
-
+	function trajectory_get_step (this, frame)
 		implicit none
 		integer :: trajectory_get_step
 		class(trj_file), intent(in) :: this
@@ -336,10 +434,10 @@ contains
 		call trajectory_check_frame(this, frame)
 		trajectory_get_step = this%frameArray(frame)%step
 
+		return
 	end function trajectory_get_step
 
-	subroutine trajectory_check_frame(this, frame)
-
+	subroutine trajectory_check_frame (this, frame)
 		implicit none
 		class(trj_file), intent(in) :: this
 		integer, intent(in) :: frame
@@ -351,6 +449,7 @@ contains
 			call error(trim(message), NAME="LIBGMXFORT")
 		end if
 
+		return
 	end subroutine trajectory_check_frame
 
 end module xslib_trj

@@ -16,6 +16,7 @@ module xslib_frame
 	contains
 		procedure :: open => open_frame
 		procedure :: read_next => read_next_frame
+		procedure :: set => setframe_frame
 		procedure :: close => close_frame
 		procedure	:: nframes => nframes_frame
 		procedure :: get_natoms => get_natoms_frame
@@ -90,14 +91,14 @@ contains
 		! Mark as opened
 		frame_opened=.true.
 
-
 		return
 	end subroutine open_frame
 
 	! Read one frame from already opened file.
-	function read_next_frame (this) result (stat)
+	function read_next_frame (this)
 		implicit none
 		class(frame_file)	:: this
+		integer						:: read_next_frame
 		integer 					:: stat
 		integer						:: i, j
 
@@ -106,8 +107,8 @@ contains
 
 	 	select type (frame)
 		class is (gro_file)
-			stat = frame%read_next(ONLYCOOR=.true.)
-			if (stat==1) then
+			read_next_frame = frame%read_next(ONLYCOOR=.true.)
+			if (read_next_frame==1) then
 				! Num of atoms
 				this%natoms = frame%frameArray(1)%natoms
 				! Simulation box
@@ -125,8 +126,8 @@ contains
 			end if
 
 		class is (pdb_file)
-			stat = frame%read_next(ONLYCOOR=.true.)
-			if (stat==1) then
+			read_next_frame = frame%read_next(ONLYCOOR=.true.)
+			if (read_next_frame==1) then
 				this%natoms = frame%frameArray(1)%natoms
 				this%box(:) = frame%frameArray(1)%box(:)
 				if (allocated(this%coor) .and. size(this%coor,2)==frame%frameArray(1)%natoms) then
@@ -139,8 +140,8 @@ contains
 			end if
 
 		class is (xyz_file)
-			stat = frame%read_next()
-			if (stat==1) then
+			read_next_frame = frame%read_next()
+			if (read_next_frame==1) then
 				this%natoms = frame%frameArray(1)%natoms
 				this%box(:) = frame%frameArray(1)%box(:)
 				if (allocated(this%coor) .and. size(this%coor,2)==frame%frameArray(1)%natoms) then
@@ -153,8 +154,8 @@ contains
 			end if
 
 		class is (trj_file)
-			stat = frame%read_next()
-			if (stat == 1) then
+			read_next_frame = frame%read_next()
+			if (read_next_frame==1) then
 				this%natoms = frame%numatoms
 				! In .trr/.xtc box is 3x3 matrix; Extract only diagonal.
 				this%box(:) = [frame%frameArray(1)%box(1,1), frame%frameArray(1)%box(2,2), frame%frameArray(1)%box(3,3)]
@@ -176,6 +177,37 @@ contains
 
 		return
 	end function read_next_frame
+
+	! Set first/last frame and frame stride
+	subroutine setframe_frame (this, first, last, stride)
+		implicit none
+		class(frame_file)	:: this
+		integer, optional	:: first, last, stride
+
+		select type (frame)
+		class is (gro_file)
+			call frame%set(first, last, stride)
+			! Update number of frames
+			frame_nframes = frame%nframes
+
+		class is (pdb_file)
+			call frame%set(first, last, stride)
+			frame_nframes = frame%nframes
+		class is (xyz_file)
+			call frame%set(first, last, stride)
+			frame_nframes = frame%nframes
+
+		class is (trj_file)
+			call frame%set(first, last, stride)
+			frame_nframes = frame%nframes
+
+		class default
+			call error ("Undefined data type.", NAME="frame%set()")
+
+		end select
+
+		return
+	end subroutine setframe_frame
 
 	subroutine close_frame (this)
 		implicit none

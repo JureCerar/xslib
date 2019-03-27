@@ -25,6 +25,7 @@
 	- [`getDistance()`](#getdistance)
 	- [`getAngle()`](#getangle)
 	- [`getDihedral()`](#getdihedral)
+	- [`rotate()`](#rotate)
 	- [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
 	- [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
 	- [`timeStamp()`](#timestamp)
@@ -84,6 +85,12 @@ and closed with:
 call obj%close()
 ```
 Closing the file does not affect the data stored in `obj` (it does not deallocate the data).
+
+The starting/ending frame and read stride can be changed using `obj%set`:
+```fortran
+call obj%set(FIRST=first, LAST=last, STRIDE=stride)
+```
+**NOTE:** `obj%set` can be called only once BEFORE reading any data (`obj%read()` or `obj%read_next()`).
 
 After calling `obj%read()` or `obj%read_next()` every atom's coordinates are accessible as `obj%frameArray(n)%coor(:,:)`. Note that the Fortran language uses **row-major indexing** *i.e.* `array(row, column)` and that convention is retained here.
 
@@ -152,6 +159,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
+	procedure :: set
+	procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: box
@@ -165,7 +174,7 @@ end type pdb_file
 ! INITIALIZE options initializes all allocated values.
 subroutine allocate (npoints, onlycoor, initialize)
   integer, intent(in) :: npoints
-  class(*), optional  :: onlycoor, initialize
+  logical, optional   :: onlycoor, initialize
 end subroutine allocate
 
 ! Deallocate data.
@@ -192,11 +201,21 @@ subroutine allocate (nframes)
   integer :: nframes
 end subroutine allocate
 
+! Set first/last frame and frame stride
+subroutine set (first, last, stride)
+	integer, optional :: first, last, stride
+end subroutine set
+
+! Skip one or 'nframes' number of frames
+integer function next (nframes)
+	integer, optional :: nframes
+end function next
+
 ! Read next frame, where returned integer is the actual number of frames that were read
-! Use ONLYCOOR option to read only coor data (to speedup read process and save memory)
+! Use ONLYCOOR option to read only coordinate data (to speedup read process and save memory).
 integer function read_next (nframes, onlycoor)
-  integer, optional  :: nframes
-  class(*), optional :: onlycoor
+  integer, optional :: nframes
+  logical, optional :: onlycoor
 end function read_next
 
 ! Read entire file.
@@ -250,6 +269,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
+	procedure :: set
+	procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: write
@@ -263,7 +284,7 @@ end type gro_file
 ! INITIALIZE options initializes all allocated values.
 subroutine allocate (npoints, onlycoor, initialize)
   integer, intent(in) :: npoints
-  class(*), optional  :: onlycoor, initialize
+  logical, optional   :: onlycoor, initialize
 end subroutine allocate
 
 ! Deallocate data.
@@ -290,11 +311,21 @@ subroutine allocate (nframes)
   integer :: nframes
 end subroutine allocate
 
+! Set first/last frame and frame stride
+subroutine set (first, last, stride)
+	integer, optional :: first, last, stride
+end subroutine set
+
+! Skip one or 'nframes' number of frames
+integer function next (nframes)
+	integer, optional :: nframes
+end function next
+
 ! Read next frame, where returned integer contains the actual number of frames read;
 ! Use ONLYCOOR option to read only coor. data (to speedup read process and save memory)
 integer function read_next (nframes, onlycoor)
   integer, optional  :: nframes
-  class(*), optional :: onlycoor
+  logical, optional  :: onlycoor
 end function read_next
 
 ! Read entire file.
@@ -344,6 +375,8 @@ contains
   procedure :: open
   procedure :: read
   procedure :: read_next
+	procedure :: set
+	procedure :: next
   procedure :: close
   procedure :: x
   procedure :: natoms
@@ -365,6 +398,16 @@ subroutine read (file, ndxfile, ndxgroup)
   character*(*)            :: file
   character*(*), optional  :: ndxfile, ndxgroup
 end subroutine read
+
+! Set first/last frame and frame stride
+subroutine set (first, last, stride)
+	integer, optional :: first, last, stride
+end subroutine set
+
+! Skip one or 'nframes' number of frames
+integer function next (nframes)
+	integer, optional :: nframes
+end function next
 
 ! Read next frame, where returned integer contains the actual number of frames read;
 ! Read more than one frame by passing nframes.
@@ -433,6 +476,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
+	procedure :: set
+	procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: box
@@ -471,6 +516,16 @@ end subroutine close
 subroutine allocate (nframes)
   integer :: nframes
 end subroutine allocate
+
+! Set first/last frame and frame stride
+subroutine set (first, last, stride)
+	integer, optional :: first, last, stride
+end subroutine set
+
+! Skip one or 'nframes' number of frames
+integer function next (nframes)
+	integer, optional :: nframes
+end function next
 
 ! Read next frame, where returned integer contains the actual number of frames read.
 integer function read_next (nframes)
@@ -517,6 +572,7 @@ type frame_data
   real, allocatable  :: coor(:,:)
 contains
   procedure :: open
+	procedure :: set
   procedure :: read_next
   procedure :: close
   procedure :: nframes
@@ -530,6 +586,11 @@ end type frame_data
 subroutine open (file)
   character*(*) :: file
 end subroutine open
+
+! Set first/last frame and frame stride
+subroutine set (first, last, stride)
+	integer, optional :: first, last, stride
+end subroutine set
 
 ! Read next frame, where returned integer contains the actual number of frames read.
 integer function read_next ()
@@ -866,7 +927,7 @@ end function cross
 
 ### `minImg()`
 Return reduced coordinates according to [minimal image convention](https://en.wikipedia.org/wiki/Periodic_boundary_conditions).  
-_i.e. a=a-box*floor(a/box+0.5)_
+_i.e. a=a-box*floor(a/box+0.5) <.OR.> a=a-sign(box/2,r-box/2)-sign(box/2,r+box/2)_  
 ```fortran
 function minImg (r, box)
   real, dimension(3)  :: r, box, minImg
@@ -900,6 +961,21 @@ Return [dihedral angle (theta)](https://en.wikipedia.org/wiki/Dihedral_angle) be
 real function getDihedral (a, b, c, d)
   real, dimension(3) :: a, b, c, d
 end function getDihedral
+```
+
+### `rotate()`
+[Rotates vector](https://en.wikipedia.org/wiki/Rotation_matrix) around AXIS or specified VECTOR.   
+```fortran
+function rotate (in, axis, angle) result (out)
+  real, dimension(3) :: in, out
+	character*1        :: axis ! "X", "Y", or "Z"
+	real               :: angle
+end function rotate
+
+function rotate (in, vector, angle) result (out)
+  real, dimension(3) :: in, out, vector
+	real               :: angle
+end function rotate
 ```
 
 ### `deg2rad()` and  `rad2deg()`

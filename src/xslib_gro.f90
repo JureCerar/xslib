@@ -21,13 +21,15 @@ module xslib_gro
 
 
 	type gro_file
-		integer, private							:: unit
-		integer												:: nframes, framesLeft
+		integer, private							:: unit, first=1, last=-1, stride=1
+		integer												:: nframes, allframes, framesLeft
 		type(gro_frame), allocatable	:: frameArray(:)
 	contains
 		procedure	:: open => open_gro
 		procedure	:: close => close_gro
 		procedure	:: allocate => allocate_gro
+		procedure :: next => next_gro
+		procedure :: set => setframe_gro
 		procedure	:: read_next => read_next_gro
 		procedure	:: read => read_gro
 		procedure	:: write => write_gro
@@ -41,7 +43,8 @@ contains
 	subroutine allocate_gro_frame (this, np, onlycoor, initialize)
 		class(gro_frame)		:: this	! .GRO data file
 		integer, intent(in)	:: np	! Number of points to allocate
-		class(*), optional	:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
+		logical, optional		:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
+		logical							:: coor, init
 		integer							:: stat
 		character*128				:: message
 
@@ -51,6 +54,10 @@ contains
 			call error (message, NAME="gro%frameArray%allocate()")
 		end if
 
+		! Process poptional variables
+		coor = merge(onlycoor, .false., present(onlycoor))
+		init = merge(initialize, .false., present(initialize))
+
 		! Deallocate memory
 		call this%deallocate()
 
@@ -58,7 +65,7 @@ contains
 		this%natoms = np
 
 		! Allocate
-		if (present(onlyCoor)) then
+		if (coor) then
 			allocate( this%coor(3,np), STAT=stat)
 
 		else
@@ -68,7 +75,7 @@ contains
 		end if
 
 		! Initialize array
-		if (present(initialize)) call this%initialize()
+		if (init) call this%initialize()
 
 		return
 	end subroutine allocate_gro_frame
@@ -79,7 +86,6 @@ contains
 		integer						:: stat
 
 		this%natoms = 0
-		stat = 0
 
 		if (allocated(this%coor)) deallocate(this%coor, STAT=stat)
 		if (allocated(this%res_num)) deallocate( this%res_num, this%res_name, this%atom_name, &
@@ -137,23 +143,24 @@ contains
 		if (stat /= 0) call error ("Cannot open file: '"//trim(file)//"'", NAME="gro%open()")
 
 		! Count number of frames as occurance of END until EOF
-		this%nframes = 0
-		do while (stat == 0)
-			read (this%unit, *, END=100) ! Title
-			read (this%unit, *, END=100) np	 ! number of particles
-			! If we go this far another frame must exist
-			this%nframes = this%nframes+1
-			do i = 1, np+1 ! + last line is box size
-				read (this%unit, *, END=200) ! dummy read
-			end do
-
+		this%allframes = 0
+		do while (stat==0)
+			! Skip frames until EoF.
+			stat = this%next()-1
+			if (stat==0) this%allframes = this%allframes+1
 		end do
 
 		! Rewind the file
 		100 rewind (this%unit)
 
 		! All frames are left
+		this%nframes = this%allframes
 		this%framesLeft = this%nframes
+
+		! Reset first last and stride values
+		this%first = 1
+		this%last = this%nframes
+		this%stride = 1
 
 		return
 		200 call error ("Incorect number of lines.", NAME="gro%open()")
@@ -181,9 +188,12 @@ contains
 			call error (message, NAME="gro%allocate()")
 		end if
 
+		! Update number of frames
+		this%nframes = np
+
 		! Allocate memory
 		if (allocated(this%frameArray)) deallocate(this%frameArray, STAT=stat)
-		allocate (this%frameArray(np), STAT=stat)
+		allocate (this%frameArray(this%nframes), STAT=stat)
 		if (stat /= 0) call error ("Not enough memory.", NAME="gro%allocate()")
 
 		! Intitialize basic data
@@ -192,31 +202,112 @@ contains
 		return
 	end subroutine allocate_gro
 
+	! Skip "stride" number of frames. returning number si the number of frames skipped.
+	function next_gro (this, nframes) result (stat)
+		implicit none
+		class(gro_file)		:: this
+		integer, optional	:: nframes
+		integer						:: i, ip, n, np, stat
+
+		! Default status
+		stat = 0
+
+		! Number of frames to skip
+		np = merge(nframes, 1, present(nframes))
+
+		do n = 1, np, 1
+			read (this%unit, *, END=100) ! Title
+			read (this%unit, *, END=100) ip	 ! number of particles
+			! If we go this far another frame must exist
+			do i = 1, ip+1 ! + last line is box size
+				read (this%unit, *, END=200) ! dummy read
+			end do
+			! At this point frame skip was succesfull
+			stat = stat+1
+		end do
+
+		100 continue
+
+		return
+		200 call error ("Incorrect number of lines?", NAME="gro%next()")
+	end function next_gro
+
+	! Set first/last frame and add frame stride.
+	subroutine setframe_gro (this, first, last, stride)
+		implicit none
+		class(gro_file)		:: this
+		integer, optional	:: first, last, stride
+		integer						:: stat
+		logical 					:: opened
+
+		! Check if file is opened
+		inquire (UNIT=this%unit, OPENED=opened)
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="gro%set()")
+
+		! Reset file
+		rewind (UNIT=this%unit)
+
+		! Change global variables
+		this%first = merge(first, 1, present(first))
+		this%last = merge(last, -1, present(last))
+		this%stride = merge(stride, 1, present(stride))
+
+		! IF last is "-1" select all
+		if (this%last==-1) this%last = this%allframes
+
+		! Error check for first and last
+		if (this%first < 1) then
+			call warning ("Invalid first frame: '"//str(this%first)//"'. Setting to '1'.")
+			this%first = 1
+		end if
+
+		if (this%last > this%allframes) then
+			call warning ("Invalid last frame: '"//str(this%last)//"'. Setting to '"//str(this%allframes)//"'.")
+			this%last = this%allframes
+		end if
+
+		if (this%stride == 0) then
+			call warning ("Invalid frame stride: '"//str(this%stride)//"'. Setting to '1'.")
+			this%stride = 1
+		end if
+
+		! ---------------------------------
+
+		! Modify number of frames and number of frames left
+		this%nframes = ceiling((this%last-this%first+1)/real(this%stride))
+		this%framesleft = this%nframes
+
+		if (this%first/=1) then
+			! Cycle through frames to the "first" frame
+			stat = this%next(this%first-1)
+		end if
+
+		return
+	end subroutine setframe_gro
+
 	! Read multiple frames.
 	function read_next_gro (this, nframes, onlycoor) result (framesRead)
 		implicit none
 		class(gro_file)								:: this		! .GRO data file
 		integer, intent(in), optional	:: nframes	! how many frames to read
-		class(*), optional						:: onlycoor	! if present read only coordinates
+		logical, optional							:: onlycoor	! if present read only coordinates
 		integer												:: framesRead
 		integer												:: i, n, np, ok, stat, line
 		logical												:: opened, coor
 		character*128									:: message
 
-		! If number of frames in not defined read only one frame
-		np = 1
-		if (present(nframes)) np = nframes
-
 		! Check if opened
 		inquire (UNIT=this%unit, OPENED=opened)
 		if (.not. opened) call error ("No file opened.", NAME="gro%read_next()")
 
-		! How many frames are left?
-		if (np > this%framesLeft) then
-			framesRead = this%framesLeft
-		else
-			framesRead = np
-		end if
+		! If number of frames in not defined read only one frame
+		np = merge(nframes, 1, present(nframes))
+
+		! Read only coordinates ?
+		coor = merge(onlycoor, .false., present(onlycoor))
+
+		! How many frames are left? (select lower value)
+		framesRead = min(this%framesLeft, np)
 
 		! Allocate memory
 		call this%allocate(framesRead)
@@ -226,15 +317,18 @@ contains
 			! One less frame to read
 			this%framesLeft = this%framesLeft-1
 
+			! Line counter
+			line = 0
+
 			! Title
 			read (this%unit, "(a)", IOSTAT=stat, END=110) this%frameArray(n)%title
 			line = line+1
 
 			! Read time if present
 			i = index(this%frameArray(n)%title, "t=")
-			if (i /= 0) then
+			if (i/=0) then
 				read (this%frameArray(n)%title(i+2:), *, IOSTAT=stat) this%frameArray(n)%time
-				if (stat /= 0) this%frameArray(n)%time = 0.
+				if (stat/=0) this%frameArray(n)%time = 0.
 			end if
 
 			! Number of points
@@ -242,39 +336,32 @@ contains
 			line = line+1
 
 			! Allocate data
-			if (present(onlycoor)) then
-				call this%frameArray(n)%allocate(this%frameArray(n)%natoms, ONLYCOOR=.true.)
-				coor=.true.
-			else
-				call this%frameArray(n)%allocate(this%frameArray(n)%natoms)
-				coor=.false.
-			end if
+			call this%frameArray(n)%allocate(this%frameArray(n)%natoms, ONLYCOOR=coor)
 
 			! Read data
 			if (coor) then
 				! Read only coordinates
 				do i = 1, this%frameArray(n)%natoms
-					read (this%unit, 200, ERR=120, END=110)	this%frameArray(n)%coor(:,i)
+					read (this%unit, "(20x,3f8.3)", ERR=120, END=110)	this%frameArray(n)%coor(:,i)
 					line = line+1
-
-					200 format (20x,3f8.3)
 
 				end do
 			else
 				do i = 1, this%frameArray(n)%natoms
-					read (this%unit, 210, ERR=120, END=110)	&
+					read (this%unit, "(i5,2a5,i5,3f8.3:6f8.4)", ERR=120, END=110)	&
 						this%frameArray(n)%res_num(i), this%frameArray(n)%res_name(i), this%frameArray(n)%atom_name(i), 	&
 						this%frameArray(n)%atom_num(i), this%frameArray(n)%coor(:,i), this%frameArray(n)%vel(:,i)
 					line = line+1
-
-					210 format (i5,2a5,i5,3f8.3:6f8.4)
 
 				end do
 			end if
 
 			! Box side
-			read (this%unit, *, ERR=110) this%frameArray(n)%box(1:3)
+			read (this%unit, *, ERR=110) this%frameArray(n)%box(:)
 			line = line+1
+
+			! Skip specified number of frames
+			stat = this%next(this%stride-1)
 
 		end do
 
@@ -290,11 +377,9 @@ contains
 		class(gro_file)	:: this
 		character*(*)		:: file
 		integer					:: stat
-
 		call this%open(file)
 		stat = this%read_next(this%nframes)
 		call this%close
-
 		return
 	end subroutine read_gro
 
@@ -305,17 +390,16 @@ contains
 		class(gro_file)					:: this		! .GRO data file
 		integer, optional				:: unit		! File UNIT id
 		character*(*), optional	:: file
-		integer									:: i, n, u, stat
-		logical									:: opened, vel
+		integer									:: i, n, u, cnt, stat
+		logical									:: opened, vel, onlycoor
 
-		! Check if fully allocated
+		! Check if data is allocated
 		if (.NOT. allocated(this%frameArray)) call error ("Data not allocated.", NAME="gro%write()")
 
 		! Choose output method
 		if (present(unit)) then
-			! Check if unit is opened
 			inquire (UNIT=unit, OPENED=opened)
-			if (.not. opened) call error ("File unit not assigned.", NAME="gro%write()")
+			if (.NOT. opened) call error ("File UNIT not assigned.", NAME="gro%write()")
 			u = unit
 
 		else if (present(file)) then
@@ -333,32 +417,41 @@ contains
 		do n = 1, size(this%frameArray)
 			! Error check
 			if (.NOT. allocated(this%frameArray(n)%coor)) call error ("Data not allocated.", NAME="gro%write()")
-			if (.NOT. allocated(this%frameArray(n)%res_name)) call error ("Cannot write 'COORONLY' data.", NAME="gro%write()")
 
 			! Does data include viscosities and are those allocated?
 			vel=.false.
-      if (allocated(this%frameArray(n)%vel)) then
-				if (any(this%frameArray(n)%vel(:,:) /= 0.)) vel=.true.
+			if (allocated(this%frameArray(n)%vel)) vel = .NOT. all(this%frameArray(n)%vel==0.)
 
+			! Is all data present or just coordinates?
+			onlycoor = .NOT. allocated(this%frameArray(n)%res_name)
+
+			if (onlycoor) then
+				! GRO title
+				write (u, "(a)") trim(this%frameArray(n)%title)
+				! Number of points
+				write (u, "(2x,i0)") this%frameArray(n)%natoms
+				! Write data atom by atom
+				cnt = 1
+				do i = 1, this%frameArray(n)%natoms
+					! Fill in the missing data
+					write (u, "(i5,2a5,i5,3f8.3)") cnt, "LIG  ", "    X", cnt, this%frameArray(n)%coor(:,i)
+					cnt = cnt+1
+					if (cnt>int(1E5)) cnt = 1
+				end do
+
+			else
+				write (u, "(a)") trim(this%frameArray(n)%title)
+				write (u, "(2x,i0)") this%frameArray(n)%natoms
+				do i = 1, this%frameArray(n)%natoms
+					write (u, "(i5,2a5,i5,3f8.3,$)") this%frameArray(n)%res_num(i), adjustl(this%frameArray(n)%res_name(i)),	&
+					adjustr(trim(this%frameArray(n)%atom_name(i))), this%frameArray(n)%atom_num(i), this%frameArray(n)%coor(:,i)
+					! Write velocity only if not equal to 0
+					if (vel) write (u, "(3f8.3,$)") this%frameArray(n)%vel(:,i)
+					! New line
+					write (u, *) ""
+
+				end do
 			end if
-
-			! GRO title
-			write (u, "(a)") trim(this%frameArray(n)%title)
-			! Number of points
-			write (u, "(2x,i0)") this%frameArray(n)%natoms
-			! Write data atom by atom
-			do i = 1, this%frameArray(n)%natoms
-				write (u, 200) this%frameArray(n)%res_num(i), adjustl(this%frameArray(n)%res_name(i)),	&
-				adjustr(trim(this%frameArray(n)%atom_name(i))), this%frameArray(n)%atom_num(i), this%frameArray(n)%coor(:,i)
-
-				200 format (i5,2a5,i5,3f8.3,$) ! $ = "AVANCE=NO"
-
-				! Write velocity only if not equal to 0
-				if (vel) write (u, "(3f8.3,$)") this%frameArray(n)%vel(:,i)
-				! New line
-				write (u, *) ""
-
-			end do
 
 			! Box side
 			write (u, "(3(x,f9.5))") this%frameArray(n)%box(1:3)
@@ -374,27 +467,25 @@ contains
 		class(gro_file)	:: this
 		real						:: box(3)
 		logical					:: opened
-		integer					:: i, np
+		integer					:: n, np
 
 		! Return ERROR if file is not opened
 		inquire (UNIT=this%unit, OPENED=opened)
-			if (.not. opened) call error ("File unit not assigned.", NAME="gro%box()")
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="gro%box()")
 
 		! If some data was already read return current first fame
 		if (allocated(this%frameArray)) then
-			box = this%frameArray(1)%box
+			box(:) = this%frameArray(1)%box(:)
 
 		else ! read the file and find box
 			read (this%unit, *) ! Title
 			read (this%unit, *) np	 ! number of particles
-
-			do i = 1, np
+			do n = 1, np
 				read (this%unit, *) ! Atom coordinates
 			end do
-
 			! Read the box size
-			read (this%unit, *) box
-
+			read (this%unit, *) box(:)
+			! Reset position
 			rewind (this%unit)
 
 		end if
@@ -412,7 +503,7 @@ contains
 
 		! Return ERROR if file is not opened
 		inquire (UNIT=this%unit, OPENED=opened)
-		if (.not. opened) call error ("No file is assigned to object.", NAME="gro%natoms()")
+		if (.NOT. opened) call error ("No file is assigned to object.", NAME="gro%natoms()")
 
 		! If some data was already read return current first fame
 		if (allocated(this%frameArray)) then
@@ -421,7 +512,7 @@ contains
 		else ! read the file and find box entry
 			read (this%unit, *) ! Title
 			read (this%unit, *) natoms
-
+			! Reset position
 			rewind (this%unit)
 
 		end if

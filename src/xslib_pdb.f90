@@ -11,7 +11,7 @@ module xslib_pdb
 		character*20, allocatable	:: record_type(:), atom_name(:), alt_loc_indicator(:), residue_name(:), chain_identifier(:)
 		character*20, allocatable	:: res_insert_code(:), segment_identifier(:), element_symbol(:)
 		integer, allocatable			:: atom_serial_number(:), residue_sequence_number(:)
-		real, allocatable					:: coor(:,:) ! (index, x:y:z)
+		real, allocatable					:: coor(:,:)
 		real, allocatable					:: occupancy(:), temp_factor(:), charge(:)
 	contains
 		procedure	:: allocate => allocate_pdb_frame
@@ -21,13 +21,15 @@ module xslib_pdb
 
 
 	type pdb_file
-		integer, private							:: unit, framesLeft
-		integer												:: nframes
+		integer, private							:: unit, first=1, last=-1, stride=1
+		integer												:: nframes, framesLeft, allframes
 		type(pdb_frame), allocatable	:: frameArray(:)
 	contains
 		procedure :: open => open_pdb
 		procedure :: close => close_pdb
 		procedure	:: allocate => allocate_pdb
+		procedure	:: next => next_pdb
+		procedure	:: set => setframe_pdb
 		procedure	:: read_next => read_next_pdb
 		procedure	:: read => read_pdb
 		procedure	:: box => box_pdb
@@ -42,22 +44,29 @@ contains
 		implicit none
 		class(pdb_frame)		:: this	! .GRO data file
 		integer, intent(in)	:: np	! Number of points to allocate
-		class(*), optional	:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
+		logical, optional		:: onlycoor, initialize	! if NOT present - allocate everything, if present - allocate only coordinates
 		integer							:: stat
+		logical							:: coor, init
 		character*128				:: message
 
 		! Error check
 		if (np < 0) then
 			write (message, "(a,i0)") "Invalid array size: ", np
-			call error(message, NAME="pdh%allocate()")
+			call error(message, NAME="pdh%frameArray%allocate()")
 		end if
+
+		! Read only coordinates ?
+		coor = merge(onlycoor, .false., present(onlycoor))
+
+		! Initialize file ?
+		init = merge(initialize, .false., present(initialize))
 
 		! Deallocate
 		call this%deallocate()
 		this%natoms = np
 
 		! Allocate only coordinates
-		if (present(onlycoor)) then
+		if (coor) then
 			allocate (this%coor(3,np), STAT=stat)
 
 		! Allocate entire .PDB memory
@@ -69,8 +78,10 @@ contains
 
 		end if
 
+		if (stat/=0) call error("Not enough memory.", NAME="pdh%frameArray%allocate()")
+
 		! Initialize data
-		if (present(initialize)) call this%initialize()
+		if (init) call this%initialize()
 
 		return
 	end subroutine allocate_pdb_frame
@@ -78,7 +89,7 @@ contains
 	! deallocate .pdb data.
 	subroutine deallocate_pdb_frame (this)
 		implicit none
-		class(pdb_frame)	:: this	! .GRO data file
+		class(pdb_frame)	:: this
 		integer						:: stat
 
 		! number of particles
@@ -147,20 +158,28 @@ contains
 
 		! Open file
 		open (NEWUNIT=this%unit, FILE=trim(filename), STATUS="unknown", IOSTAT=stat)
-		if (stat /= 0) call error("Cannot open file: "//trim(filename), NAME="pdb%open()")
+		if (stat/=0) call error("Cannot open file: '"//trim(filename)//"'.", NAME="pdb%open()")
 
 		! Count number of frames as occurance of END until EOF
-		this%nframes = 0
-		do while (stat == 0)
-			read (this%unit, "(a)", END=100) dmy
-			if (trim(dmy)=="END") this%nframes = this%nframes+1
+		this%allframes = 0
+		do while (stat==0)
+			! Skip frames until EoF.
+			stat = this%next()-1
+			if (stat==0) this%allframes = this%allframes+1
 
 		end do
 
+		! Rewind the file
 		100 rewind (this%unit)
 
 		! All frames are left
+		this%nframes = this%allframes
 		this%framesLeft = this%nframes
+
+		! Reset first last and stride values
+		this%first = 1
+		this%last = this%nframes
+		this%stride = 1
 
 		return
 	end subroutine open_pdb
@@ -188,41 +207,123 @@ contains
 			call error(message, NAME="pdb%frameArray%allocate()")
 		end if
 
+		! Set new number of frames
+		this%nframes = np
+
 		if (allocated(this%frameArray)) deallocate(this%frameArray, STAT=stat)
-		allocate (this%frameArray(np), STAT=stat)
-		if (stat /= 0) call error("Not enough memory.", NAME="pdb%frameArray%allocate()")
+		allocate (this%frameArray(this%nframes), STAT=stat)
+		if (stat/=0) call error("Not enough memory.", NAME="pdb%allocate()")
 
 		this%frameArray%natoms = 0
 
 		return
 	end subroutine allocate_pdb
 
+	! Skip "stride" number of frames. returning number si the number of frames skipped.
+	function next_pdb (this, nframes) result (stat)
+		implicit none
+		class(pdb_file)		:: this
+		integer, optional	:: nframes
+		integer						:: n, np, stat
+		character*6				:: dmy
+
+		! Default status
+		stat = 0
+
+		! Number of frames to skip
+		np = merge(nframes, 1, present(nframes))
+
+		do n = 1, np, 1
+			do
+				read (this%unit, "(a)", END=100) dmy
+				if (index(dmy,"END")==1) exit
+			end do
+			! At this point frame skip was succesfull
+			stat = stat+1
+		end do
+
+		100 continue
+
+		return
+	end function next_pdb
+
+	! Set first/last frame and add frame stride.
+	subroutine setframe_pdb (this, first, last, stride)
+		implicit none
+		class(pdb_file)		:: this
+		integer, optional	:: first, last, stride
+		integer						:: stat
+		logical 					:: opened
+
+		! Check if file is opened
+		inquire (UNIT=this%unit, OPENED=opened)
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="pdb%set()")
+
+		! Reset file to begining
+		rewind (UNIT=this%unit)
+
+		! Change global variables
+		this%first = merge(first, 1, present(first))
+		this%last = merge(last, -1, present(last))
+		this%stride = merge(stride, 1, present(stride))
+
+		! IF last is "-1" select all
+		if (this%last==-1) this%last = this%allframes
+
+		! Error check for first and last
+		if (this%first < 1) then
+			call warning ("Invalid first frame: '"//str(this%first)//"'. Setting to '1'.")
+			this%first = 1
+		end if
+
+		if (this%last > this%allframes) then
+			call warning ("Invalid last frame: '"//str(this%last)//"'. Setting to '"//str(this%allframes)//"'.")
+			this%last = this%allframes
+		end if
+
+		if (this%stride == 0) then
+			call warning ("Invalid frame stride: '"//str(this%stride)//"'. Setting to '1'.")
+			this%stride = 1
+		end if
+
+		! --------------------------
+
+		! Modify number of frames and number of frames left
+		this%nframes = ceiling((this%last-this%first+1)/real(this%stride))
+		this%framesleft = this%nframes
+
+		if (this%first>1) then
+			! Cycle through frames to the "first" frame
+			stat = this%next(this%first-1)
+		end if
+
+		return
+	end subroutine setframe_pdb
+
 	! Read single .PDB frame from UNIT. ONLYCOOR = read only coordinates.
 	function read_next_pdb (this, nframes, onlycoor) result (framesRead)
 		implicit none
 		class(pdb_file)								:: this		! .PDB data file
 		integer, intent(in), optional	:: nframes	! how many frames to read
-		class(*), optional						:: onlycoor	! if present read only coordinates
+		logical, optional							:: onlycoor	! if present read only coordinates
 		integer												:: framesRead
-		character*256									:: buffer, file, message
+		character*256									:: buffer, message
 		character*6										:: dmy
-		integer												:: i, n, np, stat, cnt
+		integer												:: n, np, next, line, current, stat
 		logical												:: opened, coor
 
 		! If file unit is esternaly defined
-		np = 1
-		if (present(nframes)) np = nframes
+		np = merge(nframes, 1, present(nframes))
 
 		! Check if opened
 		inquire (UNIT=this%unit, OPENED=opened)
 		if (.not. opened) call error("File UNIT not assigned.", NAME="pdb%read_next()")
 
-		! how many frames are left
-		if (np > this%framesLeft) then
-			framesRead = this%framesLeft
-		else
-			framesRead = np
-		end if
+		! How many frames are left
+		framesRead = min(this%framesLeft, np)
+
+		! Read only coordinates?
+		coor = merge(onlycoor, .false., present(onlycoor))
 
 		! Allocate memory
 		call this%allocate(framesRead)
@@ -231,90 +332,80 @@ contains
 			! One less frame to read
 			this%framesLeft = this%framesLeft-1
 
+			! Store current opsition
+			current = ftell(this%unit)
+
 			! Count all atoms are until end of frame
 			this%frameArray(n)%natoms = 0
-			cnt = 0	! how many lines were read
-			stat = 0
-			do while (stat==0)
+			do
 				read (this%unit, *, END=110) dmy
-				cnt = cnt+1
 				if (index(dmy,"ATOM")/=0 .or. index(dmy,"HETATM")/=0) then
 					this%frameArray(n)%natoms = this%frameArray(n)%natoms+1
-
-				else if (trim(dmy)=="END") then
+				else if (index(dmy,"END")==1) then
 					exit
-
 				end if
-
 			end do
 
-			! Rewind number of lines that were read
-			do i = 1, cnt
-				backspace (UNIT=this%unit)
+			! Return to starting position
+			call fseek (this%unit, current, WHENCE=0, STATUS=stat)
 
-			end do
-
-			! If last line account for EoF
-			if (this%framesLeft == 0) backspace (UNIT=this%unit)
+			! --------------------
 
 			! Allocate data
-			if (present(onlycoor)) then
-				call this%frameArray(n)%allocate(this%frameArray(n)%natoms, ONLYCOOR=.true.)
-				coor=.true.
-			else
-				call this%frameArray(n)%allocate(this%frameArray(n)%natoms)
-				coor=.false.
-			end if
+			call this%frameArray(n)%allocate(this%frameArray(n)%natoms, ONLYCOOR=coor)
 
 			! Main read loop
-			i = 0
-			do while (stat == 0)
+			line = 0
+			next = 0
+			do while (stat==0)
 				read (this%unit, "(a)",  IOSTAT=stat, END=110) buffer
+				line = line+1
 
 				! Read dummy from buffer
 				read (buffer, "(a)") dmy
 
 				if (index(dmy,"ATOM")/=0 .or. index(dmy,"HETATM")/=0) then
-
 					! line counter
-					i = i+1
-
+					next = next+1
 					! if SWITCH is on, read only coordinates (Computational efficiency)
 					if (coor) then
-						read (buffer, 210, IOSTAT=stat, ERR=120, END=110) this%frameArray(n)%coor(1:3,i)
-						210	format (30x,3f8.3)
+						read (buffer, "(30x,3f8.3)", IOSTAT=stat, ERR=120, END=110) this%frameArray(n)%coor(:,next)
 
 					else
-						read (buffer, 220, IOSTAT=stat, ERR=120, END=110)	&
-							this%frameArray(n)%record_type(i), this%frameArray(n)%atom_serial_number(i), this%frameArray(n)%atom_name(i),			&
-							this%frameArray(n)%alt_loc_indicator(i), this%frameArray(n)%residue_name(i), this%frameArray(n)%chain_identifier(i),	&
-							this%frameArray(n)%residue_sequence_number(i), this%frameArray(n)%res_insert_code(i), this%frameArray(n)%coor(1:3,i),	&
-							this%frameArray(n)%occupancy(i), this%frameArray(n)%temp_factor(i), this%frameArray(n)%segment_identifier(i),			&
-						 	this%frameArray(n)%element_symbol(i), this%frameArray(n)%charge(i)
+						read (buffer, "(a6,i5,x,a4,a1,a3,x,a1,i4,a1,3x,3f8.3,2f6.2,6x,a4,a2,f7.4)", IOSTAT=stat, ERR=120, END=110)	&
+							this%frameArray(n)%record_type(next), this%frameArray(n)%atom_serial_number(next), &
+							this%frameArray(n)%atom_name(next), this%frameArray(n)%alt_loc_indicator(next), &
+							this%frameArray(n)%residue_name(next), this%frameArray(n)%chain_identifier(next),	&
+							this%frameArray(n)%residue_sequence_number(next), this%frameArray(n)%res_insert_code(next), &
+							this%frameArray(n)%coor(:,next), this%frameArray(n)%occupancy(next), this%frameArray(n)%temp_factor(next), &
+							this%frameArray(n)%segment_identifier(next), this%frameArray(n)%element_symbol(next), this%frameArray(n)%charge(next)
 
-						220	format (a6,i5,x,a4,a1,a3,x,a1,i4,a1,3x,3f8.3,2f6.2,6x,a4,a2,f7.4)
 
 					end if
 
-				! If "END" is found in record, update num. of points and exit
-				else if (trim(dmy)=="END") then
+				! If "END" OR "ENDMDL" is found in record exit
+				else if (index(dmy,"END")==1) then
 					exit
 
 				! Read box dimensions
 				else if (index(dmy,"CRYST1")/=0) then
-					read (buffer, 200, ERR=120) this%frameArray(n)%box(1:3)
+					read (buffer, 200, ERR=120) this%frameArray(n)%box(:)
 					200	  format (6x,3f9.3)
 
 				end if
 
 			end do ! while stat
+
+			! Skip specified number of frames
+			stat = this%next(this%stride-1)
+
 		end do ! for n
 
 		return
 		! Error handling
 		110 call error("Unexpected EoF.", NAME="pdb%read_next()")
-		120 write (message,"(2(a,i0))") "Could not phrase line: ", i, " in frame: ", this%nframes-this%framesLeft
-		call error(message, NAME="pdb%read_next()")
+		120 write (message,"(2(a,i0))") "Could not phrase line: ", line, " in frame: ", this%nframes-this%framesLeft
+		call error (message, NAME="pdb%read_next()")
 	end function read_next_pdb
 
 	! Read entire PDB file
@@ -323,50 +414,52 @@ contains
 		class(pdb_file)	:: this
 		character*(*)		:: file
 		integer					:: stat
-
 		call this%open(file)
 		stat = this%read_next(this%nframes)
 		call this%close()
-
 		return
 	end subroutine read_pdb
 
 	! Get box size from PDB file
-	! NOTE: returns -1. array if it cannote be found.
+	! NOTE: Returns [0,0,0] array if box cannot be found.
 	function box_pdb (this) result (box)
 		implicit none
 		class(pdb_file)	:: this
 		real						:: box(3)
 		logical					:: opened
 		integer					:: stat
-		character*128		:: line
+		character*128		:: buffer
 		character*6			:: dmy
 
-		! Initialize box to return -1. if it cannote be found
-		box = -1.
+		! Initialize box
+		box(:) = 0.
 
 		! Error check
 		inquire (UNIT=this%unit, OPENED=opened)
-		if (.not. opened) call error ("No file opened.", NAME="pdb%box()")
+		if (.NOT. opened) call error ("No file opened.", NAME="pdb%box()")
 
 		! If data was already read
 		if (allocated(this%frameArray)) then
-			box = this%frameArray(1)%box
+			box(:) = this%frameArray(1)%box(:)
 
 		! Else it must be first time readin (OK to use rewind)
 		else
 			stat = 0
-			do while (stat == 0)
-				read (this%unit, "(a)", IOSTAT=stat) line
-				read (line, "(a)") dmy
+			do while (stat==0)
+				read (this%unit, "(a)", IOSTAT=stat) buffer
+				read (buffer, "(a)") dmy
 
 				if (index(dmy,"CRYST1")/=0) then
-					read (line, *) dmy, box
+					read (buffer, *) dmy, box(:)
 					exit
-				end if
 
+				else if (index(dmy,"END")==1) then
+					exit
+
+				end if
 			end do
 
+			! Reset file
 			rewind (this%unit)
 
 		end if
@@ -388,31 +481,30 @@ contains
 
 		! Error check
 		inquire (UNIT=this%unit, OPENED=opened)
-		if (.not. opened) call error ("File UNIT not assigned.", NAME="pdb%box()")
+		if (.NOT. opened) call error ("File UNIT not assigned.", NAME="pdb%box()")
 
 		! If data was already read
 		if (allocated(this%frameArray)) then
-		natoms = this%frameArray(1)%natoms
+			natoms = this%frameArray(1)%natoms
 
 		! Else it must be first time readin (OK to use rewind)
 		else
-			stat = 0
-			do while (stat == 0)
+			stat=0
+			do while (stat==0)
 				read (this%unit, "(a)", IOSTAT=stat) dmy
 
 				! Lines containing atom information start with "ATOM" or "HETATOM"
-				if (index(dmy,"ATOM")/=0 .or. index(dmy,"HETATM")/=0) then
+				if (index(dmy,"ATOM")/=0 .OR. index(dmy,"HETATM")/=0) then
 					natoms = natoms+1
 
 				! Frame ends with either END or ENDMDL entry
-				else if (index(dmy,"END")/=0) then
+				else if (index(dmy,"END")==1) then
 					exit
 
 				end if
-
 			end do
 
-			! Rewind file
+			! Reset file
 			rewind (this%unit)
 
 		end if
@@ -428,16 +520,16 @@ contains
 		class(pdb_file)					:: this		! .PDB data file
 		character*(*), optional	:: file
 		integer, optional				:: unit
-		integer									:: i, u, n, stat, serial
-		logical									:: opened
+		integer									:: i, u, n, cnt, stat, serial
+		logical									:: opened, onlycoor
 
 		! Initialize
 		serial = 1 ! serial number of frame
 
-		! Check if fully allocated
-		if (.not. allocated(this%frameArray)) call error("Data not allocated.", NAME="pdb%write()")
+		! Check if allocated
+		if (.NOT. allocated(this%frameArray)) call error("Data not allocated.", NAME="pdb%write()")
 
-		! Check if unit is opened
+		! Select output method
 		if (present(unit)) then
 			inquire (UNIT=unit, OPENED=opened)
 			if (.not. opened) call error("File unit not assigned.", NAME="pdb%write()")
@@ -452,37 +544,50 @@ contains
 
 		end if
 
+		! ---------------------------
+
 		! Print all arrays
 		do n = 1, size(this%frameArray(:))
-			! Error check
-			if (.not. allocated(this%frameArray(n)%coor)) call error("Data not allocated.", NAME="pdb%write()")
-			if (.not. allocated(this%frameArray(n)%record_type)) call error("Cannot write 'COORONLY' data.", NAME="pdb%write()")
+
+			! Check if  data is allocated
+			if (.NOT. allocated(this%frameArray(n)%coor)) call error("Data not allocated.", NAME="pdb%write()")
+
+			! Does data contain only coordinates
+			onlycoor = .NOT. allocated(this%frameArray(n)%record_type)
 
 			! Box dimensions
-			if (any(this%frameArray(n)%box(:) /= 0.)) then
-				write (this%unit, 200) "CRYST1", this%frameArray(n)%box(1:3), 90., 90., 90.
-				200 format(a6, 3f9.3, 3f7.2)
-			end if
+			if (any(this%frameArray(n)%box(:)/=0.)) write (u, "(a6, 3f9.3, 3f7.2)") "CRYST1", this%frameArray(n)%box(:), 90., 90., 90.
 
 			! Model serial number
-			write (this%unit, "(a6,i5)") "MODEL ", serial
+			write (u, "(a6,i5)") "MODEL ", serial
 			serial = serial+1
+			if (serial>int(1E5)) serial=1
 
-			! Coordinate data
-			do i = 1, this%frameArray(n)%natoms
-				write (this%unit, 220)	&
-				"HETATM", this%frameArray(n)%atom_serial_number(i), this%frameArray(n)%atom_name(i),									&
-				this%frameArray(n)%alt_loc_indicator(i), this%frameArray(n)%residue_name(i), this%frameArray(n)%chain_identifier(i),	&
-				this%frameArray(n)%residue_sequence_number(i), this%frameArray(n)%res_insert_code(i), this%frameArray(n)%coor(1:3,i),	&
-				this%frameArray(n)%occupancy(i), this%frameArray(n)%temp_factor(i), this%frameArray(n)%segment_identifier(i),			&
-				this%frameArray(n)%element_symbol(i), this%frameArray(n)%charge(i)
+			! If only coordinates are allocated fill in the missing data
+			if (onlycoor) then
+				cnt = 1
+				do i = 1, this%frameArray(n)%natoms
+					write (u, "(a6,i5,x,a4,x,a3,4x,i4,4x,3f8.3,2f6.2)") "HETATM", cnt, "X", "LIG", 1, this%frameArray(n)%coor(:,i), 1.0, 0.0
+					! Atom counter
+					cnt = cnt+1
+					if (serial>int(1E5)) cnt=1
 
-				220	format (a6,i5,x,a4,a1,a3,x,a1,i4,a1,3x,3f8.3,2f6.2,6x,a4,a2,f7.4)
+				end do
 
-			end do
+			else
+				do i = 1, this%frameArray(n)%natoms
+					write (u, "(a6,i5,x,a4,a1,a3,x,a1,i4,a1,3x,3f8.3,2f6.2,6x,a4,a2,f7.4)")	&
+					"HETATM", this%frameArray(n)%atom_serial_number(i), this%frameArray(n)%atom_name(i),									&
+					this%frameArray(n)%alt_loc_indicator(i), this%frameArray(n)%residue_name(i), this%frameArray(n)%chain_identifier(i),	&
+					this%frameArray(n)%residue_sequence_number(i), this%frameArray(n)%res_insert_code(i), this%frameArray(n)%coor(1:3,i),	&
+					this%frameArray(n)%occupancy(i), this%frameArray(n)%temp_factor(i), this%frameArray(n)%segment_identifier(i),			&
+					this%frameArray(n)%element_symbol(i), this%frameArray(n)%charge(i)
+
+				end do
+			end if
 
 			! END of model or end of file
-			write (this%unit, "(a)") "ENDMDL"
+			write (u, "(a)") "ENDMDL"
 
 		end do
 
