@@ -159,8 +159,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
-	procedure :: set
-	procedure :: next
+  procedure :: set
+  procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: box
@@ -203,12 +203,12 @@ end subroutine allocate
 
 ! Set first/last frame and frame stride
 subroutine set (first, last, stride)
-	integer, optional :: first, last, stride
+  integer, optional :: first, last, stride
 end subroutine set
 
 ! Skip one or 'nframes' number of frames
 integer function next (nframes)
-	integer, optional :: nframes
+  integer, optional :: nframes
 end function next
 
 ! Read next frame, where returned integer is the actual number of frames that were read
@@ -225,7 +225,7 @@ end subroutine read
 
 ! Get simulation box size of current frame (without changing the position in file).
 function box () result (box)
-	real :: box(3)
+  real :: box(3)
 end function box
 
 ! Get number of atoms in current frame (without changing the position in file).
@@ -269,8 +269,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
-	procedure :: set
-	procedure :: next
+  procedure :: set
+  procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: write
@@ -313,12 +313,12 @@ end subroutine allocate
 
 ! Set first/last frame and frame stride
 subroutine set (first, last, stride)
-	integer, optional :: first, last, stride
+  integer, optional :: first, last, stride
 end subroutine set
 
 ! Skip one or 'nframes' number of frames
 integer function next (nframes)
-	integer, optional :: nframes
+  integer, optional :: nframes
 end function next
 
 ! Read next frame, where returned integer contains the actual number of frames read;
@@ -335,7 +335,7 @@ end subroutine read
 
 ! Get simulation box size of current frame (without changing the position in file).
 function box () result (box)
-	real :: box(3)
+  real :: box(3)
 end function box
 
 ! Get number of atoms in current frame (without changing the position in file).
@@ -375,8 +375,8 @@ contains
   procedure :: open
   procedure :: read
   procedure :: read_next
-	procedure :: set
-	procedure :: next
+  procedure :: set
+  procedure :: next
   procedure :: close
   procedure :: x
   procedure :: natoms
@@ -401,12 +401,12 @@ end subroutine read
 
 ! Set first/last frame and frame stride
 subroutine set (first, last, stride)
-	integer, optional :: first, last, stride
+  integer, optional :: first, last, stride
 end subroutine set
 
 ! Skip one or 'nframes' number of frames
 integer function next (nframes)
-	integer, optional :: nframes
+  integer, optional :: nframes
 end function next
 
 ! Read next frame, where returned integer contains the actual number of frames read;
@@ -476,8 +476,8 @@ contains
   procedure :: open
   procedure :: close
   procedure :: allocate
-	procedure :: set
-	procedure :: next
+  procedure :: set
+  procedure :: next
   procedure :: read_next
   procedure :: read
   procedure :: box
@@ -519,12 +519,12 @@ end subroutine allocate
 
 ! Set first/last frame and frame stride
 subroutine set (first, last, stride)
-	integer, optional :: first, last, stride
+  integer, optional :: first, last, stride
 end subroutine set
 
 ! Skip one or 'nframes' number of frames
 integer function next (nframes)
-	integer, optional :: nframes
+  integer, optional :: nframes
 end function next
 
 ! Read next frame, where returned integer contains the actual number of frames read.
@@ -541,7 +541,7 @@ end subroutine read
 ! Get simulation box size of current frame (without changing the position in file).
 ! NOTE: .xyz format does note necessarily contain simulation box data.
 function box () result (box)
-	real :: box(3)
+  real :: box(3)
 end function box
 
 ! Get number of atoms in current frame (without changing the position in file).
@@ -572,7 +572,7 @@ type frame_data
   real, allocatable  :: coor(:,:)
 contains
   procedure :: open
-	procedure :: set
+  procedure :: set
   procedure :: read_next
   procedure :: close
   procedure :: nframes
@@ -589,7 +589,7 @@ end subroutine open
 
 ! Set first/last frame and frame stride
 subroutine set (first, last, stride)
-	integer, optional :: first, last, stride
+  integer, optional :: first, last, stride
 end subroutine set
 
 ! Read next frame, where returned integer contains the actual number of frames read.
@@ -947,11 +947,11 @@ end function getDistance
 Returns angle between three points (A-B-C).
 ```fortran
 real function getAngle (a, b, c)
-	real, dimension(3) :: a, b, c
+  real, dimension(3) :: a, b, c
 end function getAngle
 
 real function getAngle2 (a, b, c)
-	real, dimension(3) :: a, b, c
+  real, dimension(3) :: a, b, c
 end function getAngle2
 ```
 
@@ -968,13 +968,13 @@ end function getDihedral
 ```fortran
 function rotate (in, axis, angle) result (out)
   real, dimension(3) :: in, out
-	character*1        :: axis ! "X", "Y", or "Z"
-	real               :: angle
+  character*1        :: axis ! "X", "Y", or "Z"
+  real               :: angle
 end function rotate
 
 function rotate (in, vector, angle) result (out)
   real, dimension(3) :: in, out, vector
-	real               :: angle
+  real               :: angle
 end function rotate
 ```
 
@@ -1055,8 +1055,8 @@ Returns path name of file.
 *e.g. "./path/to/file.txt" &rarr; "./path/to/"*
 ```fortran
 function pathName (name)
-	character*(*)               :: name
-	character*(:), allocatable  :: pathName
+  character*(*)               :: name
+  character*(:), allocatable  :: pathName
 end function pathName
 ```
 
