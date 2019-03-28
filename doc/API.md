@@ -16,7 +16,7 @@
 	- [`pdh_file` format](#pdh_file-format)
 	- [`csv_file` format](#csv_file-format)
 - [Functions and Subroutines](#functions-and-subroutines)
-	- [`xslibINFO`](#xslibinfo)
+	- [`xslibinfo()`](#xslibinfo)
 	- [`str()`](#str)
 	- [`error()` and `warning()`](#error-and-warning)
 	- [`newUnit()`](#newunit)
@@ -44,7 +44,6 @@
 	- [`tab2space()`](#tab2space)
 	- [`toLower()` and `toUpper()`](#tolower-and-toupper)
 	- [`progressBar()`](#progressbar)
-	- [`linest()`](#linest)
 - [Notes](#notes)
 
 -----------------------------------------------
@@ -490,7 +489,7 @@ end type
 ! Allocate npoints data; Use INITIALIZE option to  initializes all allocated values.
 subroutine allocate (npoints, initialize)
   integer, intent(in) :: npoints
-  class(*), optional  :: initialize
+  logical, optional   :: initialize
 end subroutine allocate
 
 ! Deallocate data.
@@ -874,11 +873,17 @@ end subroutine write
 
 <!-- xslib.F90 -->
 
-### `xslibINFO`
-Basic information about xslib library: version, compile date and time.  
-*v0.0.0 -- May 18 2018 12:34:56*
+### `xslibinfo()`
+Returns basic information about xslib library: version, compile date and time. Same info is available via variables `xslib_version` and `xslib_date`, respectivly.  
 ```fortran
-character*64, parameter  :: xslibINFO
+character*16, parameter :: xslib_version
+character*32, parameter :: xslib_date
+
+function xslibinfo (version, date)
+	logical, optional 				 :: version ! default=.true.
+	logical, optional 				 :: date ! default=.false.
+	character*(:), allocatable :: xslibinfo
+end function xslibinfo
 ```
 
 <!-- common.f90 -->

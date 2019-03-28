@@ -57,8 +57,12 @@ contains
 		implicit none
 		class(ndx_file)			:: this
 		type(tpl_file)			:: tpl
-		class(*), optional	:: system
+		logical, optional		:: system
+		logical							:: sys
 		integer							:: i, j, n, np, stat, next, current
+
+		! Create "System" group ?
+		sys = merge(system, .false., present(system))
 
 		! Count number of unique elements
 		current = minval(tpl%id(:))-1
@@ -76,7 +80,7 @@ contains
 		! ------------------------------------
 
 		! Allocate data
-		if (present(system)) this%ngroups = this%ngroups+1
+		if (sys) this%ngroups = this%ngroups+1 ! Extra "System group"
 		if (allocated(this%group)) deallocate(this%group, STAT=stat)
 		allocate (this%group(this%ngroups), STAT=stat)
 
@@ -85,7 +89,7 @@ contains
 		! ------------------------------------
 
 		! Create "System group"
-		if (present(system)) then
+		if (sys) then
 			this%group(next)%title="System"
 			! Allocate memory
 			this%group(next)%natoms=sum(tpl%type(:)%natoms*tpl%type(:)%nmol)
@@ -147,8 +151,8 @@ contains
 
 		write (*,*) "Present static index groups:"
 		do i = 1, this%ngroups
-			write (*,*) i, trim(this%group(i)%title), this%group(i)%natoms
-			100 format (2x,"Group  ",i0," '",a,"' (",i0,"atoms)")
+			write (*,100) i, trim(this%group(i)%title), this%group(i)%natoms
+			100 format (2x,"Group  ",i0," '",a,"' ( ",i0," atoms)")
 		end do
 		if (this%ngroups==0) write (*,*) " NONE"
 

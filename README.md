@@ -1,7 +1,6 @@
 # XsLib - Extra-small Library
 
-![Version](https://img.shields.io/badge/Current_release-v0.3.2c-blue.svg)
-![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/Current_release-v1.0.0-blue.svg)
 ![Language](https://img.shields.io/badge/Language-Fortran,_C-brightgreen.svg)
 ![Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg)](https://www.gnu.org/licenses/gpl-3.0.html)

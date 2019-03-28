@@ -4,7 +4,7 @@ module xslib_xyz
 	public :: xyz_file
 
 	type xyz_frame
-		integer 									:: natoms
+		integer 									:: natoms=0
 		character*512							:: comment
 		character*5, allocatable	:: name(:)
 		real, allocatable					:: coor(:,:)
@@ -17,7 +17,7 @@ module xslib_xyz
 
 	type xyz_file
 		integer, private							:: unit, first=1, last=-1, stride=1
-		integer 											:: nframes, allframes, framesLeft
+		integer 											:: nframes=0, allframes, framesLeft
 		type(xyz_frame), allocatable	:: frameArray(:)
 	contains
 		procedure	:: open => open_xyz
@@ -37,20 +37,29 @@ contains
 
 	! Deallocate and allocate XYZ file
 	subroutine allocate_xyz_frame (this, np, initialize)
-		class(xyz_frame)	:: this
+		class(xyz_frame)		:: this
 		integer, intent(in)	:: np	! Number of points to allocate
-		class(*), optional	:: initialize
-		integer				:: stat
+		logical, optional		:: initialize
+		logical							:: int
+		character*256 			:: message
+		integer							:: stat
 
 		! Array size check
-		if (np < 1) call error("Invalid array size: "//itoa(np), NAME="xyz%allocate()")
+		if (np < 1) then
+			write (message,"(a,i0,a)") "Invalid array size: '", np, "'."
+			call error(message, NAME="xyz%allocate()")
+		end if
+
+		! Set number of atoms
+		this%natoms=np
 
 		! Deallocate
-		call this%deallocate()
-		allocate (this%name(np), this%coor(3,np), STAT=stat)
+		if (allocated(this%name)) deallocate(this%name, this%coor, STAT=stat)
+		allocate (this%name(this%natoms), this%coor(3,this%natoms), STAT=stat)
 
 		! Initialize data
-		if (present(initialize)) call this%initialize()
+		int = merge(initialize, .false., present(initialize))
+		if (int) call this%initialize()
 
 		return
 	end subroutine allocate_xyz_frame
@@ -67,7 +76,7 @@ contains
 			this%natoms 	= size(this%coor, 2)
 			this%name(:)	= ""
 			this%coor 		= 0.
-			this%box		= 0.
+			this%box			= 0.
 
 		else
 			this%natoms 	= 0
@@ -83,7 +92,8 @@ contains
 		class(xyz_frame)	:: this
 		integer				:: stat
 
-		deallocate(this%coor, this%name, STAT=stat)
+		deallocate (this%coor, this%name, STAT=stat)
+		this%natoms = 0
 
 		return
 	end subroutine deallocate_xyz_frame
@@ -98,7 +108,7 @@ contains
 		integer					:: i, np, stat
 
 		open (NEWUNIT=this%unit, FILE=trim(file), STATUS="unknown", IOSTAT=stat)
-		if (stat/=0) call error("Cannot open file: "//trim(file), NAME="xyz%open()")
+		if (stat/=0) call error("Cannot open file: '"//trim(file)//"'.", NAME="xyz%open()")
 
 		! Count number of frames as occurance of END until EOF
 		this%allframes = 0
@@ -109,7 +119,7 @@ contains
    	end do
 
 		! Rewind the file
-		100 rewind (this%unit)
+		rewind (this%unit)
 
 		! All frames are left
 		this%nframes = this%allframes
@@ -121,7 +131,7 @@ contains
 		this%stride = 1
 
 		return
-		200 call error("Incorect number of lines.", NAME="xyz%open()")
+		200 call error("Incorect number of lines?", NAME="xyz%open()")
 	end subroutine open_xyz
 
 	! Close .xyz file
@@ -149,9 +159,9 @@ contains
 		rewind (UNIT=this%unit)
 
 		! Change global variables
-		if (present(first)) this%first = first
-		if (present(last)) this%last = last
-		if (present(stride)) this%stride = stride
+		this%first = merge(first, 1, present(first))
+		this%last = merge(last, -1, present(last))
+		this%stride = merge(stride, 1, present(stride))
 
 		! IF last is "-1" select all
 		if (this%last==-1) this%last = this%allframes
@@ -185,18 +195,17 @@ contains
 	end subroutine setframe_xyz
 
 	! Skip "stride" number of frames. returning number si the number of frames skipped.
-	function next_xyz (this, stride) result (stat)
+	function next_xyz (this, nframes) result (stat)
 		implicit none
 		class(xyz_file)		:: this
-		integer, optional	:: stride
-		integer						:: i, n, np, nframes, stat
+		integer, optional	:: nframes
+		integer						:: i, ni, n, np, stat
 
 		! Default status
 		stat = 0
 
 		! Number of frames to skip
-		nframes = 1
-		if (present(stride)) nframes = stride
+		np = merge(nframes, 1, present(nframes))
 
 		! XYZ format
 		! <num of atoms>
@@ -204,11 +213,10 @@ contains
 		! <name> <x> <y> <z>  ("name" is optional!)
 		! ...
 
-		do n = 1, nframes, 1
-			read (this%unit, *, END=100) np ! number of particles
-			! If we go this far another frame must exist so dummy read ALL next
-			do i = 1, np+1 ! + first line is comment
-			 read (this%unit, *, END=200) ! dummy read
+		do n = 1, np, 1
+			read (this%unit, *, ERR=200, END=100) ni ! number of particles
+			do i = 1, ni+1 ! + first line is comment
+				read (this%unit, *, END=300) ! dummy read
 			end do
 			! At this point frame skip was succesfull
 			stat = stat+1
@@ -217,7 +225,8 @@ contains
 		100 continue
 
 		return
-		200 call error ("Incorrect number of lines?", NAME="xyz%next()")
+		200 call error ("???", NAME="xyz%next()")
+		300 call error ("Incorrect number of lines?", NAME="xyz%next()")
 	end function next_xyz
 
 	! Allocate .xyz frameArray
@@ -229,14 +238,12 @@ contains
 		integer				:: stat
 
 		! Error check
-		if (np < 0) then
-			write (message, "(a,i0)") "Invalid array size: ", np
-			call error(message, NAME="xyz%frameArray%allocate()")
-		end if
+		if (np < 0) call error ("Invalid array size: '"//str(np)//"',", NAME="xyz%allocate()")
 
+		this%nframes = np
 		if (allocated(this%frameArray)) deallocate(this%frameArray, STAT=stat)
-		allocate (this%frameArray(np), STAT=stat)
-		if (stat /= 0) call error("Not enough memory.", NAME="xyz%frameArray%allocate()")
+		allocate (this%frameArray(this%nframes), STAT=stat)
+		if (stat/=0) call error("Not enough memory.", NAME="xyz%allocate()")
 
 		return
 	end subroutine allocate_xyz
@@ -246,15 +253,13 @@ contains
 		implicit none
 		class(xyz_file)		:: this
 		integer, optional	:: nframes
-		integer				:: framesRead
-		! internal
-		character*256		:: file, buffer
-		integer				:: i, n, np, stat
-		logical				:: opened
+		integer						:: framesRead
+		character*256			:: file, buffer, message
+		integer						:: i, n, np, line, stat
+		logical						:: opened
 
 		! If number of frames in not defined read only one frame
-		np = 1
-		if (present(nframes)) np = nframes
+		np = merge(nframes, 1, present(nframes))
 
 		! Check if opened
 		inquire (UNIT=this%unit, OPENED=opened)
@@ -266,42 +271,41 @@ contains
 		! <name> <x> <y> <z>  ("name" is optional!)
 		! ...
 
-		! How many frames are left
-		if (np > this%framesLeft) then
-			framesRead = this%framesLeft
-		else
-			framesRead = np
-		end if
+		! How many frames can we actually read?
+		framesRead = min(np, this%framesLeft)
 
 		! Allocate frameArray
-		if (allocated(this%frameArray)) deallocate(this%frameArray, STAT=stat)
-		if (framesRead /= 0) allocate (this%frameArray(framesRead), STAT=stat)
-		if (stat /= 0) call error("Not enough memory.", NAME="xyz%read_next()")
+		call this%allocate(framesRead)
 
 		do n = 1, framesRead
 			! One less frame to read
 			this%framesLeft = this%framesLeft-1
 
+			! Reset line counter
+			line = 1
+
 			! Read number of lines
-			read (this%unit, *, IOSTAT=stat, END=100) this%frameArray(n)%natoms
-			if (stat/=0) call error ("Invalid number of atoms in frame: "//str(n), NAME="xyz%read_next()")
+			read (this%unit, *, ERR=200, END=100) this%frameArray(n)%natoms
+			line = line+1
 
 			! Read comment
-			read (this%unit, "(a)", END=100) this%frameArray(n)%comment
+			read (this%unit, "(a)", ERR=200, END=100) this%frameArray(n)%comment
+			line = line+1
 
 			! Allocate memmory
 			call this%frameArray(n)%allocate(this%frameArray(n)%natoms)
 
 			! Read lines
 			do i = 1, this%frameArray(n)%natoms
-				read (this%unit, "(a)", END=100) buffer
+				read (this%unit, "(a)", ERR=200, END=100) buffer
+				line = line+1
 
 				! Read <name> only if present
 				if (scan(trim(buffer), "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")/=0) then
-					read (buffer, *, ERR=110) this%frameArray(n)%name(i), this%frameArray(n)%coor(:,i)
+					read (buffer, *, ERR=200, END=100) this%frameArray(n)%name(i), this%frameArray(n)%coor(:,i)
 
 				else
-					read (buffer, *, ERR=110) this%frameArray(n)%coor(:,i)
+					read (buffer, *, ERR=200, END=100) this%frameArray(n)%coor(:,i)
 					this%frameArray(n)%name(i) = ""
 
 				end if
@@ -309,7 +313,7 @@ contains
 			end do
 
 			! Return DUMMY BOX info
-			this%frameArray(n)%box(:) = -1.
+			this%frameArray(n)%box(:) = 0.
 
 			! Skip specified number of frames
 			stat = this%next(this%stride-1)
@@ -318,7 +322,8 @@ contains
 
 		return
 		100 call error("Unexpected EoF.", NAME="xyz%read_next()")
-		110 call error("Cannot phrase line: '"//trim(buffer)//"'", NAME="xyz%read_next()")
+		200 write (message,"(2(a,i0))") "Could not phrase line: ", line, " in frame: ", this%nframes-this%framesLeft
+		call error (message, NAME="xyz%read_next()")
 	end function read_next_xyz
 
 	! Opens file and read all the data
@@ -342,8 +347,8 @@ contains
 		class(xyz_file)	:: this
 		real			:: box(3)
 
-		box = -1.
-		call warning (".xyz file does not contain box data.")
+		box = 0.
+		! call warning (".xyz file does not contain box data.")
 
 		return
 	end function box_xyz
@@ -352,10 +357,9 @@ contains
 	function natoms_xyz (this) result (natoms)
 		implicit none
 		class(xyz_file)	:: this
-		integer			:: natoms
-		logical			:: opened
-		integer			:: stat
-		character*6		:: dmy
+		integer					:: natoms
+		logical					:: opened
+		integer					:: stat
 
 		! Initialize
 		natoms = 0

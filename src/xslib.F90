@@ -6,8 +6,7 @@ module xslib
 	use xslib_common
 	use xslib_utilities
 	use xslib_array
-	! ! use mod_list  ! -- contains generic linked list routines
-	use xslib_csv ! ! comma separated values
+	use xslib_csv
 	use xslib_gro
 	use xslib_pdh
 	use xslib_pdb
@@ -18,8 +17,31 @@ module xslib
 	use xslib_frame
 	implicit none
 
-	! Information about Library
-	character*64, parameter	:: XsLibINFO = _VERSION//" -- "//__DATE__//" "//__TIME__
+	character*16, parameter :: xslib_version=_VERSION
+	character*32, parameter :: xslib_date=__DATE__//" "//__TIME__
 
-	contains
+contains
+
+	! Returns Xslib version and compile date. By default only version is returned.
+	function xslibinfo (version, date)
+		implicit none
+		character*(:), allocatable	:: xslibinfo
+		logical, optional			 			:: version, date
+		logical											:: v, d
+
+		v = merge(version, .true., present(version))
+		d = merge(date, .false., present(date))
+
+		xslibinfo=""
+		if (v .AND. d) then
+			xslibinfo = trim(xslib_version)//" -- "//trim(xslib_date)
+		else if (v) then
+			xslibinfo = trim(xslib_version)
+		else if (d) then
+			xslibinfo = trim(xslib_date)
+		end if
+
+		return
+	end function xslibinfo
+
 end module xslib
