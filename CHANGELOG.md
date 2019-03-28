@@ -2,19 +2,19 @@
 
 #### To-do (someday):
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
-- [ ] Add `frame%write` (trajectory write).
+- [ ] Add `frame%write` (+trajectory write).
 
-#### v0.3.2 - TBA (currently v0.3.2c)
-- [x] Added frame skip to all conf. objects - `obj%next()`.
-- [x] Added `obj%set` routine that allows to simply set first/last frame and stride.
-- [x] Removed `linest` (now in xslib_array.f90).
-- [x] Removed `elapsedTime`, `getTime` and `timeStamp()`.
-- [x] Added NEW timing routines `get_wtime()`, `write_time()`, `msleep()`.
-- [x] Added `ndx%display()` to write present groups.
-- [x] Improved write function for all conf. objects to compensate for missing data.
-- [x] Added vector `rotate` function.
-- [x] Aesthetic fixes to CMAKE.
-- [x] Bunch of bugfixes.
+#### v1.0.0 - 28.03.2019
+- Added frame skip to all conf. objects - `obj%next()`.
+- Added `obj%set` routine that allows to simply set first/last frame and stride.
+- Removed `linest` (now in xslib_array.f90).
+- Removed `elapsedTime`, `getTime` and `timeStamp()`.
+- Added NEW timing routines `get_wtime()`, `write_time()`, `msleep()`.
+- Added `ndx%display()` to write present groups.
+- Improved write function for all conf. objects to compensate for missing data.
+- Added vector `rotate` function.
+- Aesthetic fixes to CMAKE.
+- Bunch of bugfixes.
 
 #### v0.3.1 - 14.03.2019
 - Added (somewhat decent) API documentation.
