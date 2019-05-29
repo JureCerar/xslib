@@ -111,6 +111,17 @@ module xslib_trj
 			type(C_PTR) :: OFFSETS
 		end function
 
+    ! Added by Jure Cerar 28.05.2019
+    ! /* Read Header information of the current frame */
+    ! extern int xtc_header(XDRFILE *xd, int *natoms, int *step, float *time, mybool bRead);
+    integer(C_INT) function xtc_header( xd, natoms, step, time, bRead ) bind( C, NAME="xtc_header" )
+      import
+      type(xdrfile), intent(in)   :: xd
+      integer(C_INT), intent(out) :: natoms, step
+      real(C_FLOAT), intent(out)  :: time
+      logical                     :: bRead
+    end function xtc_header
+
 	end interface
 
 contains
