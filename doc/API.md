@@ -5,7 +5,13 @@
 - [Molecular file types - General](#molecular-file-types-general)
 - [Molecular file types - File specific data](#molecular-file-types-file-specific-data)
 	- [`pdb_file` format](#pdb_file-format)
+      <!-- - [Example](#Example)
+      - [Structure](#Structure)
+      - [Interface](#Interface) -->
 	- [`gro_file` format](#gro_file-format)
+      <!-- - [Example](#Example)
+      - [Structure](#Structure)
+      - [Interface](#Interface) -->
 	- [`trj_file` format](#trj_file-format)
 	- [`xyz_file` format](#xyz_file-format)
 	- [`frame_file` object format](#frame_file-object-format)
@@ -64,9 +70,9 @@ type(gro_file) :: gro
 type(trj_file) :: trj !.xtc and .trr
 ```
 
-All molecular coordinate files are generally structured in same manner *i.e.* each file is composed of multiple frames. These frames stored as "frame arrays" - `obj%frameArray(n)%...`. Each frame array is composed simulation box size, number of atoms, and their coordinates - `...%box(3)`, `...%natoms`, `...%coor(1:3,:)`, respectively, and additional data that is specific to each file type.
+All molecular coordinate files are generally structured in same manner *i.e.* each file is composed of multiple frames. These frames stored as "frame arrays" - `obj%frameArray(n)%...`. Each frame array is composed of simulation box size, number of atoms, and atom coordinates - `...%box(3)`, `...%natoms`, `...%coor(1:3,:)`, respectively, and additional data that is specific to each file type.
 
-The general API is the same for all derived types. Each file can be opened with:
+The general API is the same for all derived types. Each file is opened with:
 ```fortran
 call obj%open("path/to/file.obj")
 ```
@@ -74,26 +80,25 @@ Each frame can be read individually or in multiples with:
 ```fortran
 int = obj%read_next(n)
 ```
-where `n` is optional parameter denoting the number of frames to read. Returning argument (in this case *int*) contains the actual number of frames read (0 if no frames could be read). If multiple files were read the data can accesed as `obj%frameArray(n)%...`. Alternatively, entire file can be read at once by using:
+where `n` is optional parameter denoting the number of frames to read. Returning argument (in this case *int*) contains the actual number of frames that were read (0 if no frames could be read). Data in each frame can be accessed as `obj%frameArray(n)%...`. Alternatively, entire file can be read at once by using:
 ```fortran
 call obj%read("path/to/file.obj")
 ```
-Once you are done with reading the file it should be closed with:
-and closed with:
+Once you are done with reading the file it is closed with:
 ```fortran
 call obj%close()
 ```
 Closing the file does not affect the data stored in `obj` (it does not deallocate the data).
 
-The starting/ending frame and read stride can be changed using `obj%set`:
+The starting/ending frame and stride between frames can be changed using `obj%set`:
 ```fortran
 call obj%set(FIRST=first, LAST=last, STRIDE=stride)
 ```
-**NOTE:** `obj%set` can be called only once BEFORE reading any data (`obj%read()` or `obj%read_next()`).
+**NOTE:** `obj%set` must be called only ONCE and BEFORE reading any data (`obj%read()` or `obj%read_next()`).
 
 After calling `obj%read()` or `obj%read_next()` every atom's coordinates are accessible as `obj%frameArray(n)%coor(:,:)`. Note that the Fortran language uses **row-major indexing** *i.e.* `array(row, column)` and that convention is retained here.
 
-If you want to inquire the box size and number of atoms prior to actually reading the file it can be done with:
+To inquire the box size and number of atoms prior to actually reading the file it can be done with:
 ```fortran
 integer :: natoms
 real    :: box(3)
@@ -101,9 +106,10 @@ real    :: box(3)
 box = obj%box()
 natoms = obj%natoms()
 ```
-**NOTE:** Calling this function retains your current position in file.
+**NOTE:** Calling this function retains your current position in file.  
+**NOTE:** This does not work for `trj_file`... dont ask why...
 
-If you want to create your own data, you have to firstly allocate frameArray and than each frame individually:
+If you want to allocate new data, you have to first allocate number of frames and then each frame individually, as:
 
 ```fortran
 ! Create 10 frames consisting of 100 atoms
@@ -115,8 +121,8 @@ do i = 1, nframes
 
 end do
 ```
-The optional `INITIALIZE` argument formats the newly allocated data to empty values or 0. Alternatively, it can be done with `...%initialize()` procedure.
-The stored data can be printed to file UNIT, FILE or STDOUT:
+The optional `INITIALIZE` argument formats the newly allocated data to empty values or 0. Alternatively, it can be done with `...%initialize()` procedure call.
+The stored data can be outputted to file UNIT, FILE or STDOUT:
 ```fortran
 call obj%write(UNIT=unit)
 ! or
@@ -136,6 +142,18 @@ Each file type contains additional information (unique to format) that is listed
 
 For more information on variables please read [PDB Manual](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html).
 
+#### Example
+```
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+CRYST1   20.000   20.000   20.000  90.00  90.00  90.00 P 1           1
+...
+ATOM     36  C  AARG A  -3      13.559  86.257  95.222  0.50 37.37           C
+...
+END
+```
+
+#### Structure
 ```fortran
 type, private :: pdb_frame
   real                       :: box(3)
@@ -168,6 +186,7 @@ contains
 end type pdb_file
 ```
 
+#### Interface
 ```Fortran
 ! Allocate npoints data; Use ONLYCOOR option to allocate only coor. data;
 ! INITIALIZE options initializes all allocated values.
@@ -245,6 +264,19 @@ end subroutine write
 
 For more information please read [GRO manual](link).
 
+#### Example
+```
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+COMMENT
+ 12889
+    1LIG      C    1   1.484   1.124   1.000
+    2LIG      O    2   0.516   0.876   1.000
+...
+   2.00000   2.00000   2.00000
+```
+
+#### Structure
 ```fortran
 type, private :: gro_frame
   character*512             :: title
@@ -278,6 +310,7 @@ contains
 end type gro_file
 ```
 
+#### Interface
 ```Fortran
 ! Allocate npoints data; Use ONLYCOOR option to allocate only coor. data;
 ! INITIALIZE options initializes all allocated values.
@@ -355,6 +388,7 @@ end subroutine write
 
 This is a direct port of [gmxfort](https://github.com/wesbarnett/libgmxfort) library (for more details please read the provided API).
 
+#### Structure
 ```fortran
 type, private :: frame_trj
   real(C_FLOAT), allocatable :: coor(:,:)
@@ -384,6 +418,8 @@ contains
   procedure :: step
 end type
 ```
+
+#### Interface
 
 ```Fortran
 ! Open file.
@@ -454,6 +490,21 @@ end function step
 
 For more informations please read [XYZ manual](https://en.wikipedia.org/wiki/XYZ_file_format).
 
+#### Example
+
+```
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+128
+Comment line
+...
+C      14.84292  11.24345  10.00000
+O       5.15708   8.75655  10.00000
+...
+```
+
+#### Structure
+
 ```Fortran
 type, provate :: xyz_frame
   integer                   :: natoms
@@ -484,6 +535,8 @@ contains
   procedure :: write
 end type
 ```
+
+#### Interface
 
 ```Fortran
 ! Allocate npoints data; Use INITIALIZE option to  initializes all allocated values.
@@ -562,7 +615,9 @@ end subroutine write
 > "One object to rule them all, one object to find them,  
 > one object to bring them all, and in the darkness bind them."
 
-The `frame_file` object combines all other molecular coordinate files (.gro, .pdb, .xyz, .trr and .xtc) into one simple to use API. It is a bit different, as contains only one frame at the time, in order to be more compatible with OpenMP protocol.
+The `frame_file` object (not to be confused with other frame objects) combines all other molecular coordinate files (.gro, .pdb, .xyz, .trr and .xtc) into one simple to use API. It is a bit different, as contains only one frame at the time, in order to be more compatible with OpenMP programming (one thread = one frame).
+
+#### Structure
 
 ```Fortran
 type frame_data
@@ -579,6 +634,8 @@ contains
   procedure :: get_box
 end type frame_data
 ```
+
+#### Interface
 
 ```fortran
 ! Open file. Supported types: .gro, .pdb, .xyz, .trr or .xtc
@@ -616,13 +673,15 @@ end function get_box
 
 ## Supporting file types
 
-XsLib supports two "supporting file" types:
+XsLib contains two "supporting file" types:
 - [.ndx](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) - GROMACS index file containing user defined sets of atoms.
-- .tpl - Our own proprietary file type (created by [A. Lajovic](https://github.com/alajovic)).
+- .tpl - Our own proprietary file type, containing condensed configuration information (created by [A. Lajovic](https://github.com/alajovic)).
 
 ### `ndx_file` format
 
 [GROMACS index](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) (.ndx) file containing user defined sets of atoms.
+
+#### Structure
 
 ```fortran
 type, private :: ndxgroups
@@ -643,6 +702,8 @@ contains
   procedure :: get
 end type ndx_file
 ```
+
+#### Interface
 
 ```fortran
 ! Read file.
@@ -684,6 +745,26 @@ end function get
 
 Template file (.tpl) contains condensed information about all particles in system.
 
+#### Example
+```
+# Example of two component system
+side 1.234 1.234 1.234
+moltype 2
+
+molecule 4 400  #EtOH
+H   0.435  1
+O  -0.700  1
+CH2 0.265  0
+CH3 0.000  0
+
+molecule 4 100  # TIP4P water
+O  −1.1128  2
+H   0.5564  2
+H   0.5564  2
+```
+
+#### Structure
+
 ```fortran
 type, private :: tpl_frame
   integer              :: natoms, nmol
@@ -706,6 +787,8 @@ contains
 end type tpl_file
 ```
 
+#### Interface
+
 ```Fortran
 subroutine read (file)
   character*(*) :: file
@@ -717,29 +800,19 @@ subroutine write (file, unit)
 end subroutine write
 ```
 
-The .tpl file consits of three directives:  
-- `side` (optional) directive contains information about the simulation box size. If cubic box is used only one box-side needs to be present. Units of box side must be the same as in accompanying molecular file.  
+#### More INFO
+
+The .tpl file consists of three directives:  
+- `side` (optional) directive contains information about the simulation box size. If cubic box is used only one box-side needs to be present. Units of box side must be the same as in accompanying molecular file. **NOTE:** Setting side any value (other than 0.) usually overrides the configuration box side (depends on implementation).  
 - `moltype` (optional, legacy) specifies how many *molecule* directives are present in the file.  
-- `molecule` directive must be specified along with **number of atoms** (in molecule) and **number of molecules**. This directive is followed by description of each particle: `name`, `pcharge`, and `id`. *Name* (3-characters) parameter is required and provides general description of the particle, *pcharge* (float) descriptor is optional and contains partial-charge of particle, and *ID* (integer) descriptor is optional and denotes particle ID.  
+- `molecule` directive must be specified along with **number of atoms** (in molecule) and **number of molecules**. This directive is followed by description of each particle: *name*, *pcharge*, and *id*.
+  - `Name` (3-characters) parameter is required and provides general description of the particle,
+  - `pcharge` (optional, float) descriptor contains partial-charge of particle, and
+  - `id` (optional, integer) descriptor denotes particle ID.  
 
 <!-- Internally supported particle types are: *H, O, C, N, S, CH, CH2, and CH3* -->
 
 Everything after `#` character is threated as comment. Empty lines and excess spaces are ignored.  
-Example:
-```
-# Example of two component system
-side 1.234 1.234 1.234
-moltype 2
-molecule 4 400 #EtOH
-H   0.435  1
-O  -0.700  2
-CH2 0.265  3
-CH3 0.000  4
-molecule 4 100 # Water
-O  −1.1128  2
-H   0.5564  1
-H   0.5564  1
-```
 
 Once file is read you can access the data in two ways:  
 - individually by each molecule type  
@@ -762,16 +835,32 @@ do n = 1, tpl%ntypes
 end do
 ! Both cases yield same result  
 ```
-**NOTE:** Data is stored using pointers; which means by changing the data for "each type" also changes the data in "list".
+**NOTE:** Data is stored using pointers; This means by changing the data for "each type" also changes the data in "list".
 
 ---------------------------------------------------------
-
 
 ## Data file types
 
 ### `pdh_file` format
 
-[PDH file](http://goldenberg.biology.utah.edu/downloads/usTooDocs_Sept2012.pdf) format was created by Glatter *et al.* in order to store Small-Angle X-Ray Scattering (SAXS) data.
+[PDH file](http://goldenberg.biology.utah.edu/downloads/usTooDocs_Sept2012.pdf) format was created by O. Glatter *et al.* for storing Small-Angle X-Ray Scattering (SAXS) data. It is generally accepted as standard format by the scattering community.
+
+#### Example
+
+```
+1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+COMMENT LINE                                                 
+KEY1 KEY2 ....                                                                               
+      100         0         0         0         0         0         0         0
+  0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00
+  0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00
+...
+  1.000000E+00   1.000000E+00  -1.000000E+00
+...
+```
+
+#### Structure
 
 ```fortran
 type pdh_file
@@ -792,6 +881,8 @@ contains
   procedure :: normalize
 end type pdh_file
 ```
+
+#### Interface
 
 ```fortran
 ! Allocate data; Use INITIALIZE option to initializes all allocated values.
@@ -840,7 +931,19 @@ end subroutine normalize
 
 ### `csv_file` format
 
-Xslib also includes crude implementation of [Comma Separated Value](https://en.wikipedia.org/wiki/Comma-separated_values) (.csv) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data only procedures. The data is obtained as output argument to subroutine.
+XsLib also includes *crude* implementation of [Comma Separated Value](https://en.wikipedia.org/wiki/Comma-separated_values) (.csv) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data; only procedures. The data is obtained as returning argument to function call.
+
+#### Example
+
+```
+x,y,err
+...
+0.000,-1.000,0.000
+1.000,0.000,0.000
+...
+```
+
+#### Structure
 
 ```fortran
 type csv_file
@@ -850,6 +953,8 @@ contains
 end type csv_file
 ```
 
+#### Interface
+
 ```fortran
 ! Read file. Header contains .csv header if present
 subroutine read (file, data, header)
@@ -858,7 +963,7 @@ subroutine read (file, data, header)
   character*(*), allocatable, optional  :: header(:)
 end subroutine read
 
-! Write data to stdout, file or unit. Custom data delimiter can be specified (default ',').
+! Write data to stdout, file or unit. Custom data delimiter can be specified (default is ',').
 subroutine write (data, header, unit, file, delimiter)
   real                    :: data(:,:)
   character*(*), optional :: file, delimiter, header(:)
@@ -940,7 +1045,7 @@ end function cross
 
 ### `minImg()`
 Return reduced coordinates according to [minimal image convention](https://en.wikipedia.org/wiki/Periodic_boundary_conditions).  
-_i.e. a=a-box*floor(a/box+0.5) <.OR.> a=a-sign(box/2,r-box/2)-sign(box/2,r+box/2)_  
+_I.e. a=a-box*floor(a/box+0.5) <.OR.> a=a-sign(box/2,r-box/2)-sign(box/2,r+box/2)_  
 ```fortran
 function minImg (r, box)
   real, dimension(3)  :: r, box, minImg
@@ -1035,7 +1140,7 @@ end function get_wtime
 ```
 
 ### `write_time()`
-Transfors time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` and `get_wtime()`.  
+Transfors time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` or `get_wtime()`.  
 ```fortran
 function write_time (time) result (string)
   real*8       :: time ! seconds
@@ -1055,7 +1160,7 @@ end subroutine msleep
 
 ### `variance()`
 Calculates [on-line variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance) for any real scalar or array, where `n` is data counter for variance aggregate.  
-**NOTE:** True variance must be "corrected" after calculation as `var=var/(n-1)`
+**NOTE:** True variance must be "corrected" after calculation as `var = merge( var/(n-1), -1.0, n>1 )`
 ```fortran
 subroutine variance (value, mean, var, n)
   real or real*8 :: value(:), mean(:), var(:)
@@ -1066,7 +1171,7 @@ end subroutine variance
 
 ### `pathName()`
 Returns path name of file.  
-*e.g. "./path/to/file.txt" &rarr; "./path/to/"*
+*E.g. "./path/to/file.txt" &rarr; "./path/to/"*
 ```fortran
 function pathName (name)
   character*(*)               :: name
@@ -1076,7 +1181,7 @@ end function pathName
 
 ### `baseName()`
 Returns base name of file.  
-*e.g. "./path/to/file.txt" &rarr; "file"*
+*E.g. "./path/to/file.txt" &rarr; "file"*
 ```fortran
 function baseName (name)
   character*(*)               :: name
@@ -1086,7 +1191,7 @@ end function baseName
 
 ### `extension()`
 Returns file extension.    
-*e.g. "./path/to/file.txt" &rarr; "txt"*
+*E.g. "./path/to/file.txt" &rarr; "txt"*
 ```fortran
 function extension (name)
   character*(*)               :: name
@@ -1096,7 +1201,7 @@ end function extension
 
 ### `stripComment()`
 Removes all characters trailing comment sign `cmt`.  
-*e.g. "text #comment" &rarr; "text"*
+*E.g. "text #comment" &rarr; "text"*
 ```fortran
 function stripComment (string, cmt)
   character*(*)               :: string, cmt
@@ -1106,7 +1211,7 @@ end function stripComment
 
 ### `backup()`
 Renames file if it already exits.    
-*e.g. "./path/to/file.txt" &rarr; "./path/to/#file.txt.n#" (n=1,2,..)*
+*E.g. "./path/to/file.txt" &rarr; "./path/to/#file.txt.n#" (n=1,2,..)*
 ```fortran
 subroutine backup (file)
   character*(*) :: file
@@ -1115,7 +1220,7 @@ end subroutine backup
 
 ### `nextFreeName()`
 Returns next free available variation of the file name.  
-*e.g. "out.txt" &rarr; "out.n.txt" (n=1,2,..)*
+*E.g. "out.txt" &rarr; "out.n.txt" (n=1,2,..)*
 ```fortran
 function nextFreeName (name)
   character*(*)              :: name
@@ -1141,7 +1246,7 @@ end function isWord
 
 ### `replaceText()`
 Replaces `text` with `rep` within `string`.  
-*e.g. "This is bad." &rarr; "This is good."*
+*E.g. "This is bad." &rarr; "This is good."*
 ```fortran
 function replaceText (string, text, rep) result (out)
   character(*)                :: string, text, rep
@@ -1160,7 +1265,7 @@ end function tab2space
 
 ### `toLower()` and `toUpper()`
 Transforms string to lower or all upper case, respectively.  
-*e.g. "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."*
+*E.g. "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."*
 ```fortran
 function toLower (string)
   character*(*)           :: string
@@ -1175,7 +1280,7 @@ end function toUpper
 
 ### `progressBar()`
 Writes gradual progress bar to STDOUT (on the same output line). The size of the progress bar is determined by (optional) `size` variable. Write to STDOUT is "forbidden" until progress reaches 1.0 - use (optional) `message` instead.  
-*e.g. 50.0% |############------------| [message]*
+*E.g. 50.0% |############------------| [message]*
 ```fortran
 subroutine progressBar (progress, size, message)
   real                   :: progress
@@ -1187,4 +1292,4 @@ end subroutine progressBar
 ----------------------------------------------
 
 ## Notes
-Most of the routines in xslib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*.
+Most of the routines in XsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*.

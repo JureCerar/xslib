@@ -3,6 +3,14 @@
 #### To-do (someday):
 - [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
 - [ ] Add `frame%write` (+trajectory write).
+- [ ] Implement extended types.
+- [ ] Join everything into single module.
+
+#### v1.0.1 - 30.05.2019
+- API improvement.
+- Improved CMake.
+- Switched to soft tabs.
+- Fixed `write_time()` function.
 
 #### v1.0.0 - 28.03.2019
 - Added frame skip to all conf. objects - `obj%next()`.
@@ -13,7 +21,7 @@
 - Added `ndx%display()` to write present groups.
 - Improved write function for all conf. objects to compensate for missing data.
 - Added vector `rotate` function.
-- Aesthetic fixes to CMAKE.
+- Esthetical fixes to CMAKE.
 - Bunch of bugfixes.
 
 #### v0.3.1 - 14.03.2019
