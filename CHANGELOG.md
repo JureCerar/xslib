@@ -1,10 +1,17 @@
 # Changelog
 
 #### To-do (someday):
-- [ ] Expand `csv_file` to handle any kind of variables (make polymorphic).
 - [ ] Add `frame%write` (+trajectory write).
 - [ ] Implement extended types.
-- [ ] Join everything into single module.
+
+#### v1.1.0 - TBA
+- [ ] Add .trr handling.
+- [ ] Better internal error handling.
+- [ ] Added new timing routine.
+- [ ] Change type naming from `xxx_file` to `xxxt`; Less confusion with cxslib.
+- [ ] Implemented box matrix `box(3,3)` and associated `obj%get_box()` and `obj%getCubicBox()`
+- [ ] Bugfixes.
+- [ ] CMake changes and Improved compiler flags
 
 #### v1.0.1 - 30.05.2019
 - API improvement.

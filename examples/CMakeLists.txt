@@ -1,25 +1,13 @@
 # Module files from the build
-include_directories ( ${CMAKE_BINARY_DIR}/modules )
+include_directories ( "${CMAKE_BINARY_DIR}/include" )
 
 # Compile all test
-foreach ( TESTNAME simple utilities objects )
+foreach ( TESTNAME simple utilities fileio )
   add_executable ( ${TESTNAME} ${TESTNAME}.f90 )
-  target_link_libraries ( ${TESTNAME} xslib )
+  target_link_libraries ( ${TESTNAME} ${CMAKE_PROJECT_NAME} )
+  add_test ( NAME ${TESTNAME} COMMAND ${TESTNAME} )
 
-endforeach ( TESTNAME )
+endforeach ()
 
-# Simple test if library is loaded correctly.
-add_test ( NAME Simple
-  COMMAND simple
-)
-
-# Test all utility functions
-add_test ( NAME Utilities
-  COMMAND utilities
-)
-
-# Test all file objects.
-add_test ( NAME Objects
-  COMMAND objects
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/examples/src"
-)
+# Copy over files needed for running the tests
+file ( COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/" DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )

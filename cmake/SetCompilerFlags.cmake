@@ -10,7 +10,7 @@ endif ()
 IF ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU" )
   set ( CMAKE_Fortran_FLAGS "-cpp -fopenmp" )
 	set ( CMAKE_Fortran_FLAGS_RELEASE "-O3 -march=native -pipe -funroll-loops -finline-functions -flto" )
-  set ( CMAKE_Fortran_FLAGS_DEBUG "-O1 -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,underflow" )
+  set ( CMAKE_Fortran_FLAGS_DEBUG "-Og -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,underflow" )
 
 ELSEIF ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel" )
   set ( CMAKE_Fortran_FLAGS "-fpp -openmp" )

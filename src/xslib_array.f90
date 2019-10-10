@@ -69,7 +69,6 @@ contains
 		return
 	end function linest
 
-
 	! This function return K closest elements to VAL in ARRAY(:).
 	function findKClosest_INT (val, array, k) result(r)
 		implicit none

@@ -194,9 +194,8 @@ contains
 	! -------------------------------------------------
 	! Individual transformations for Integer, Real, Complex and logical to string
 
-
+	! Integer to character, in "fmt" format (optional).
 	function itoa (int, fmt) result (string)
-		! Integer to character, in "fmt" format (optional).
 		character*(:), allocatable					:: string
 		integer, intent(in)									:: int
 		character*(*), intent(in), optional	:: fmt
@@ -270,9 +269,9 @@ contains
 		return
 	end function f8toa
 
+	! Complex to character; "fmt" format (optional).
 	function ctoa (imag,fmt) result (string)
 		implicit none
-		! Real to character
 		character*(:), allocatable					:: string
 		complex, intent(in)									:: imag
 		character*(*), intent(in), optional	:: fmt
@@ -297,6 +296,7 @@ contains
 		return
 	end function ctoa
 
+	! Boolean (logical) to character; no FMT
 	function btoa (bool) result (string)
 		implicit none
 		logical, intent(in)	:: bool

@@ -1,6 +1,4 @@
-#ifndef _VERSION
-#define _VERSION "vX.Y.Z"
-#endif
+#define _VERSION "v@PROJECT_VERSION@"
 
 module xslib
 	use xslib_common
