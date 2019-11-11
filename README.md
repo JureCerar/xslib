@@ -28,7 +28,7 @@ make install
 ```
 You should consider using the following [CMake options](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html) with the appropriate value instead of `xxx`:
 - `-DCMAKE_Fortran_COMPILER=xxx` equal to the name of the Fortran Compiler you wish to use (or the environment variable `FC`)
-- `-DCMAKE_CC_COMPILER=xxx` equal to the name of the C Compiler you wish to use (or the environment variable `CC`)
+- `-DCMAKE_C_COMPILER=xxx` equal to the name of the C Compiler you wish to use (or the environment variable `CC`)
 - `-DCMAKE_INSTALL_PREFIX=xxx` to install xslib to a non-standard location (default `/usr/local/lib/`)  
 - `-DCMAKE_BUILD_TYPE=xxx` equal to `RELEASE` for normal build or `DEBUG` for debugging purposes.
 
