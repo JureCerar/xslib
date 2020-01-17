@@ -1,4 +1,3 @@
-#
 # This file is part of libgmxfort
 # https://github.com/wesbarnett/libgmxfort
 #

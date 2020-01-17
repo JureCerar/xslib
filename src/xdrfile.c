@@ -60,19 +60,19 @@
 #endif
 
 char *exdr_message[exdrNR] = {
-	"OK",
-	"Header",
-	"String",
-	"Double",
-	"Integer",
-	"Float",
-	"Unsigned integer",
-	"Compressed 3D coordinate",
-	"Closing file",
-	"Magic number",
-	"Not enough memory",
-	"End of file",
-	"File not found"
+  "OK",
+  "Header",
+  "String",
+  "Double",
+  "Integer",
+  "Float",
+  "Unsigned integer",
+  "Compressed 3D coordinate",
+  "Closing file",
+  "Magic number",
+  "Not enough memory",
+  "End of file",
+  "File not found"
 };
 
 /*
@@ -86,9 +86,9 @@ char *exdr_message[exdrNR] = {
 
 enum xdr_op
 {
-	XDR_ENCODE = 0,
-	XDR_DECODE = 1,
-	XDR_FREE   = 2
+  XDR_ENCODE = 0,
+  XDR_DECODE = 1,
+  XDR_FREE   = 2
 };
 
 
@@ -117,20 +117,20 @@ typedef struct XDR XDR;
 
 struct XDR
 {
-	enum xdr_op x_op;
-	struct xdr_ops
-	{
-		int (*x_getlong) (XDR *__xdrs, int32_t *__lp);
-		int (*x_putlong) (XDR *__xdrs, int32_t *__lp);
-		int (*x_getbytes) (XDR *__xdrs, char *__addr, unsigned int __len);
-		int (*x_putbytes) (XDR *__xdrs, char *__addr, unsigned int __len);
-		/* two next routines are not 64-bit IO safe - don't use! */
-		off_t (*x_getpostn) (XDR *__xdrs);
-		int (*x_setpostn) (XDR *__xdrs, off_t __pos, int whence);
-		void (*x_destroy) (XDR *__xdrs);
-	}
+  enum xdr_op x_op;
+  struct xdr_ops
+  {
+    int (*x_getlong) (XDR *__xdrs, int32_t *__lp);
+    int (*x_putlong) (XDR *__xdrs, int32_t *__lp);
+    int (*x_getbytes) (XDR *__xdrs, char *__addr, unsigned int __len);
+    int (*x_putbytes) (XDR *__xdrs, char *__addr, unsigned int __len);
+    /* two next routines are not 64-bit IO safe - don't use! */
+    off_t (*x_getpostn) (XDR *__xdrs);
+    int (*x_setpostn) (XDR *__xdrs, off_t __pos, int whence);
+    void (*x_destroy) (XDR *__xdrs);
+  }
     *x_ops;
-	char *x_private;
+  char *x_private;
 };
 
 static int  xdr_char        (XDR *xdrs, char *ip);
@@ -190,65 +190,65 @@ struct XDRFILE
 XDRFILE *
 xdrfile_open(const char *path, const char *mode)
 {
-	char newmode[5];
-	enum xdr_op xdrmode;
-	XDRFILE *xfp;
+  char newmode[5];
+  enum xdr_op xdrmode;
+  XDRFILE *xfp;
 
-	/* make sure XDR files are opened in binary mode... */
-	if(*mode=='w' || *mode=='W')
+  /* make sure XDR files are opened in binary mode... */
+  if(*mode=='w' || *mode=='W')
     {
-		sprintf(newmode,"wb+");
-		xdrmode=XDR_ENCODE;
-	} else if(*mode == 'a' || *mode == 'A')
+    sprintf(newmode,"wb+");
+    xdrmode=XDR_ENCODE;
+  } else if(*mode == 'a' || *mode == 'A')
     {
-		sprintf(newmode,"ab+");
-		xdrmode = XDR_ENCODE;
-	} else if(*mode == 'r' || *mode == 'R')
+    sprintf(newmode,"ab+");
+    xdrmode = XDR_ENCODE;
+  } else if(*mode == 'r' || *mode == 'R')
     {
-		sprintf(newmode,"rb");
-		xdrmode = XDR_DECODE;
-	} else /* cannot determine mode */
-		return NULL;
+    sprintf(newmode,"rb");
+    xdrmode = XDR_DECODE;
+  } else /* cannot determine mode */
+    return NULL;
 
-	if((xfp=(XDRFILE *)malloc(sizeof(XDRFILE)))==NULL)
-		return NULL;
-	if((xfp->fp=fopen(path,newmode))==NULL)
+  if((xfp=(XDRFILE *)malloc(sizeof(XDRFILE)))==NULL)
+    return NULL;
+  if((xfp->fp=fopen(path,newmode))==NULL)
     {
-		free(xfp);
-		return NULL;
-	}
-	if((xfp->xdr=(XDR *)malloc(sizeof(XDR)))==NULL)
+    free(xfp);
+    return NULL;
+  }
+  if((xfp->xdr=(XDR *)malloc(sizeof(XDR)))==NULL)
     {
-		fclose(xfp->fp);
-		free(xfp);
-		return NULL;
-	}
-	xfp->mode=*mode;
-	xdrstdio_create((XDR *)(xfp->xdr),xfp->fp,xdrmode);
-	xfp->buf1 = xfp->buf2 = NULL;
-	xfp->buf1size = xfp->buf2size = 0;
-	return xfp;
+    fclose(xfp->fp);
+    free(xfp);
+    return NULL;
+  }
+  xfp->mode=*mode;
+  xdrstdio_create((XDR *)(xfp->xdr),xfp->fp,xdrmode);
+  xfp->buf1 = xfp->buf2 = NULL;
+  xfp->buf1size = xfp->buf2size = 0;
+  return xfp;
 }
 
 int
 xdrfile_close(XDRFILE *xfp)
 {
-	int ret=exdrCLOSE;
-	if(xfp)
+  int ret=exdrCLOSE;
+  if(xfp)
     {
-		/* flush and destroy XDR stream */
-		if(xfp->xdr)
-			xdr_destroy((XDR *)(xfp->xdr));
-		free(xfp->xdr);
-		/* close the file */
-		ret=fclose(xfp->fp);
-		if(xfp->buf1size)
-			free(xfp->buf1);
-		if(xfp->buf2size)
-			free(xfp->buf2);
-		free(xfp);
-	}
-	return ret; /* return 0 if ok */
+    /* flush and destroy XDR stream */
+    if(xfp->xdr)
+      xdr_destroy((XDR *)(xfp->xdr));
+    free(xfp->xdr);
+    /* close the file */
+    ret=fclose(xfp->fp);
+    if(xfp->buf1size)
+      free(xfp->buf1);
+    if(xfp->buf2size)
+      free(xfp->buf2);
+    free(xfp);
+  }
+  return ret; /* return 0 if ok */
 }
 
 
@@ -256,229 +256,229 @@ xdrfile_close(XDRFILE *xfp)
 int
 xdrfile_read_int(int *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_int((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_int((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_int(int *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_int((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_int((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 
 int
 xdrfile_read_uint(unsigned int *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_int((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_int((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_uint(unsigned int *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_int((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_int((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_read_char(char *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_char((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_char((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_char(char *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_char((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_char((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 
 int
 xdrfile_read_uchar(unsigned char *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_char((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_char((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_uchar(unsigned char *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_char((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_char((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_read_short(short *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_short((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_short((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_short(short *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_short((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_short((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 
 int
 xdrfile_read_ushort(unsigned short *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_short((XDR *)(xfp->xdr),ptr+i))
-		i++;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_short((XDR *)(xfp->xdr),ptr+i))
+    i++;
 
-	return i;
+  return i;
 }
 
 int
 xdrfile_write_ushort(unsigned short *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
+  int i=0;
 
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_u_short((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_u_short((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_read_float(float *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_float((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  int i=0;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_float((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_write_float(float *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_float((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  int i=0;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_float((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_read_double(double *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_double((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  int i=0;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_double((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_write_double(double *ptr, int ndata, XDRFILE* xfp)
 {
-	int i=0;
-	/* read write is encoded in the XDR struct */
-	while(i<ndata && xdr_double((XDR *)(xfp->xdr),ptr+i))
-		i++;
-	return i;
+  int i=0;
+  /* read write is encoded in the XDR struct */
+  while(i<ndata && xdr_double((XDR *)(xfp->xdr),ptr+i))
+    i++;
+  return i;
 }
 
 int
 xdrfile_read_string(char *ptr, int maxlen, XDRFILE* xfp)
 {
-	int i;
-	if(xdr_string((XDR *)(xfp->xdr),&ptr,maxlen)) {
-		i=0;
-		while(i<maxlen && ptr[i]!=0)
-			i++;
-		if(i==maxlen)
-			return maxlen;
-		else
-			return i+1;
-	} else
-		return 0;
+  int i;
+  if(xdr_string((XDR *)(xfp->xdr),&ptr,maxlen)) {
+    i=0;
+    while(i<maxlen && ptr[i]!=0)
+      i++;
+    if(i==maxlen)
+      return maxlen;
+    else
+      return i+1;
+  } else
+    return 0;
 }
 
 int
 xdrfile_write_string(char *ptr, XDRFILE* xfp)
 {
-	int len=strlen(ptr)+1;
+  int len=strlen(ptr)+1;
 
-	if(xdr_string((XDR *)(xfp->xdr),&ptr,len))
-		return len;
-	else
-		return 0;
+  if(xdr_string((XDR *)(xfp->xdr),&ptr,len))
+    return len;
+  else
+    return 0;
 }
 
 
 int
 xdrfile_read_opaque(char *ptr, int cnt, XDRFILE* xfp)
 {
-	if(xdr_opaque((XDR *)(xfp->xdr),ptr,cnt))
-		return cnt;
-	else
-		return 0;
+  if(xdr_opaque((XDR *)(xfp->xdr),ptr,cnt))
+    return cnt;
+  else
+    return 0;
 }
 
 
 int
 xdrfile_write_opaque(char *ptr, int cnt, XDRFILE* xfp)
 {
-	if(xdr_opaque((XDR *)(xfp->xdr),ptr,cnt))
-		return cnt;
-	else
-		return 0;
+  if(xdr_opaque((XDR *)(xfp->xdr),ptr,cnt))
+    return cnt;
+  else
+    return 0;
 }
 
 
@@ -493,8 +493,8 @@ sizeofint(int size) {
 
     while (size >= num && num_of_bits < 32)
     {
-		num_of_bits++;
-		num <<= 1;
+    num_of_bits++;
+    num <<= 1;
     }
     return num_of_bits;
 }
@@ -521,26 +521,26 @@ sizeofints(int num_of_ints, unsigned int sizes[])
     num_of_bits = 0;
     for (i=0; i < num_of_ints; i++)
     {
-		tmp = 0;
-		for (bytecnt = 0; bytecnt < num_of_bytes; bytecnt++)
+    tmp = 0;
+    for (bytecnt = 0; bytecnt < num_of_bytes; bytecnt++)
         {
-			tmp = bytes[bytecnt] * sizes[i] + tmp;
-			bytes[bytecnt] = tmp & 0xff;
-			tmp >>= 8;
-		}
-		while (tmp != 0)
+      tmp = bytes[bytecnt] * sizes[i] + tmp;
+      bytes[bytecnt] = tmp & 0xff;
+      tmp >>= 8;
+    }
+    while (tmp != 0)
         {
-			bytes[bytecnt++] = tmp & 0xff;
-			tmp >>= 8;
-		}
-		num_of_bytes = bytecnt;
+      bytes[bytecnt++] = tmp & 0xff;
+      tmp >>= 8;
+    }
+    num_of_bytes = bytecnt;
     }
     num = 1;
     num_of_bytes--;
     while (bytes[num_of_bytes] >= num)
     {
-		num_of_bits++;
-		num *= 2;
+    num_of_bits++;
+    num *= 2;
     }
     return num_of_bits + num_of_bytes * 8;
 
@@ -569,26 +569,26 @@ encodebits(int buf[], int num_of_bits, int num)
     lastbyte =(unsigned int) buf[2];
     while (num_of_bits >= 8)
     {
-		lastbyte = (lastbyte << 8) | ((num >> (num_of_bits -8)) /* & 0xff*/);
-		cbuf[cnt++] = lastbyte >> lastbits;
-		num_of_bits -= 8;
+    lastbyte = (lastbyte << 8) | ((num >> (num_of_bits -8)) /* & 0xff*/);
+    cbuf[cnt++] = lastbyte >> lastbits;
+    num_of_bits -= 8;
     }
     if (num_of_bits > 0)
     {
-		lastbyte = (lastbyte << num_of_bits) | num;
-		lastbits += num_of_bits;
-		if (lastbits >= 8)
+    lastbyte = (lastbyte << num_of_bits) | num;
+    lastbits += num_of_bits;
+    if (lastbits >= 8)
         {
-			lastbits -= 8;
-			cbuf[cnt++] = lastbyte >> lastbits;
-		}
+      lastbits -= 8;
+      cbuf[cnt++] = lastbyte >> lastbits;
+    }
     }
     buf[0] = cnt;
     buf[1] = lastbits;
     buf[2] = lastbyte;
     if (lastbits>0)
     {
-		cbuf[cnt] = lastbyte << (8 - lastbits);
+    cbuf[cnt] = lastbyte << (8 - lastbits);
     }
 }
 
@@ -609,7 +609,7 @@ encodebits(int buf[], int num_of_bits, int num)
 
 static void
 encodeints(int buf[], int num_of_ints, int num_of_bits,
-		   unsigned int sizes[], unsigned int nums[])
+       unsigned int sizes[], unsigned int nums[])
 {
 
     int i;
@@ -619,48 +619,48 @@ encodeints(int buf[], int num_of_ints, int num_of_bits,
     num_of_bytes = 0;
     do
     {
-		bytes[num_of_bytes++] = tmp & 0xff;
-		tmp >>= 8;
+    bytes[num_of_bytes++] = tmp & 0xff;
+    tmp >>= 8;
     } while (tmp != 0);
 
     for (i = 1; i < num_of_ints; i++)
     {
-		if (nums[i] >= sizes[i])
+    if (nums[i] >= sizes[i])
         {
-			fprintf(stderr,"major breakdown in encodeints - num %u doesn't "
-					"match size %u\n", nums[i], sizes[i]);
-			abort();
-		}
-		/* use one step multiply */
-		tmp = nums[i];
-		for (bytecnt = 0; bytecnt < num_of_bytes; bytecnt++)
+      fprintf(stderr,"major breakdown in encodeints - num %u doesn't "
+          "match size %u\n", nums[i], sizes[i]);
+      abort();
+    }
+    /* use one step multiply */
+    tmp = nums[i];
+    for (bytecnt = 0; bytecnt < num_of_bytes; bytecnt++)
         {
-			tmp = bytes[bytecnt] * sizes[i] + tmp;
-			bytes[bytecnt] = tmp & 0xff;
-			tmp >>= 8;
-		}
-		while (tmp != 0)
+      tmp = bytes[bytecnt] * sizes[i] + tmp;
+      bytes[bytecnt] = tmp & 0xff;
+      tmp >>= 8;
+    }
+    while (tmp != 0)
         {
-			bytes[bytecnt++] = tmp & 0xff;
-			tmp >>= 8;
-		}
-		num_of_bytes = bytecnt;
+      bytes[bytecnt++] = tmp & 0xff;
+      tmp >>= 8;
+    }
+    num_of_bytes = bytecnt;
     }
     if (num_of_bits >= num_of_bytes * 8)
     {
-		for (i = 0; i < num_of_bytes; i++)
+    for (i = 0; i < num_of_bytes; i++)
         {
-			encodebits(buf, 8, bytes[i]);
-		}
-		encodebits(buf, num_of_bits - num_of_bytes * 8, 0);
+      encodebits(buf, 8, bytes[i]);
+    }
+    encodebits(buf, num_of_bits - num_of_bytes * 8, 0);
     }
     else
     {
-		for (i = 0; i < num_of_bytes-1; i++)
+    for (i = 0; i < num_of_bytes-1; i++)
         {
-			encodebits(buf, 8, bytes[i]);
-		}
-		encodebits(buf, num_of_bits- (num_of_bytes -1) * 8, bytes[i]);
+      encodebits(buf, 8, bytes[i]);
+    }
+    encodebits(buf, num_of_bits- (num_of_bytes -1) * 8, bytes[i]);
     }
 }
 
@@ -690,19 +690,19 @@ decodebits(int buf[], int num_of_bits)
     num = 0;
     while (num_of_bits >= 8)
     {
-		lastbyte = ( lastbyte << 8 ) | cbuf[cnt++];
-		num |=  (lastbyte >> lastbits) << (num_of_bits - 8);
-		num_of_bits -=8;
+    lastbyte = ( lastbyte << 8 ) | cbuf[cnt++];
+    num |=  (lastbyte >> lastbits) << (num_of_bits - 8);
+    num_of_bits -=8;
     }
     if (num_of_bits > 0)
     {
-		if (lastbits < num_of_bits)
+    if (lastbits < num_of_bits)
         {
-			lastbits += 8;
-			lastbyte = (lastbyte << 8) | cbuf[cnt++];
-		}
-		lastbits -= num_of_bits;
-		num |= (lastbyte >> lastbits) & ((1 << num_of_bits) -1);
+      lastbits += 8;
+      lastbyte = (lastbyte << 8) | cbuf[cnt++];
+    }
+    lastbits -= num_of_bits;
+    num |= (lastbyte >> lastbits) & ((1 << num_of_bits) -1);
     }
     num &= mask;
     buf[0] = cnt;
@@ -723,36 +723,36 @@ decodebits(int buf[], int num_of_bits)
 
 static void
 decodeints(int buf[], int num_of_ints, int num_of_bits,
-		   unsigned int sizes[], int nums[])
+       unsigned int sizes[], int nums[])
 {
 
-	int bytes[32];
-	int i, j, num_of_bytes, p, num;
+  int bytes[32];
+  int i, j, num_of_bytes, p, num;
 
-	bytes[1] = bytes[2] = bytes[3] = 0;
-	num_of_bytes = 0;
-	while (num_of_bits > 8)
+  bytes[1] = bytes[2] = bytes[3] = 0;
+  num_of_bytes = 0;
+  while (num_of_bits > 8)
     {
-		bytes[num_of_bytes++] = decodebits(buf, 8);
-		num_of_bits -= 8;
-	}
-	if (num_of_bits > 0)
+    bytes[num_of_bytes++] = decodebits(buf, 8);
+    num_of_bits -= 8;
+  }
+  if (num_of_bits > 0)
     {
-		bytes[num_of_bytes++] = decodebits(buf, num_of_bits);
-	}
-	for (i = num_of_ints-1; i > 0; i--)
+    bytes[num_of_bytes++] = decodebits(buf, num_of_bits);
+  }
+  for (i = num_of_ints-1; i > 0; i--)
     {
-		num = 0;
-		for (j = num_of_bytes-1; j >=0; j--)
+    num = 0;
+    for (j = num_of_bytes-1; j >=0; j--)
         {
-			num = (num << 8) | bytes[j];
-			p = num / sizes[i];
-			bytes[j] = p;
-			num = num - p * sizes[i];
-		}
-		nums[i] = num;
-	}
-	nums[0] = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+      num = (num << 8) | bytes[j];
+      p = num / sizes[i];
+      bytes[j] = p;
+      num = num - p * sizes[i];
+    }
+    nums[i] = num;
+  }
+  nums[0] = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
 }
 
 
@@ -776,937 +776,937 @@ static const int magicints[] =
  */
 int
 xdrfile_decompress_coord_float(float     *ptr,
-							   int       *size,
-							   float     *precision,
-							   XDRFILE*   xfp)
+                 int       *size,
+                 float     *precision,
+                 XDRFILE*   xfp)
 {
-	int minint[3], maxint[3], *lip;
-	int smallidx;
-	unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3;
-	int k, *buf1, *buf2, lsize, flag;
-	int smallnum, smaller, i, is_smaller, run;
-	float *lfp, inv_precision;
-	int tmp, *thiscoord,  prevcoord[3];
-	unsigned int bitsize;
+  int minint[3], maxint[3], *lip;
+  int smallidx;
+  unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3;
+  int k, *buf1, *buf2, lsize, flag;
+  int smallnum, smaller, i, is_smaller, run;
+  float *lfp, inv_precision;
+  int tmp, *thiscoord,  prevcoord[3];
+  unsigned int bitsize;
 
     bitsizeint[0] = 0;
     bitsizeint[1] = 0;
     bitsizeint[2] = 0;
 
-	if(xfp==NULL || ptr==NULL)
-		return -1;
-	tmp=xdrfile_read_int(&lsize,1,xfp);
-	if(tmp==0)
-		return -1; /* return if we could not read size */
-	if (*size < lsize)
+  if(xfp==NULL || ptr==NULL)
+    return -1;
+  tmp=xdrfile_read_int(&lsize,1,xfp);
+  if(tmp==0)
+    return -1; /* return if we could not read size */
+  if (*size < lsize)
     {
-		fprintf(stderr, "Requested to decompress %d coords, file contains %d\n",
-				*size, lsize);
-		return -1;
-	}
-	*size = lsize;
-	size3 = *size * 3;
-	if(size3>xfp->buf1size)
+    fprintf(stderr, "Requested to decompress %d coords, file contains %d\n",
+        *size, lsize);
+    return -1;
+  }
+  *size = lsize;
+  size3 = *size * 3;
+  if(size3>xfp->buf1size)
     {
-		if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
+    if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
-			return -1;
-		}
-		xfp->buf1size=size3;
-		xfp->buf2size=size3*1.2;
-		if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
+      fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
+      return -1;
+    }
+    xfp->buf1size=size3;
+    xfp->buf2size=size3*1.2;
+    if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
-			return -1;
-		}
-	}
-	/* Dont bother with compression for three atoms or less */
-	if(*size<=9)
+      fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
+      return -1;
+    }
+  }
+  /* Dont bother with compression for three atoms or less */
+  if(*size<=9)
     {
-		return xdrfile_read_float(ptr,size3,xfp)/3;
-		/* return number of coords, not floats */
-	}
-	/* Compression-time if we got here. Read precision first */
-	xdrfile_read_float(precision,1,xfp);
+    return xdrfile_read_float(ptr,size3,xfp)/3;
+    /* return number of coords, not floats */
+  }
+  /* Compression-time if we got here. Read precision first */
+  xdrfile_read_float(precision,1,xfp);
 
-	/* avoid repeated pointer dereferencing. */
-	buf1=xfp->buf1;
-	buf2=xfp->buf2;
-	/* buf2[0-2] are special and do not contain actual data */
-	buf2[0] = buf2[1] = buf2[2] = 0;
-	xdrfile_read_int(minint,3,xfp);
-	xdrfile_read_int(maxint,3,xfp);
+  /* avoid repeated pointer dereferencing. */
+  buf1=xfp->buf1;
+  buf2=xfp->buf2;
+  /* buf2[0-2] are special and do not contain actual data */
+  buf2[0] = buf2[1] = buf2[2] = 0;
+  xdrfile_read_int(minint,3,xfp);
+  xdrfile_read_int(maxint,3,xfp);
 
-	sizeint[0] = maxint[0] - minint[0]+1;
-	sizeint[1] = maxint[1] - minint[1]+1;
-	sizeint[2] = maxint[2] - minint[2]+1;
+  sizeint[0] = maxint[0] - minint[0]+1;
+  sizeint[1] = maxint[1] - minint[1]+1;
+  sizeint[2] = maxint[2] - minint[2]+1;
 
-	/* check if one of the sizes is to big to be multiplied */
-	if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
+  /* check if one of the sizes is to big to be multiplied */
+  if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
     {
-		bitsizeint[0] = sizeofint(sizeint[0]);
-		bitsizeint[1] = sizeofint(sizeint[1]);
-		bitsizeint[2] = sizeofint(sizeint[2]);
-		bitsize = 0; /* flag the use of large sizes */
-	}
+    bitsizeint[0] = sizeofint(sizeint[0]);
+    bitsizeint[1] = sizeofint(sizeint[1]);
+    bitsizeint[2] = sizeofint(sizeint[2]);
+    bitsize = 0; /* flag the use of large sizes */
+  }
     else
     {
-		bitsize = sizeofints(3, sizeint);
-	}
+    bitsize = sizeofints(3, sizeint);
+  }
 
-	if (xdrfile_read_int(&smallidx,1,xfp) == 0)
-		return 0; /* not sure what has happened here or why we return... */
-	tmp=smallidx+8;
-	tmp = smallidx-1;
-	tmp = (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
-	smaller = magicints[tmp] / 2;
-	smallnum = magicints[smallidx] / 2;
-	sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
+  if (xdrfile_read_int(&smallidx,1,xfp) == 0)
+    return 0; /* not sure what has happened here or why we return... */
+  tmp=smallidx+8;
+  tmp = smallidx-1;
+  tmp = (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
+  smaller = magicints[tmp] / 2;
+  smallnum = magicints[smallidx] / 2;
+  sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
 
-	/* buf2[0] holds the length in bytes */
+  /* buf2[0] holds the length in bytes */
 
-	if (xdrfile_read_int(buf2,1,xfp) == 0)
-		return 0;
-	if (xdrfile_read_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp) == 0)
-		return 0;
-	buf2[0] = buf2[1] = buf2[2] = 0;
+  if (xdrfile_read_int(buf2,1,xfp) == 0)
+    return 0;
+  if (xdrfile_read_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp) == 0)
+    return 0;
+  buf2[0] = buf2[1] = buf2[2] = 0;
 
-	lfp = ptr;
-	inv_precision = 1.0 / * precision;
-	run = 0;
-	i = 0;
-	lip = buf1;
-	while ( i < lsize )
+  lfp = ptr;
+  inv_precision = 1.0 / * precision;
+  run = 0;
+  i = 0;
+  lip = buf1;
+  while ( i < lsize )
     {
-		thiscoord = (int *)(lip) + i * 3;
+    thiscoord = (int *)(lip) + i * 3;
 
-		if (bitsize == 0)
+    if (bitsize == 0)
         {
-			thiscoord[0] = decodebits(buf2, bitsizeint[0]);
-			thiscoord[1] = decodebits(buf2, bitsizeint[1]);
-			thiscoord[2] = decodebits(buf2, bitsizeint[2]);
-		}
+      thiscoord[0] = decodebits(buf2, bitsizeint[0]);
+      thiscoord[1] = decodebits(buf2, bitsizeint[1]);
+      thiscoord[2] = decodebits(buf2, bitsizeint[2]);
+    }
         else
         {
-			decodeints(buf2, 3, bitsize, sizeint, thiscoord);
-		}
+      decodeints(buf2, 3, bitsize, sizeint, thiscoord);
+    }
 
-		i++;
-		thiscoord[0] += minint[0];
-		thiscoord[1] += minint[1];
-		thiscoord[2] += minint[2];
+    i++;
+    thiscoord[0] += minint[0];
+    thiscoord[1] += minint[1];
+    thiscoord[2] += minint[2];
 
-		prevcoord[0] = thiscoord[0];
-		prevcoord[1] = thiscoord[1];
-		prevcoord[2] = thiscoord[2];
+    prevcoord[0] = thiscoord[0];
+    prevcoord[1] = thiscoord[1];
+    prevcoord[2] = thiscoord[2];
 
-		flag = decodebits(buf2, 1);
-		is_smaller = 0;
-		if (flag == 1)
+    flag = decodebits(buf2, 1);
+    is_smaller = 0;
+    if (flag == 1)
         {
-			run = decodebits(buf2, 5);
-			is_smaller = run % 3;
-			run -= is_smaller;
-			is_smaller--;
-		}
-		if (run > 0)
+      run = decodebits(buf2, 5);
+      is_smaller = run % 3;
+      run -= is_smaller;
+      is_smaller--;
+    }
+    if (run > 0)
         {
-			thiscoord += 3;
-			for (k = 0; k < run; k+=3)
+      thiscoord += 3;
+      for (k = 0; k < run; k+=3)
             {
-				decodeints(buf2, 3, smallidx, sizesmall, thiscoord);
-				i++;
-				thiscoord[0] += prevcoord[0] - smallnum;
-				thiscoord[1] += prevcoord[1] - smallnum;
-				thiscoord[2] += prevcoord[2] - smallnum;
-				if (k == 0) {
-					/* interchange first with second atom for better
-					 * compression of water molecules
-					 */
-					tmp = thiscoord[0]; thiscoord[0] = prevcoord[0];
-					prevcoord[0] = tmp;
-					tmp = thiscoord[1]; thiscoord[1] = prevcoord[1];
-					prevcoord[1] = tmp;
-					tmp = thiscoord[2]; thiscoord[2] = prevcoord[2];
-					prevcoord[2] = tmp;
-					*lfp++ = prevcoord[0] * inv_precision;
-					*lfp++ = prevcoord[1] * inv_precision;
-					*lfp++ = prevcoord[2] * inv_precision;
-				} else {
-					prevcoord[0] = thiscoord[0];
-					prevcoord[1] = thiscoord[1];
-					prevcoord[2] = thiscoord[2];
-				}
-				*lfp++ = thiscoord[0] * inv_precision;
-				*lfp++ = thiscoord[1] * inv_precision;
-				*lfp++ = thiscoord[2] * inv_precision;
-			}
-		}
+        decodeints(buf2, 3, smallidx, sizesmall, thiscoord);
+        i++;
+        thiscoord[0] += prevcoord[0] - smallnum;
+        thiscoord[1] += prevcoord[1] - smallnum;
+        thiscoord[2] += prevcoord[2] - smallnum;
+        if (k == 0) {
+          /* interchange first with second atom for better
+           * compression of water molecules
+           */
+          tmp = thiscoord[0]; thiscoord[0] = prevcoord[0];
+          prevcoord[0] = tmp;
+          tmp = thiscoord[1]; thiscoord[1] = prevcoord[1];
+          prevcoord[1] = tmp;
+          tmp = thiscoord[2]; thiscoord[2] = prevcoord[2];
+          prevcoord[2] = tmp;
+          *lfp++ = prevcoord[0] * inv_precision;
+          *lfp++ = prevcoord[1] * inv_precision;
+          *lfp++ = prevcoord[2] * inv_precision;
+        } else {
+          prevcoord[0] = thiscoord[0];
+          prevcoord[1] = thiscoord[1];
+          prevcoord[2] = thiscoord[2];
+        }
+        *lfp++ = thiscoord[0] * inv_precision;
+        *lfp++ = thiscoord[1] * inv_precision;
+        *lfp++ = thiscoord[2] * inv_precision;
+      }
+    }
         else
         {
-			*lfp++ = thiscoord[0] * inv_precision;
-			*lfp++ = thiscoord[1] * inv_precision;
-			*lfp++ = thiscoord[2] * inv_precision;
-		}
-		smallidx += is_smaller;
-		if (is_smaller < 0)
+      *lfp++ = thiscoord[0] * inv_precision;
+      *lfp++ = thiscoord[1] * inv_precision;
+      *lfp++ = thiscoord[2] * inv_precision;
+    }
+    smallidx += is_smaller;
+    if (is_smaller < 0)
         {
-			smallnum = smaller;
+      smallnum = smaller;
 
-			if (smallidx > FIRSTIDX)
+      if (smallidx > FIRSTIDX)
             {
-				smaller = magicints[smallidx - 1] /2;
-			}
+        smaller = magicints[smallidx - 1] /2;
+      }
             else
             {
-				smaller = 0;
-			}
-		}
+        smaller = 0;
+      }
+    }
         else if (is_smaller > 0)
         {
-			smaller = smallnum;
-			smallnum = magicints[smallidx] / 2;
-		}
-		sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
-	}
-	return *size;
+      smaller = smallnum;
+      smallnum = magicints[smallidx] / 2;
+    }
+    sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
+  }
+  return *size;
 }
 
 int
 xdrfile_compress_coord_float(float   *ptr,
-							 int      size,
-							 float    precision,
-							 XDRFILE* xfp)
+               int      size,
+               float    precision,
+               XDRFILE* xfp)
 {
-	int minint[3], maxint[3], mindiff, *lip, diff;
-	int lint1, lint2, lint3, oldlint1, oldlint2, oldlint3, smallidx;
-	int minidx, maxidx;
-	unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3, *luip;
-	int k, *buf1, *buf2;
-	int smallnum, smaller, larger, i, j, is_small, is_smaller, run, prevrun;
-	float *lfp, lf;
-	int tmp, tmpsum, *thiscoord,  prevcoord[3];
-	unsigned int tmpcoord[30];
-	unsigned int bitsize;
+  int minint[3], maxint[3], mindiff, *lip, diff;
+  int lint1, lint2, lint3, oldlint1, oldlint2, oldlint3, smallidx;
+  int minidx, maxidx;
+  unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3, *luip;
+  int k, *buf1, *buf2;
+  int smallnum, smaller, larger, i, j, is_small, is_smaller, run, prevrun;
+  float *lfp, lf;
+  int tmp, tmpsum, *thiscoord,  prevcoord[3];
+  unsigned int tmpcoord[30];
+  unsigned int bitsize;
 
-	if(xfp==NULL)
-		return -1;
-	size3=3*size;
+  if(xfp==NULL)
+    return -1;
+  size3=3*size;
 
     bitsizeint[0] = 0;
     bitsizeint[1] = 0;
     bitsizeint[2] = 0;
 
-	if(size3>xfp->buf1size)
+  if(size3>xfp->buf1size)
     {
-		if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
+    if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
-			return -1;
-		}
-		xfp->buf1size=size3;
-		xfp->buf2size=size3*1.2;
-		if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
+      fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
+      return -1;
+    }
+    xfp->buf1size=size3;
+    xfp->buf2size=size3*1.2;
+    if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
-			return -1;
-		}
-	}
-	if(xdrfile_write_int(&size,1,xfp)==0)
-		return -1; /* return if we could not write size */
-	/* Dont bother with compression for three atoms or less */
-	if(size<=9)
+      fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
+      return -1;
+    }
+  }
+  if(xdrfile_write_int(&size,1,xfp)==0)
+    return -1; /* return if we could not write size */
+  /* Dont bother with compression for three atoms or less */
+  if(size<=9)
     {
-		return xdrfile_write_float(ptr,size3,xfp)/3;
-		/* return number of coords, not floats */
-	}
-	/* Compression-time if we got here. Write precision first */
-	if (precision <= 0)
-		precision = 1000;
-	xdrfile_write_float(&precision,1,xfp);
-	/* avoid repeated pointer dereferencing. */
-	buf1=xfp->buf1;
-	buf2=xfp->buf2;
-	/* buf2[0-2] are special and do not contain actual data */
-	buf2[0] = buf2[1] = buf2[2] = 0;
-	minint[0] = minint[1] = minint[2] = INT_MAX;
-	maxint[0] = maxint[1] = maxint[2] = INT_MIN;
-	prevrun = -1;
-	lfp = ptr;
-	lip = buf1;
-	mindiff = INT_MAX;
-	oldlint1 = oldlint2 = oldlint3 = 0;
-	while(lfp < ptr + size3 )
+    return xdrfile_write_float(ptr,size3,xfp)/3;
+    /* return number of coords, not floats */
+  }
+  /* Compression-time if we got here. Write precision first */
+  if (precision <= 0)
+    precision = 1000;
+  xdrfile_write_float(&precision,1,xfp);
+  /* avoid repeated pointer dereferencing. */
+  buf1=xfp->buf1;
+  buf2=xfp->buf2;
+  /* buf2[0-2] are special and do not contain actual data */
+  buf2[0] = buf2[1] = buf2[2] = 0;
+  minint[0] = minint[1] = minint[2] = INT_MAX;
+  maxint[0] = maxint[1] = maxint[2] = INT_MIN;
+  prevrun = -1;
+  lfp = ptr;
+  lip = buf1;
+  mindiff = INT_MAX;
+  oldlint1 = oldlint2 = oldlint3 = 0;
+  while(lfp < ptr + size3 )
     {
-		/* find nearest integer */
-		if (*lfp >= 0.0)
-			lf = *lfp * precision + 0.5;
-		else
-			lf = *lfp * precision - 0.5;
-		if (fabs(lf) > INT_MAX-2)
+    /* find nearest integer */
+    if (*lfp >= 0.0)
+      lf = *lfp * precision + 0.5;
+    else
+      lf = *lfp * precision - 0.5;
+    if (fabs(lf) > INT_MAX-2)
         {
-			/* scaling would cause overflow */
-			fprintf(stderr,"Internal overflow compressing coordinates.\n");
-		}
-		lint1 = lf;
-		if (lint1 < minint[0]) minint[0] = lint1;
-		if (lint1 > maxint[0]) maxint[0] = lint1;
-		*lip++ = lint1;
-		lfp++;
-		if (*lfp >= 0.0)
-			lf = *lfp * precision + 0.5;
-		else
-			lf = *lfp * precision - 0.5;
-		if (fabs(lf) > INT_MAX-2)
+      /* scaling would cause overflow */
+      fprintf(stderr,"Internal overflow compressing coordinates.\n");
+    }
+    lint1 = lf;
+    if (lint1 < minint[0]) minint[0] = lint1;
+    if (lint1 > maxint[0]) maxint[0] = lint1;
+    *lip++ = lint1;
+    lfp++;
+    if (*lfp >= 0.0)
+      lf = *lfp * precision + 0.5;
+    else
+      lf = *lfp * precision - 0.5;
+    if (fabs(lf) > INT_MAX-2)
         {
-			/* scaling would cause overflow */
-			fprintf(stderr,"Internal overflow compressing coordinates.\n");
-		}
-		lint2 = lf;
-		if (lint2 < minint[1]) minint[1] = lint2;
-		if (lint2 > maxint[1]) maxint[1] = lint2;
-		*lip++ = lint2;
-		lfp++;
-		if (*lfp >= 0.0)
-			lf = *lfp * precision + 0.5;
-		else
-			lf = *lfp * precision - 0.5;
-		lint3 = lf;
-		if (lint3 < minint[2]) minint[2] = lint3;
-		if (lint3 > maxint[2]) maxint[2] = lint3;
-		*lip++ = lint3;
-		lfp++;
-		diff = abs(oldlint1-lint1)+abs(oldlint2-lint2)+abs(oldlint3-lint3);
-		if (diff < mindiff && lfp > ptr + 3)
-			mindiff = diff;
-		oldlint1 = lint1;
-		oldlint2 = lint2;
-		oldlint3 = lint3;
-	}
-	xdrfile_write_int(minint,3,xfp);
-	xdrfile_write_int(maxint,3,xfp);
+      /* scaling would cause overflow */
+      fprintf(stderr,"Internal overflow compressing coordinates.\n");
+    }
+    lint2 = lf;
+    if (lint2 < minint[1]) minint[1] = lint2;
+    if (lint2 > maxint[1]) maxint[1] = lint2;
+    *lip++ = lint2;
+    lfp++;
+    if (*lfp >= 0.0)
+      lf = *lfp * precision + 0.5;
+    else
+      lf = *lfp * precision - 0.5;
+    lint3 = lf;
+    if (lint3 < minint[2]) minint[2] = lint3;
+    if (lint3 > maxint[2]) maxint[2] = lint3;
+    *lip++ = lint3;
+    lfp++;
+    diff = abs(oldlint1-lint1)+abs(oldlint2-lint2)+abs(oldlint3-lint3);
+    if (diff < mindiff && lfp > ptr + 3)
+      mindiff = diff;
+    oldlint1 = lint1;
+    oldlint2 = lint2;
+    oldlint3 = lint3;
+  }
+  xdrfile_write_int(minint,3,xfp);
+  xdrfile_write_int(maxint,3,xfp);
 
-	if ((float)maxint[0] - (float)minint[0] >= INT_MAX-2 ||
-		(float)maxint[1] - (float)minint[1] >= INT_MAX-2 ||
-		(float)maxint[2] - (float)minint[2] >= INT_MAX-2) {
-		/* turning value in unsigned by subtracting minint
-		 * would cause overflow
-		 */
-		fprintf(stderr,"Internal overflow compressing coordinates.\n");
-	}
-	sizeint[0] = maxint[0] - minint[0]+1;
-	sizeint[1] = maxint[1] - minint[1]+1;
-	sizeint[2] = maxint[2] - minint[2]+1;
+  if ((float)maxint[0] - (float)minint[0] >= INT_MAX-2 ||
+    (float)maxint[1] - (float)minint[1] >= INT_MAX-2 ||
+    (float)maxint[2] - (float)minint[2] >= INT_MAX-2) {
+    /* turning value in unsigned by subtracting minint
+     * would cause overflow
+     */
+    fprintf(stderr,"Internal overflow compressing coordinates.\n");
+  }
+  sizeint[0] = maxint[0] - minint[0]+1;
+  sizeint[1] = maxint[1] - minint[1]+1;
+  sizeint[2] = maxint[2] - minint[2]+1;
 
-	/* check if one of the sizes is to big to be multiplied */
-	if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
+  /* check if one of the sizes is to big to be multiplied */
+  if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
     {
-		bitsizeint[0] = sizeofint(sizeint[0]);
-		bitsizeint[1] = sizeofint(sizeint[1]);
-		bitsizeint[2] = sizeofint(sizeint[2]);
-		bitsize = 0; /* flag the use of large sizes */
-	}
+    bitsizeint[0] = sizeofint(sizeint[0]);
+    bitsizeint[1] = sizeofint(sizeint[1]);
+    bitsizeint[2] = sizeofint(sizeint[2]);
+    bitsize = 0; /* flag the use of large sizes */
+  }
     else
     {
-		bitsize = sizeofints(3, sizeint);
-	}
-	lip = buf1;
-	luip = (unsigned int *) buf1;
-	smallidx = FIRSTIDX;
-	while (smallidx < LASTIDX && magicints[smallidx] < mindiff)
+    bitsize = sizeofints(3, sizeint);
+  }
+  lip = buf1;
+  luip = (unsigned int *) buf1;
+  smallidx = FIRSTIDX;
+  while (smallidx < LASTIDX && magicints[smallidx] < mindiff)
     {
-		smallidx++;
-	}
-	xdrfile_write_int(&smallidx,1,xfp);
-	tmp=smallidx+8;
-	maxidx = (LASTIDX<tmp) ? LASTIDX : tmp;
-	minidx = maxidx - 8; /* often this equal smallidx */
-	tmp=smallidx-1;
-	tmp= (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
-	smaller = magicints[tmp] / 2;
-	smallnum = magicints[smallidx] / 2;
-	sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
-	larger = magicints[maxidx] / 2;
-	i = 0;
-	while (i < size)
+    smallidx++;
+  }
+  xdrfile_write_int(&smallidx,1,xfp);
+  tmp=smallidx+8;
+  maxidx = (LASTIDX<tmp) ? LASTIDX : tmp;
+  minidx = maxidx - 8; /* often this equal smallidx */
+  tmp=smallidx-1;
+  tmp= (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
+  smaller = magicints[tmp] / 2;
+  smallnum = magicints[smallidx] / 2;
+  sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
+  larger = magicints[maxidx] / 2;
+  i = 0;
+  while (i < size)
     {
-		is_small = 0;
-		thiscoord = (int *)(luip) + i * 3;
-		if (smallidx < maxidx && i >= 1 &&
-			abs(thiscoord[0] - prevcoord[0]) < larger &&
-			abs(thiscoord[1] - prevcoord[1]) < larger &&
-			abs(thiscoord[2] - prevcoord[2]) < larger) {
-			is_smaller = 1;
-		}
+    is_small = 0;
+    thiscoord = (int *)(luip) + i * 3;
+    if (smallidx < maxidx && i >= 1 &&
+      abs(thiscoord[0] - prevcoord[0]) < larger &&
+      abs(thiscoord[1] - prevcoord[1]) < larger &&
+      abs(thiscoord[2] - prevcoord[2]) < larger) {
+      is_smaller = 1;
+    }
         else if (smallidx > minidx)
         {
-			is_smaller = -1;
-		}
+      is_smaller = -1;
+    }
         else
         {
-			is_smaller = 0;
-		}
-		if (i + 1 < size)
+      is_smaller = 0;
+    }
+    if (i + 1 < size)
         {
-			if (abs(thiscoord[0] - thiscoord[3]) < smallnum &&
-				abs(thiscoord[1] - thiscoord[4]) < smallnum &&
-				abs(thiscoord[2] - thiscoord[5]) < smallnum)
+      if (abs(thiscoord[0] - thiscoord[3]) < smallnum &&
+        abs(thiscoord[1] - thiscoord[4]) < smallnum &&
+        abs(thiscoord[2] - thiscoord[5]) < smallnum)
             {
-				/* interchange first with second atom for better
-				 * compression of water molecules
-				 */
-				tmp = thiscoord[0]; thiscoord[0] = thiscoord[3];
-				thiscoord[3] = tmp;
-				tmp = thiscoord[1]; thiscoord[1] = thiscoord[4];
-				thiscoord[4] = tmp;
-				tmp = thiscoord[2]; thiscoord[2] = thiscoord[5];
-				thiscoord[5] = tmp;
-				is_small = 1;
-			}
-		}
-		tmpcoord[0] = thiscoord[0] - minint[0];
-		tmpcoord[1] = thiscoord[1] - minint[1];
-		tmpcoord[2] = thiscoord[2] - minint[2];
-		if (bitsize == 0)
+        /* interchange first with second atom for better
+         * compression of water molecules
+         */
+        tmp = thiscoord[0]; thiscoord[0] = thiscoord[3];
+        thiscoord[3] = tmp;
+        tmp = thiscoord[1]; thiscoord[1] = thiscoord[4];
+        thiscoord[4] = tmp;
+        tmp = thiscoord[2]; thiscoord[2] = thiscoord[5];
+        thiscoord[5] = tmp;
+        is_small = 1;
+      }
+    }
+    tmpcoord[0] = thiscoord[0] - minint[0];
+    tmpcoord[1] = thiscoord[1] - minint[1];
+    tmpcoord[2] = thiscoord[2] - minint[2];
+    if (bitsize == 0)
         {
-			encodebits(buf2, bitsizeint[0], tmpcoord[0]);
-			encodebits(buf2, bitsizeint[1], tmpcoord[1]);
-			encodebits(buf2, bitsizeint[2], tmpcoord[2]);
-		}
+      encodebits(buf2, bitsizeint[0], tmpcoord[0]);
+      encodebits(buf2, bitsizeint[1], tmpcoord[1]);
+      encodebits(buf2, bitsizeint[2], tmpcoord[2]);
+    }
         else
         {
-			encodeints(buf2, 3, bitsize, sizeint, tmpcoord);
-		}
-		prevcoord[0] = thiscoord[0];
-		prevcoord[1] = thiscoord[1];
-		prevcoord[2] = thiscoord[2];
-		thiscoord = thiscoord + 3;
-		i++;
+      encodeints(buf2, 3, bitsize, sizeint, tmpcoord);
+    }
+    prevcoord[0] = thiscoord[0];
+    prevcoord[1] = thiscoord[1];
+    prevcoord[2] = thiscoord[2];
+    thiscoord = thiscoord + 3;
+    i++;
 
-		run = 0;
-		if (is_small == 0 && is_smaller == -1)
-			is_smaller = 0;
-		while (is_small && run < 8*3)
+    run = 0;
+    if (is_small == 0 && is_smaller == -1)
+      is_smaller = 0;
+    while (is_small && run < 8*3)
         {
-			tmpsum=0;
-			for(j=0;j<3;j++)
+      tmpsum=0;
+      for(j=0;j<3;j++)
             {
-				tmp=thiscoord[j] - prevcoord[j];
-				tmpsum+=tmp*tmp;
-			}
-			if (is_smaller == -1 && tmpsum >= smaller * smaller)
+        tmp=thiscoord[j] - prevcoord[j];
+        tmpsum+=tmp*tmp;
+      }
+      if (is_smaller == -1 && tmpsum >= smaller * smaller)
             {
-				is_smaller = 0;
-			}
+        is_smaller = 0;
+      }
 
-			tmpcoord[run++] = thiscoord[0] - prevcoord[0] + smallnum;
-			tmpcoord[run++] = thiscoord[1] - prevcoord[1] + smallnum;
-			tmpcoord[run++] = thiscoord[2] - prevcoord[2] + smallnum;
+      tmpcoord[run++] = thiscoord[0] - prevcoord[0] + smallnum;
+      tmpcoord[run++] = thiscoord[1] - prevcoord[1] + smallnum;
+      tmpcoord[run++] = thiscoord[2] - prevcoord[2] + smallnum;
 
-			prevcoord[0] = thiscoord[0];
-			prevcoord[1] = thiscoord[1];
-			prevcoord[2] = thiscoord[2];
+      prevcoord[0] = thiscoord[0];
+      prevcoord[1] = thiscoord[1];
+      prevcoord[2] = thiscoord[2];
 
-			i++;
-			thiscoord = thiscoord + 3;
-			is_small = 0;
-			if (i < size &&
-				abs(thiscoord[0] - prevcoord[0]) < smallnum &&
-				abs(thiscoord[1] - prevcoord[1]) < smallnum &&
-				abs(thiscoord[2] - prevcoord[2]) < smallnum)
+      i++;
+      thiscoord = thiscoord + 3;
+      is_small = 0;
+      if (i < size &&
+        abs(thiscoord[0] - prevcoord[0]) < smallnum &&
+        abs(thiscoord[1] - prevcoord[1]) < smallnum &&
+        abs(thiscoord[2] - prevcoord[2]) < smallnum)
             {
-				is_small = 1;
-			}
-		}
-		if (run != prevrun || is_smaller != 0)
+        is_small = 1;
+      }
+    }
+    if (run != prevrun || is_smaller != 0)
         {
-			prevrun = run;
-			encodebits(buf2, 1, 1); /* flag the change in run-length */
-			encodebits(buf2, 5, run+is_smaller+1);
-		}
+      prevrun = run;
+      encodebits(buf2, 1, 1); /* flag the change in run-length */
+      encodebits(buf2, 5, run+is_smaller+1);
+    }
         else
         {
-			encodebits(buf2, 1, 0); /* flag the fact that runlength did not change */
-		}
-		for (k=0; k < run; k+=3)
+      encodebits(buf2, 1, 0); /* flag the fact that runlength did not change */
+    }
+    for (k=0; k < run; k+=3)
         {
-			encodeints(buf2, 3, smallidx, sizesmall, &tmpcoord[k]);
-		}
-		if (is_smaller != 0)
+      encodeints(buf2, 3, smallidx, sizesmall, &tmpcoord[k]);
+    }
+    if (is_smaller != 0)
         {
-			smallidx += is_smaller;
-			if (is_smaller < 0)
+      smallidx += is_smaller;
+      if (is_smaller < 0)
             {
-				smallnum = smaller;
-				smaller = magicints[smallidx-1] / 2;
-			}
+        smallnum = smaller;
+        smaller = magicints[smallidx-1] / 2;
+      }
             else
             {
-				smaller = smallnum;
-				smallnum = magicints[smallidx] / 2;
-			}
-			sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
-		}
-	}
-	if (buf2[1] != 0) buf2[0]++;
-	xdrfile_write_int(buf2,1,xfp); /* buf2[0] holds the length in bytes */
-	tmp=xdrfile_write_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp);
-	if(tmp==(unsigned int)buf2[0])
-		return size;
-	else
-		return -1;
+        smaller = smallnum;
+        smallnum = magicints[smallidx] / 2;
+      }
+      sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
+    }
+  }
+  if (buf2[1] != 0) buf2[0]++;
+  xdrfile_write_int(buf2,1,xfp); /* buf2[0] holds the length in bytes */
+  tmp=xdrfile_write_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp);
+  if(tmp==(unsigned int)buf2[0])
+    return size;
+  else
+    return -1;
 }
 
 
 int
 xdrfile_decompress_coord_double(double     *ptr,
-								int        *size,
-								double     *precision,
-								XDRFILE*   xfp)
+                int        *size,
+                double     *precision,
+                XDRFILE*   xfp)
 {
-	int minint[3], maxint[3], *lip;
-	int smallidx;
-	unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3;
-	int k, *buf1, *buf2, lsize, flag;
-	int smallnum, smaller, i, is_smaller, run;
-	double *lfp, inv_precision;
-	float float_prec, tmpdata[30];
-	int tmp, *thiscoord,  prevcoord[3];
-	unsigned int bitsize;
+  int minint[3], maxint[3], *lip;
+  int smallidx;
+  unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3;
+  int k, *buf1, *buf2, lsize, flag;
+  int smallnum, smaller, i, is_smaller, run;
+  double *lfp, inv_precision;
+  float float_prec, tmpdata[30];
+  int tmp, *thiscoord,  prevcoord[3];
+  unsigned int bitsize;
 
     bitsizeint[0] = 0;
     bitsizeint[1] = 0;
     bitsizeint[2] = 0;
 
-	if(xfp==NULL || ptr==NULL)
-		return -1;
-	tmp=xdrfile_read_int(&lsize,1,xfp);
-	if(tmp==0)
-		return -1; /* return if we could not read size */
-	if (*size < lsize)
+  if(xfp==NULL || ptr==NULL)
+    return -1;
+  tmp=xdrfile_read_int(&lsize,1,xfp);
+  if(tmp==0)
+    return -1; /* return if we could not read size */
+  if (*size < lsize)
     {
-		fprintf(stderr, "Requested to decompress %d coords, file contains %d\n",
-				*size, lsize);
-		return -1;
-	}
-	*size = lsize;
-	size3 = *size * 3;
-	if(size3>xfp->buf1size)
+    fprintf(stderr, "Requested to decompress %d coords, file contains %d\n",
+        *size, lsize);
+    return -1;
+  }
+  *size = lsize;
+  size3 = *size * 3;
+  if(size3>xfp->buf1size)
     {
-		if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
+    if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for decompression coordinates.\n");
-			return -1;
-		}
-		xfp->buf1size=size3;
-		xfp->buf2size=size3*1.2;
-		if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
+      fprintf(stderr,"Cannot allocate memory for decompression coordinates.\n");
+      return -1;
+    }
+    xfp->buf1size=size3;
+    xfp->buf2size=size3*1.2;
+    if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL)
         {
-			fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
-			return -1;
-		}
-	}
-	/* Dont bother with compression for three atoms or less */
-	if(*size<=9)
+      fprintf(stderr,"Cannot allocate memory for decompressing coordinates.\n");
+      return -1;
+    }
+  }
+  /* Dont bother with compression for three atoms or less */
+  if(*size<=9)
     {
-		tmp=xdrfile_read_float(tmpdata,size3,xfp);
-		for(i=0;i<9*3;i++)
-			ptr[i]=tmpdata[i];
-		return tmp/3;
-		/* return number of coords, not floats */
-	}
-	/* Compression-time if we got here. Read precision first */
-	xdrfile_read_float(&float_prec,1,xfp);
-	*precision=float_prec;
-	/* avoid repeated pointer dereferencing. */
-	buf1=xfp->buf1;
-	buf2=xfp->buf2;
-	/* buf2[0-2] are special and do not contain actual data */
-	buf2[0] = buf2[1] = buf2[2] = 0;
-	xdrfile_read_int(minint,3,xfp);
-	xdrfile_read_int(maxint,3,xfp);
+    tmp=xdrfile_read_float(tmpdata,size3,xfp);
+    for(i=0;i<9*3;i++)
+      ptr[i]=tmpdata[i];
+    return tmp/3;
+    /* return number of coords, not floats */
+  }
+  /* Compression-time if we got here. Read precision first */
+  xdrfile_read_float(&float_prec,1,xfp);
+  *precision=float_prec;
+  /* avoid repeated pointer dereferencing. */
+  buf1=xfp->buf1;
+  buf2=xfp->buf2;
+  /* buf2[0-2] are special and do not contain actual data */
+  buf2[0] = buf2[1] = buf2[2] = 0;
+  xdrfile_read_int(minint,3,xfp);
+  xdrfile_read_int(maxint,3,xfp);
 
-	sizeint[0] = maxint[0] - minint[0]+1;
-	sizeint[1] = maxint[1] - minint[1]+1;
-	sizeint[2] = maxint[2] - minint[2]+1;
+  sizeint[0] = maxint[0] - minint[0]+1;
+  sizeint[1] = maxint[1] - minint[1]+1;
+  sizeint[2] = maxint[2] - minint[2]+1;
 
-	/* check if one of the sizes is to big to be multiplied */
-	if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
+  /* check if one of the sizes is to big to be multiplied */
+  if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff)
     {
-		bitsizeint[0] = sizeofint(sizeint[0]);
-		bitsizeint[1] = sizeofint(sizeint[1]);
-		bitsizeint[2] = sizeofint(sizeint[2]);
-		bitsize = 0; /* flag the use of large sizes */
-	}
+    bitsizeint[0] = sizeofint(sizeint[0]);
+    bitsizeint[1] = sizeofint(sizeint[1]);
+    bitsizeint[2] = sizeofint(sizeint[2]);
+    bitsize = 0; /* flag the use of large sizes */
+  }
     else
     {
-		bitsize = sizeofints(3, sizeint);
-	}
+    bitsize = sizeofints(3, sizeint);
+  }
 
-	if (xdrfile_read_int(&smallidx,1,xfp) == 0)
-		return 0;
-	tmp=smallidx+8;
-	tmp = smallidx-1;
-	tmp = (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
-	smaller = magicints[tmp] / 2;
-	smallnum = magicints[smallidx] / 2;
-	sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
+  if (xdrfile_read_int(&smallidx,1,xfp) == 0)
+    return 0;
+  tmp=smallidx+8;
+  tmp = smallidx-1;
+  tmp = (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
+  smaller = magicints[tmp] / 2;
+  smallnum = magicints[smallidx] / 2;
+  sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
 
-	/* buf2[0] holds the length in bytes */
+  /* buf2[0] holds the length in bytes */
 
-	if (xdrfile_read_int(buf2,1,xfp) == 0)
-		return 0;
-	if (xdrfile_read_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp) == 0)
-		return 0;
-	buf2[0] = buf2[1] = buf2[2] = 0;
+  if (xdrfile_read_int(buf2,1,xfp) == 0)
+    return 0;
+  if (xdrfile_read_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp) == 0)
+    return 0;
+  buf2[0] = buf2[1] = buf2[2] = 0;
 
-	lfp = ptr;
-	inv_precision = 1.0 / * precision;
-	run = 0;
-	i = 0;
-	lip = buf1;
-	while ( i < lsize )
+  lfp = ptr;
+  inv_precision = 1.0 / * precision;
+  run = 0;
+  i = 0;
+  lip = buf1;
+  while ( i < lsize )
     {
-		thiscoord = (int *)(lip) + i * 3;
+    thiscoord = (int *)(lip) + i * 3;
 
-		if (bitsize == 0)
+    if (bitsize == 0)
         {
-			thiscoord[0] = decodebits(buf2, bitsizeint[0]);
-			thiscoord[1] = decodebits(buf2, bitsizeint[1]);
-			thiscoord[2] = decodebits(buf2, bitsizeint[2]);
-		} else {
-			decodeints(buf2, 3, bitsize, sizeint, thiscoord);
-		}
+      thiscoord[0] = decodebits(buf2, bitsizeint[0]);
+      thiscoord[1] = decodebits(buf2, bitsizeint[1]);
+      thiscoord[2] = decodebits(buf2, bitsizeint[2]);
+    } else {
+      decodeints(buf2, 3, bitsize, sizeint, thiscoord);
+    }
 
-		i++;
-		thiscoord[0] += minint[0];
-		thiscoord[1] += minint[1];
-		thiscoord[2] += minint[2];
+    i++;
+    thiscoord[0] += minint[0];
+    thiscoord[1] += minint[1];
+    thiscoord[2] += minint[2];
 
-		prevcoord[0] = thiscoord[0];
-		prevcoord[1] = thiscoord[1];
-		prevcoord[2] = thiscoord[2];
+    prevcoord[0] = thiscoord[0];
+    prevcoord[1] = thiscoord[1];
+    prevcoord[2] = thiscoord[2];
 
-		flag = decodebits(buf2, 1);
-		is_smaller = 0;
-		if (flag == 1)
+    flag = decodebits(buf2, 1);
+    is_smaller = 0;
+    if (flag == 1)
         {
-			run = decodebits(buf2, 5);
-			is_smaller = run % 3;
-			run -= is_smaller;
-			is_smaller--;
-		}
-		if (run > 0)
+      run = decodebits(buf2, 5);
+      is_smaller = run % 3;
+      run -= is_smaller;
+      is_smaller--;
+    }
+    if (run > 0)
         {
-			thiscoord += 3;
-			for (k = 0; k < run; k+=3)
+      thiscoord += 3;
+      for (k = 0; k < run; k+=3)
             {
-				decodeints(buf2, 3, smallidx, sizesmall, thiscoord);
-				i++;
-				thiscoord[0] += prevcoord[0] - smallnum;
-				thiscoord[1] += prevcoord[1] - smallnum;
-				thiscoord[2] += prevcoord[2] - smallnum;
-				if (k == 0)
+        decodeints(buf2, 3, smallidx, sizesmall, thiscoord);
+        i++;
+        thiscoord[0] += prevcoord[0] - smallnum;
+        thiscoord[1] += prevcoord[1] - smallnum;
+        thiscoord[2] += prevcoord[2] - smallnum;
+        if (k == 0)
                 {
-					/* interchange first with second atom for better
-					 * compression of water molecules
-					 */
-					tmp = thiscoord[0]; thiscoord[0] = prevcoord[0];
-					prevcoord[0] = tmp;
-					tmp = thiscoord[1]; thiscoord[1] = prevcoord[1];
-					prevcoord[1] = tmp;
-					tmp = thiscoord[2]; thiscoord[2] = prevcoord[2];
-					prevcoord[2] = tmp;
-					*lfp++ = prevcoord[0] * inv_precision;
-					*lfp++ = prevcoord[1] * inv_precision;
-					*lfp++ = prevcoord[2] * inv_precision;
-				}
+          /* interchange first with second atom for better
+           * compression of water molecules
+           */
+          tmp = thiscoord[0]; thiscoord[0] = prevcoord[0];
+          prevcoord[0] = tmp;
+          tmp = thiscoord[1]; thiscoord[1] = prevcoord[1];
+          prevcoord[1] = tmp;
+          tmp = thiscoord[2]; thiscoord[2] = prevcoord[2];
+          prevcoord[2] = tmp;
+          *lfp++ = prevcoord[0] * inv_precision;
+          *lfp++ = prevcoord[1] * inv_precision;
+          *lfp++ = prevcoord[2] * inv_precision;
+        }
                 else
                 {
-					prevcoord[0] = thiscoord[0];
-					prevcoord[1] = thiscoord[1];
-					prevcoord[2] = thiscoord[2];
-				}
-				*lfp++ = thiscoord[0] * inv_precision;
-				*lfp++ = thiscoord[1] * inv_precision;
-				*lfp++ = thiscoord[2] * inv_precision;
-			}
-		} else {
-			*lfp++ = thiscoord[0] * inv_precision;
-			*lfp++ = thiscoord[1] * inv_precision;
-			*lfp++ = thiscoord[2] * inv_precision;
-		}
-		smallidx += is_smaller;
-		if (is_smaller < 0) {
-			smallnum = smaller;
-			if (smallidx > FIRSTIDX) {
-				smaller = magicints[smallidx - 1] /2;
-			} else {
-				smaller = 0;
-			}
-		} else if (is_smaller > 0) {
-			smaller = smallnum;
-			smallnum = magicints[smallidx] / 2;
-		}
-		sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
-	}
-	return *size;
+          prevcoord[0] = thiscoord[0];
+          prevcoord[1] = thiscoord[1];
+          prevcoord[2] = thiscoord[2];
+        }
+        *lfp++ = thiscoord[0] * inv_precision;
+        *lfp++ = thiscoord[1] * inv_precision;
+        *lfp++ = thiscoord[2] * inv_precision;
+      }
+    } else {
+      *lfp++ = thiscoord[0] * inv_precision;
+      *lfp++ = thiscoord[1] * inv_precision;
+      *lfp++ = thiscoord[2] * inv_precision;
+    }
+    smallidx += is_smaller;
+    if (is_smaller < 0) {
+      smallnum = smaller;
+      if (smallidx > FIRSTIDX) {
+        smaller = magicints[smallidx - 1] /2;
+      } else {
+        smaller = 0;
+      }
+    } else if (is_smaller > 0) {
+      smaller = smallnum;
+      smallnum = magicints[smallidx] / 2;
+    }
+    sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx] ;
+  }
+  return *size;
 }
 
 int
 xdrfile_compress_coord_double(double   *ptr,
-							  int      size,
-							  double    precision,
-							  XDRFILE* xfp)
+                int      size,
+                double    precision,
+                XDRFILE* xfp)
 {
-	int minint[3], maxint[3], mindiff, *lip, diff;
-	int lint1, lint2, lint3, oldlint1, oldlint2, oldlint3, smallidx;
-	int minidx, maxidx;
-	unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3, *luip;
-	int k, *buf1, *buf2;
-	int smallnum, smaller, larger, i, j, is_small, is_smaller, run, prevrun;
-	double *lfp;
-	float float_prec, lf,tmpdata[30];
-	int tmp, tmpsum, *thiscoord,  prevcoord[3];
-	unsigned int tmpcoord[30];
-	unsigned int bitsize;
+  int minint[3], maxint[3], mindiff, *lip, diff;
+  int lint1, lint2, lint3, oldlint1, oldlint2, oldlint3, smallidx;
+  int minidx, maxidx;
+  unsigned sizeint[3], sizesmall[3], bitsizeint[3], size3, *luip;
+  int k, *buf1, *buf2;
+  int smallnum, smaller, larger, i, j, is_small, is_smaller, run, prevrun;
+  double *lfp;
+  float float_prec, lf,tmpdata[30];
+  int tmp, tmpsum, *thiscoord,  prevcoord[3];
+  unsigned int tmpcoord[30];
+  unsigned int bitsize;
 
     bitsizeint[0] = 0;
     bitsizeint[1] = 0;
     bitsizeint[2] = 0;
 
-	if(xfp==NULL)
-		return -1;
-	size3=3*size;
-	if(size3>xfp->buf1size) {
-		if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL) {
-			fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
-			return -1;
-		}
-		xfp->buf1size=size3;
-		xfp->buf2size=size3*1.2;
-		if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL) {
-			fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
-			return -1;
-		}
-	}
-	if(xdrfile_write_int(&size,1,xfp)==0)
-		return -1; /* return if we could not write size */
-	/* Dont bother with compression for three atoms or less */
-	if(size<=9) {
-		for(i=0;i<9*3;i++)
-			tmpdata[i]=ptr[i];
-		return xdrfile_write_float(tmpdata,size3,xfp)/3;
-		/* return number of coords, not floats */
-	}
-	/* Compression-time if we got here. Write precision first */
-	if (precision <= 0)
-		precision = 1000;
-	float_prec=precision;
-	xdrfile_write_float(&float_prec,1,xfp);
-	/* avoid repeated pointer dereferencing. */
-	buf1=xfp->buf1;
-	buf2=xfp->buf2;
-	/* buf2[0-2] are special and do not contain actual data */
-	buf2[0] = buf2[1] = buf2[2] = 0;
-	minint[0] = minint[1] = minint[2] = INT_MAX;
-	maxint[0] = maxint[1] = maxint[2] = INT_MIN;
-	prevrun = -1;
-	lfp = ptr;
-	lip = buf1;
-	mindiff = INT_MAX;
-	oldlint1 = oldlint2 = oldlint3 = 0;
-	while(lfp < ptr + size3 ) {
-		/* find nearest integer */
-		if (*lfp >= 0.0)
-			lf = (float)*lfp * float_prec + 0.5;
-		else
-			lf = (float)*lfp * float_prec - 0.5;
-		if (fabs(lf) > INT_MAX-2) {
-			/* scaling would cause overflow */
-			fprintf(stderr,"Internal overflow compressing coordinates.\n");
-		}
-		lint1 = lf;
-		if (lint1 < minint[0]) minint[0] = lint1;
-		if (lint1 > maxint[0]) maxint[0] = lint1;
-		*lip++ = lint1;
-		lfp++;
-		if (*lfp >= 0.0)
-			lf = (float)*lfp * float_prec + 0.5;
-		else
-			lf = (float)*lfp * float_prec - 0.5;
-		if (fabs(lf) > INT_MAX-2) {
-			/* scaling would cause overflow */
-			fprintf(stderr,"Internal overflow compressing coordinates.\n");
-		}
-		lint2 = lf;
-		if (lint2 < minint[1]) minint[1] = lint2;
-		if (lint2 > maxint[1]) maxint[1] = lint2;
-		*lip++ = lint2;
-		lfp++;
-		if (*lfp >= 0.0)
-			lf = (float)*lfp * float_prec + 0.5;
-		else
-			lf = (float)*lfp * float_prec - 0.5;
-		lint3 = lf;
-		if (lint3 < minint[2]) minint[2] = lint3;
-		if (lint3 > maxint[2]) maxint[2] = lint3;
-		*lip++ = lint3;
-		lfp++;
-		diff = abs(oldlint1-lint1)+abs(oldlint2-lint2)+abs(oldlint3-lint3);
-		if (diff < mindiff && lfp > ptr + 3)
-			mindiff = diff;
-		oldlint1 = lint1;
-		oldlint2 = lint2;
-		oldlint3 = lint3;
-	}
-	xdrfile_write_int(minint,3,xfp);
-	xdrfile_write_int(maxint,3,xfp);
+  if(xfp==NULL)
+    return -1;
+  size3=3*size;
+  if(size3>xfp->buf1size) {
+    if((xfp->buf1=(int *)malloc(sizeof(int)*size3))==NULL) {
+      fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
+      return -1;
+    }
+    xfp->buf1size=size3;
+    xfp->buf2size=size3*1.2;
+    if((xfp->buf2=(int *)malloc(sizeof(int)*xfp->buf2size))==NULL) {
+      fprintf(stderr,"Cannot allocate memory for compressing coordinates.\n");
+      return -1;
+    }
+  }
+  if(xdrfile_write_int(&size,1,xfp)==0)
+    return -1; /* return if we could not write size */
+  /* Dont bother with compression for three atoms or less */
+  if(size<=9) {
+    for(i=0;i<9*3;i++)
+      tmpdata[i]=ptr[i];
+    return xdrfile_write_float(tmpdata,size3,xfp)/3;
+    /* return number of coords, not floats */
+  }
+  /* Compression-time if we got here. Write precision first */
+  if (precision <= 0)
+    precision = 1000;
+  float_prec=precision;
+  xdrfile_write_float(&float_prec,1,xfp);
+  /* avoid repeated pointer dereferencing. */
+  buf1=xfp->buf1;
+  buf2=xfp->buf2;
+  /* buf2[0-2] are special and do not contain actual data */
+  buf2[0] = buf2[1] = buf2[2] = 0;
+  minint[0] = minint[1] = minint[2] = INT_MAX;
+  maxint[0] = maxint[1] = maxint[2] = INT_MIN;
+  prevrun = -1;
+  lfp = ptr;
+  lip = buf1;
+  mindiff = INT_MAX;
+  oldlint1 = oldlint2 = oldlint3 = 0;
+  while(lfp < ptr + size3 ) {
+    /* find nearest integer */
+    if (*lfp >= 0.0)
+      lf = (float)*lfp * float_prec + 0.5;
+    else
+      lf = (float)*lfp * float_prec - 0.5;
+    if (fabs(lf) > INT_MAX-2) {
+      /* scaling would cause overflow */
+      fprintf(stderr,"Internal overflow compressing coordinates.\n");
+    }
+    lint1 = lf;
+    if (lint1 < minint[0]) minint[0] = lint1;
+    if (lint1 > maxint[0]) maxint[0] = lint1;
+    *lip++ = lint1;
+    lfp++;
+    if (*lfp >= 0.0)
+      lf = (float)*lfp * float_prec + 0.5;
+    else
+      lf = (float)*lfp * float_prec - 0.5;
+    if (fabs(lf) > INT_MAX-2) {
+      /* scaling would cause overflow */
+      fprintf(stderr,"Internal overflow compressing coordinates.\n");
+    }
+    lint2 = lf;
+    if (lint2 < minint[1]) minint[1] = lint2;
+    if (lint2 > maxint[1]) maxint[1] = lint2;
+    *lip++ = lint2;
+    lfp++;
+    if (*lfp >= 0.0)
+      lf = (float)*lfp * float_prec + 0.5;
+    else
+      lf = (float)*lfp * float_prec - 0.5;
+    lint3 = lf;
+    if (lint3 < minint[2]) minint[2] = lint3;
+    if (lint3 > maxint[2]) maxint[2] = lint3;
+    *lip++ = lint3;
+    lfp++;
+    diff = abs(oldlint1-lint1)+abs(oldlint2-lint2)+abs(oldlint3-lint3);
+    if (diff < mindiff && lfp > ptr + 3)
+      mindiff = diff;
+    oldlint1 = lint1;
+    oldlint2 = lint2;
+    oldlint3 = lint3;
+  }
+  xdrfile_write_int(minint,3,xfp);
+  xdrfile_write_int(maxint,3,xfp);
 
-	if ((float)maxint[0] - (float)minint[0] >= INT_MAX-2 ||
-		(float)maxint[1] - (float)minint[1] >= INT_MAX-2 ||
-		(float)maxint[2] - (float)minint[2] >= INT_MAX-2) {
-		/* turning value in unsigned by subtracting minint
-		 * would cause overflow
-		 */
-		fprintf(stderr,"Internal overflow compressing coordinates.\n");
-	}
-	sizeint[0] = maxint[0] - minint[0]+1;
-	sizeint[1] = maxint[1] - minint[1]+1;
-	sizeint[2] = maxint[2] - minint[2]+1;
+  if ((float)maxint[0] - (float)minint[0] >= INT_MAX-2 ||
+    (float)maxint[1] - (float)minint[1] >= INT_MAX-2 ||
+    (float)maxint[2] - (float)minint[2] >= INT_MAX-2) {
+    /* turning value in unsigned by subtracting minint
+     * would cause overflow
+     */
+    fprintf(stderr,"Internal overflow compressing coordinates.\n");
+  }
+  sizeint[0] = maxint[0] - minint[0]+1;
+  sizeint[1] = maxint[1] - minint[1]+1;
+  sizeint[2] = maxint[2] - minint[2]+1;
 
-	/* check if one of the sizes is to big to be multiplied */
-	if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff) {
-		bitsizeint[0] = sizeofint(sizeint[0]);
-		bitsizeint[1] = sizeofint(sizeint[1]);
-		bitsizeint[2] = sizeofint(sizeint[2]);
-		bitsize = 0; /* flag the use of large sizes */
-	} else {
-		bitsize = sizeofints(3, sizeint);
-	}
-	lip = buf1;
-	luip = (unsigned int *) buf1;
-	smallidx = FIRSTIDX;
-	while (smallidx < LASTIDX && magicints[smallidx] < mindiff) {
-		smallidx++;
-	}
-	xdrfile_write_int(&smallidx,1,xfp);
-	tmp=smallidx+8;
-	maxidx = (LASTIDX<tmp) ? LASTIDX : tmp;
-	minidx = maxidx - 8; /* often this equal smallidx */
-	tmp=smallidx-1;
-	tmp= (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
-	smaller = magicints[tmp] / 2;
-	smallnum = magicints[smallidx] / 2;
-	sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
-	larger = magicints[maxidx] / 2;
-	i = 0;
-	while (i < size) {
-		is_small = 0;
-		thiscoord = (int *)(luip) + i * 3;
-		if (smallidx < maxidx && i >= 1 &&
-			abs(thiscoord[0] - prevcoord[0]) < larger &&
-			abs(thiscoord[1] - prevcoord[1]) < larger &&
-			abs(thiscoord[2] - prevcoord[2]) < larger) {
-			is_smaller = 1;
-		} else if (smallidx > minidx) {
-			is_smaller = -1;
-		} else {
-			is_smaller = 0;
-		}
-		if (i + 1 < size) {
-			if (abs(thiscoord[0] - thiscoord[3]) < smallnum &&
-				abs(thiscoord[1] - thiscoord[4]) < smallnum &&
-				abs(thiscoord[2] - thiscoord[5]) < smallnum) {
-				/* interchange first with second atom for better
-				 * compression of water molecules
-				 */
-				tmp = thiscoord[0]; thiscoord[0] = thiscoord[3];
-				thiscoord[3] = tmp;
-				tmp = thiscoord[1]; thiscoord[1] = thiscoord[4];
-				thiscoord[4] = tmp;
-				tmp = thiscoord[2]; thiscoord[2] = thiscoord[5];
-				thiscoord[5] = tmp;
-				is_small = 1;
-			}
-		}
-		tmpcoord[0] = thiscoord[0] - minint[0];
-		tmpcoord[1] = thiscoord[1] - minint[1];
-		tmpcoord[2] = thiscoord[2] - minint[2];
-		if (bitsize == 0) {
-			encodebits(buf2, bitsizeint[0], tmpcoord[0]);
-			encodebits(buf2, bitsizeint[1], tmpcoord[1]);
-			encodebits(buf2, bitsizeint[2], tmpcoord[2]);
-		} else {
-			encodeints(buf2, 3, bitsize, sizeint, tmpcoord);
-		}
-		prevcoord[0] = thiscoord[0];
-		prevcoord[1] = thiscoord[1];
-		prevcoord[2] = thiscoord[2];
-		thiscoord = thiscoord + 3;
-		i++;
+  /* check if one of the sizes is to big to be multiplied */
+  if ((sizeint[0] | sizeint[1] | sizeint[2] ) > 0xffffff) {
+    bitsizeint[0] = sizeofint(sizeint[0]);
+    bitsizeint[1] = sizeofint(sizeint[1]);
+    bitsizeint[2] = sizeofint(sizeint[2]);
+    bitsize = 0; /* flag the use of large sizes */
+  } else {
+    bitsize = sizeofints(3, sizeint);
+  }
+  lip = buf1;
+  luip = (unsigned int *) buf1;
+  smallidx = FIRSTIDX;
+  while (smallidx < LASTIDX && magicints[smallidx] < mindiff) {
+    smallidx++;
+  }
+  xdrfile_write_int(&smallidx,1,xfp);
+  tmp=smallidx+8;
+  maxidx = (LASTIDX<tmp) ? LASTIDX : tmp;
+  minidx = maxidx - 8; /* often this equal smallidx */
+  tmp=smallidx-1;
+  tmp= (FIRSTIDX>tmp) ? FIRSTIDX : tmp;
+  smaller = magicints[tmp] / 2;
+  smallnum = magicints[smallidx] / 2;
+  sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
+  larger = magicints[maxidx] / 2;
+  i = 0;
+  while (i < size) {
+    is_small = 0;
+    thiscoord = (int *)(luip) + i * 3;
+    if (smallidx < maxidx && i >= 1 &&
+      abs(thiscoord[0] - prevcoord[0]) < larger &&
+      abs(thiscoord[1] - prevcoord[1]) < larger &&
+      abs(thiscoord[2] - prevcoord[2]) < larger) {
+      is_smaller = 1;
+    } else if (smallidx > minidx) {
+      is_smaller = -1;
+    } else {
+      is_smaller = 0;
+    }
+    if (i + 1 < size) {
+      if (abs(thiscoord[0] - thiscoord[3]) < smallnum &&
+        abs(thiscoord[1] - thiscoord[4]) < smallnum &&
+        abs(thiscoord[2] - thiscoord[5]) < smallnum) {
+        /* interchange first with second atom for better
+         * compression of water molecules
+         */
+        tmp = thiscoord[0]; thiscoord[0] = thiscoord[3];
+        thiscoord[3] = tmp;
+        tmp = thiscoord[1]; thiscoord[1] = thiscoord[4];
+        thiscoord[4] = tmp;
+        tmp = thiscoord[2]; thiscoord[2] = thiscoord[5];
+        thiscoord[5] = tmp;
+        is_small = 1;
+      }
+    }
+    tmpcoord[0] = thiscoord[0] - minint[0];
+    tmpcoord[1] = thiscoord[1] - minint[1];
+    tmpcoord[2] = thiscoord[2] - minint[2];
+    if (bitsize == 0) {
+      encodebits(buf2, bitsizeint[0], tmpcoord[0]);
+      encodebits(buf2, bitsizeint[1], tmpcoord[1]);
+      encodebits(buf2, bitsizeint[2], tmpcoord[2]);
+    } else {
+      encodeints(buf2, 3, bitsize, sizeint, tmpcoord);
+    }
+    prevcoord[0] = thiscoord[0];
+    prevcoord[1] = thiscoord[1];
+    prevcoord[2] = thiscoord[2];
+    thiscoord = thiscoord + 3;
+    i++;
 
-		run = 0;
-		if (is_small == 0 && is_smaller == -1)
-			is_smaller = 0;
-		while (is_small && run < 8*3) {
-			tmpsum=0;
-			for(j=0;j<3;j++) {
-				tmp=thiscoord[j] - prevcoord[j];
-				tmpsum+=tmp*tmp;
-			}
-			if (is_smaller == -1 && tmpsum >= smaller * smaller) {
-				is_smaller = 0;
-			}
+    run = 0;
+    if (is_small == 0 && is_smaller == -1)
+      is_smaller = 0;
+    while (is_small && run < 8*3) {
+      tmpsum=0;
+      for(j=0;j<3;j++) {
+        tmp=thiscoord[j] - prevcoord[j];
+        tmpsum+=tmp*tmp;
+      }
+      if (is_smaller == -1 && tmpsum >= smaller * smaller) {
+        is_smaller = 0;
+      }
 
-			tmpcoord[run++] = thiscoord[0] - prevcoord[0] + smallnum;
-			tmpcoord[run++] = thiscoord[1] - prevcoord[1] + smallnum;
-			tmpcoord[run++] = thiscoord[2] - prevcoord[2] + smallnum;
+      tmpcoord[run++] = thiscoord[0] - prevcoord[0] + smallnum;
+      tmpcoord[run++] = thiscoord[1] - prevcoord[1] + smallnum;
+      tmpcoord[run++] = thiscoord[2] - prevcoord[2] + smallnum;
 
-			prevcoord[0] = thiscoord[0];
-			prevcoord[1] = thiscoord[1];
-			prevcoord[2] = thiscoord[2];
+      prevcoord[0] = thiscoord[0];
+      prevcoord[1] = thiscoord[1];
+      prevcoord[2] = thiscoord[2];
 
-			i++;
-			thiscoord = thiscoord + 3;
-			is_small = 0;
-			if (i < size &&
-				abs(thiscoord[0] - prevcoord[0]) < smallnum &&
-				abs(thiscoord[1] - prevcoord[1]) < smallnum &&
-				abs(thiscoord[2] - prevcoord[2]) < smallnum) {
-				is_small = 1;
-			}
-		}
-		if (run != prevrun || is_smaller != 0) {
-			prevrun = run;
-			encodebits(buf2, 1, 1); /* flag the change in run-length */
-			encodebits(buf2, 5, run+is_smaller+1);
-		} else {
-			encodebits(buf2, 1, 0); /* flag the fact that runlength did not change */
-		}
-		for (k=0; k < run; k+=3) {
-			encodeints(buf2, 3, smallidx, sizesmall, &tmpcoord[k]);
-		}
-		if (is_smaller != 0) {
-			smallidx += is_smaller;
-			if (is_smaller < 0) {
-				smallnum = smaller;
-				smaller = magicints[smallidx-1] / 2;
-			} else {
-				smaller = smallnum;
-				smallnum = magicints[smallidx] / 2;
-			}
-			sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
-		}
-	}
-	if (buf2[1] != 0) buf2[0]++;
-	xdrfile_write_int(buf2,1,xfp); /* buf2[0] holds the length in bytes */
-	tmp=xdrfile_write_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp);
-	if(tmp==(unsigned int)buf2[0])
-		return size;
-	else
-		return -1;
+      i++;
+      thiscoord = thiscoord + 3;
+      is_small = 0;
+      if (i < size &&
+        abs(thiscoord[0] - prevcoord[0]) < smallnum &&
+        abs(thiscoord[1] - prevcoord[1]) < smallnum &&
+        abs(thiscoord[2] - prevcoord[2]) < smallnum) {
+        is_small = 1;
+      }
+    }
+    if (run != prevrun || is_smaller != 0) {
+      prevrun = run;
+      encodebits(buf2, 1, 1); /* flag the change in run-length */
+      encodebits(buf2, 5, run+is_smaller+1);
+    } else {
+      encodebits(buf2, 1, 0); /* flag the fact that runlength did not change */
+    }
+    for (k=0; k < run; k+=3) {
+      encodeints(buf2, 3, smallidx, sizesmall, &tmpcoord[k]);
+    }
+    if (is_smaller != 0) {
+      smallidx += is_smaller;
+      if (is_smaller < 0) {
+        smallnum = smaller;
+        smaller = magicints[smallidx-1] / 2;
+      } else {
+        smaller = smallnum;
+        smallnum = magicints[smallidx] / 2;
+      }
+      sizesmall[0] = sizesmall[1] = sizesmall[2] = magicints[smallidx];
+    }
+  }
+  if (buf2[1] != 0) buf2[0]++;
+  xdrfile_write_int(buf2,1,xfp); /* buf2[0] holds the length in bytes */
+  tmp=xdrfile_write_opaque((char *)&(buf2[3]),(unsigned int)buf2[0],xfp);
+  if(tmp==(unsigned int)buf2[0])
+    return size;
+  else
+    return -1;
 }
 
 
@@ -1733,34 +1733,34 @@ static int ctofstr(char *dest, int dest_len, char *src);
 
 void
 F77_FUNC(xdropen,XDROPEN)(int *fid, char *filename, char *mode,
-						  int fn_len, int mode_len)
+              int fn_len, int mode_len)
 {
-	char cfilename[512];
-	char cmode[5];
-	int i;
+  char cfilename[512];
+  char cmode[5];
+  int i;
 
-	/* zero array at first invocation */
-	if(f77init) {
-		for(i=0;i<MAX_FORTRAN_XDR;i++)
-			f77xdr[i]=NULL;
-		f77init=0;
-	}
-	i=0;
+  /* zero array at first invocation */
+  if(f77init) {
+    for(i=0;i<MAX_FORTRAN_XDR;i++)
+      f77xdr[i]=NULL;
+    f77init=0;
+  }
+  i=0;
 
-	/* nf77xdr is always smaller or equal to MAX_FORTRAN_XDR */
-	while(i<MAX_FORTRAN_XDR && f77xdr[i]!=NULL)
-		i++;
-	if(i==MAX_FORTRAN_XDR) {
-		*fid = -1;
-	} else if (ftocstr(cfilename, sizeof(cfilename), filename, fn_len)) {
-		*fid = -1;
-	} else if (ftocstr(cmode, sizeof(cmode), mode,mode_len)) {
-		*fid = -1;
-	} else {
-		f77xdr[i]=xdrfile_open(cfilename,cmode);
-		/* return the index in the array as a fortran file handle */
-		*fid=i;
-	}
+  /* nf77xdr is always smaller or equal to MAX_FORTRAN_XDR */
+  while(i<MAX_FORTRAN_XDR && f77xdr[i]!=NULL)
+    i++;
+  if(i==MAX_FORTRAN_XDR) {
+    *fid = -1;
+  } else if (ftocstr(cfilename, sizeof(cfilename), filename, fn_len)) {
+    *fid = -1;
+  } else if (ftocstr(cmode, sizeof(cmode), mode,mode_len)) {
+    *fid = -1;
+  } else {
+    f77xdr[i]=xdrfile_open(cfilename,cmode);
+    /* return the index in the array as a fortran file handle */
+    *fid=i;
+  }
 }
 
 void
@@ -1776,97 +1776,97 @@ F77_FUNC(xdrclose,XDRCLOSE)(int *fid)
 void
 F77_FUNC(xdrrint,XDRRINT)(int *fid, int *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_int(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_int(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwint,XDRWINT)(int *fid, int *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_int(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_int(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrruint,XDRRUINT)(int *fid, unsigned int *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_uint(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_uint(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwuint,XDRWUINT)(int *fid, unsigned int *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_uint(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_uint(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrrchar,XDRRCHAR)(int *fid, char *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_char(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_char(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwchar,XDRWCHAR)(int *fid, char *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_char(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_char(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrruchar,XDRRUCHAR)(int *fid, unsigned char *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_uchar(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_uchar(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwuchar,XDRWUCHAR)(int *fid, unsigned char *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_uchar(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_uchar(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrrshort,XDRRSHORT)(int *fid, short *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_short(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_short(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwshort,XDRWSHORT)(int *fid, short *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_short(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_short(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrrushort,XDRRUSHORT)(int *fid, unsigned short *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_ushort(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_ushort(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwushort,XDRWUSHORT)(int *fid, unsigned short *ip, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_ushort(ip,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_ushort(ip,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrrsingle,XDRRSINGLE)(int *fid, float *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_float(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_float(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwsingle,XDRWSINGLE)(int *fid, float *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_float(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_float(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrrdouble,XDRRDOUBLE)(int *fid, double *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_double(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_double(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwdouble,XDRWDOUBLE)(int *fid, double *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_double(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_double(data,*ndata,f77xdr[*fid]);
 }
 
 static int ftocstr(char *dest, int destlen, char *src, int srclen)
@@ -1879,9 +1879,9 @@ static int ftocstr(char *dest, int destlen, char *src, int srclen)
     destlen--;
     dest[0] = 0;
     if (srclen > destlen)
-		return 1;
+    return 1;
     while (srclen--)
-		(*dest++ = *src++);
+    (*dest++ = *src++);
     *dest = '\0';
     return 0;
 }
@@ -1902,60 +1902,60 @@ static int ctofstr(char *dest, int destlen, char *src)
 void
 F77_FUNC(xdrrstring,XDRRSTRING)(int *fid, char *str, int *ret, int len)
 {
-	char *cstr;
+  char *cstr;
 
-	if((cstr=(char*)malloc((len+1)*sizeof(char)))==NULL) {
-		*ret = 0;
-		return;
-	}
-	if (ftocstr(cstr, len+1, str, len)) {
-		*ret = 0;
-		free(cstr);
-		return;
-	}
+  if((cstr=(char*)malloc((len+1)*sizeof(char)))==NULL) {
+    *ret = 0;
+    return;
+  }
+  if (ftocstr(cstr, len+1, str, len)) {
+    *ret = 0;
+    free(cstr);
+    return;
+  }
 
-	*ret = xdrfile_read_string(cstr, len+1,f77xdr[*fid]);
-	ctofstr( str, len , cstr);
-	free(cstr);
+  *ret = xdrfile_read_string(cstr, len+1,f77xdr[*fid]);
+  ctofstr( str, len , cstr);
+  free(cstr);
 }
 
 void
 F77_FUNC(xdrwstring,XDRWSTRING)(int *fid, char *str, int *ret, int len)
 {
-	char *cstr;
+  char *cstr;
 
-	if((cstr=(char*)malloc((len+1)*sizeof(char)))==NULL) {
-		*ret = 0;
-		return;
-	}
-	if (ftocstr(cstr, len+1, str, len)) {
-		*ret = 0;
-		free(cstr);
-		return;
-	}
+  if((cstr=(char*)malloc((len+1)*sizeof(char)))==NULL) {
+    *ret = 0;
+    return;
+  }
+  if (ftocstr(cstr, len+1, str, len)) {
+    *ret = 0;
+    free(cstr);
+    return;
+  }
 
-	*ret = xdrfile_write_string(cstr, f77xdr[*fid]);
-	ctofstr( str, len , cstr);
-	free(cstr);
+  *ret = xdrfile_write_string(cstr, f77xdr[*fid]);
+  ctofstr( str, len , cstr);
+  free(cstr);
 }
 
 void
 F77_FUNC(xdrropaque,XDRROPAQUE)(int *fid, char *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_read_opaque(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_read_opaque(data,*ndata,f77xdr[*fid]);
 }
 
 void
 F77_FUNC(xdrwopaque,XDRWOPAQUE)(int *fid, char *data, int *ndata, int *ret)
 {
-	*ret = xdrfile_write_opaque(data,*ndata,f77xdr[*fid]);
+  *ret = xdrfile_write_opaque(data,*ndata,f77xdr[*fid]);
 }
 
 
 /* Write single-precision compressed 3d coordinates */
 void
 F77_FUNC(xdrccs,XDRCCS)(int *fid, float *data, int *ncoord,
-						float *precision, int *ret)
+            float *precision, int *ret)
 {
     *ret = xdrfile_compress_coord_float(data,*ncoord,*precision,f77xdr[*fid]);
 }
@@ -1964,24 +1964,24 @@ F77_FUNC(xdrccs,XDRCCS)(int *fid, float *data, int *ncoord,
 /* Read single-precision compressed 3d coordinates */
 void
 F77_FUNC(xdrdcs,XDRDCS)(int *fid, float *data, int *ncoord,
-						float *precision, int *ret)
+            float *precision, int *ret)
 {
-	*ret = xdrfile_decompress_coord_float(data,ncoord,precision,f77xdr[*fid]);
+  *ret = xdrfile_decompress_coord_float(data,ncoord,precision,f77xdr[*fid]);
 }
 
 
 /* Write compressed 3d coordinates from double precision data */
 void
 F77_FUNC(xdrccd,XDRCCD)(int *fid, double *data, int *ncoord,
-						double *precision, int *ret)
+            double *precision, int *ret)
 {
-	*ret = xdrfile_compress_coord_double(data,*ncoord,*precision,f77xdr[*fid]);
+  *ret = xdrfile_compress_coord_double(data,*ncoord,*precision,f77xdr[*fid]);
 }
 
 /* Read compressed 3d coordinates into double precision data */
 void
 F77_FUNC(xddcd,XDRDCD)(int *fid, double *data, int *ncoord,
-					   double *precision, int *ret)
+             double *precision, int *ret)
 {
     *ret = xdrfile_decompress_coord_double(data,ncoord,precision,f77xdr[*fid]);
 }
@@ -2070,14 +2070,14 @@ F77_FUNC(xddcd,XDRDCD)(int *fid, double *data, int *ncoord,
 
 typedef int (*xdrproc_t) (XDR *, void *,...);
 
-#define xdr_getlong(xdrs, longp)			\
-	(*(xdrs)->x_ops->x_getlong)(xdrs, longp)
-#define xdr_putlong(xdrs, longp)			\
-	(*(xdrs)->x_ops->x_putlong)(xdrs, longp)
-#define xdr_getbytes(xdrs, addr, len)			\
-	(*(xdrs)->x_ops->x_getbytes)(xdrs, addr, len)
-#define xdr_putbytes(xdrs, addr, len)			\
-	(*(xdrs)->x_ops->x_putbytes)(xdrs, addr, len)
+#define xdr_getlong(xdrs, longp)      \
+  (*(xdrs)->x_ops->x_getlong)(xdrs, longp)
+#define xdr_putlong(xdrs, longp)      \
+  (*(xdrs)->x_ops->x_putlong)(xdrs, longp)
+#define xdr_getbytes(xdrs, addr, len)      \
+  (*(xdrs)->x_ops->x_getbytes)(xdrs, addr, len)
+#define xdr_putbytes(xdrs, addr, len)      \
+  (*(xdrs)->x_ops->x_putbytes)(xdrs, addr, len)
 
 #define BYTES_PER_XDR_UNIT 4
 static char xdr_zero[BYTES_PER_XDR_UNIT] = {0, 0, 0, 0};
@@ -2085,164 +2085,164 @@ static char xdr_zero[BYTES_PER_XDR_UNIT] = {0, 0, 0, 0};
 static int32_t
 xdr_swapbytes(int32_t x)
 {
-	int32_t y,i;
-	char *px=(char *)&x;
-	char *py=(char *)&y;
+  int32_t y,i;
+  char *px=(char *)&x;
+  char *py=(char *)&y;
 
-	for(i=0;i<4;i++)
-		py[i]=px[3-i];
+  for(i=0;i<4;i++)
+    py[i]=px[3-i];
 
-	return y;
+  return y;
 }
 
 static int32_t
 xdr_htonl(int32_t x)
 {
-	int s=0x1234;
-	if( *((char *)&s)==(char)0x34) {
-		/* smallendian,swap bytes */
-		return xdr_swapbytes(x);
-	} else {
-		/* bigendian, do nothing */
-		return x;
-	}
+  int s=0x1234;
+  if( *((char *)&s)==(char)0x34) {
+    /* smallendian,swap bytes */
+    return xdr_swapbytes(x);
+  } else {
+    /* bigendian, do nothing */
+    return x;
+  }
 }
 
 static int32_t
 xdr_ntohl(int x)
 {
-	int s=0x1234;
-	if( *((char *)&s)==(char)0x34) {
-		/* smallendian, swap bytes */
-		return xdr_swapbytes(x);
-	} else {
-		/* bigendian, do nothing */
-		return x;
-	}
+  int s=0x1234;
+  if( *((char *)&s)==(char)0x34) {
+    /* smallendian, swap bytes */
+    return xdr_swapbytes(x);
+  } else {
+    /* bigendian, do nothing */
+    return x;
+  }
 }
 
 static int
 xdr_int (XDR *xdrs, int *ip)
 {
-	int32_t i32;
+  int32_t i32;
 
-	switch (xdrs->x_op)
-		{
-		case XDR_ENCODE:
-			i32 = (int32_t) *ip;
-			return xdr_putlong (xdrs, &i32);
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      i32 = (int32_t) *ip;
+      return xdr_putlong (xdrs, &i32);
 
-		case XDR_DECODE:
-			if (!xdr_getlong (xdrs, &i32))
-				{
-					return 0;
-				}
-			*ip = (int) i32;
-		case XDR_FREE:
-			return 1;
-		}
-	return 0;
+    case XDR_DECODE:
+      if (!xdr_getlong (xdrs, &i32))
+        {
+          return 0;
+        }
+      *ip = (int) i32;
+    case XDR_FREE:
+      return 1;
+    }
+  return 0;
 }
 
 static int
 xdr_u_int (XDR *xdrs, unsigned int *up)
 {
-	uint32_t ui32;
+  uint32_t ui32;
 
-	switch (xdrs->x_op)
-		{
-		case XDR_ENCODE:
-			ui32 = (uint32_t) * up;
-			return xdr_putlong (xdrs, (int32_t *)&ui32);
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      ui32 = (uint32_t) * up;
+      return xdr_putlong (xdrs, (int32_t *)&ui32);
 
-		case XDR_DECODE:
-			if (!xdr_getlong (xdrs, (int32_t *)&ui32))
-				{
-					return 0;
-				}
-			*up = (uint32_t) ui32;
-		case XDR_FREE:
-			return 1;
-		}
-	return 0;
+    case XDR_DECODE:
+      if (!xdr_getlong (xdrs, (int32_t *)&ui32))
+        {
+          return 0;
+        }
+      *up = (uint32_t) ui32;
+    case XDR_FREE:
+      return 1;
+    }
+  return 0;
 }
 
 static int
 xdr_short (XDR *xdrs, short *sp)
 {
-	int32_t i32;
+  int32_t i32;
 
-	switch (xdrs->x_op)
-		{
-		case XDR_ENCODE:
-			i32 = (int32_t) *sp;
-			return xdr_putlong (xdrs, &i32);
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      i32 = (int32_t) *sp;
+      return xdr_putlong (xdrs, &i32);
 
-		case XDR_DECODE:
-			if (!xdr_getlong (xdrs, &i32))
-				{
-					return 0;
-				}
-			*sp = (short) i32;
-			return 1;
+    case XDR_DECODE:
+      if (!xdr_getlong (xdrs, &i32))
+        {
+          return 0;
+        }
+      *sp = (short) i32;
+      return 1;
 
-		case XDR_FREE:
-			return 1;
-		}
-	return 0;
+    case XDR_FREE:
+      return 1;
+    }
+  return 0;
 }
 
 static int
 xdr_u_short (XDR *xdrs, unsigned short *sp)
 {
-	uint32_t ui32;
+  uint32_t ui32;
 
-	switch (xdrs->x_op)
-		{
-		case XDR_ENCODE:
-			ui32 = (uint32_t) *sp;
-			return xdr_putlong (xdrs, (int32_t *)&ui32);
+  switch (xdrs->x_op)
+    {
+    case XDR_ENCODE:
+      ui32 = (uint32_t) *sp;
+      return xdr_putlong (xdrs, (int32_t *)&ui32);
 
-		case XDR_DECODE:
-			if (!xdr_getlong (xdrs, (int32_t *)&ui32))
-				{
-					return 0;
-				}
-			*sp = (unsigned short) ui32;
-			return 1;
+    case XDR_DECODE:
+      if (!xdr_getlong (xdrs, (int32_t *)&ui32))
+        {
+          return 0;
+        }
+      *sp = (unsigned short) ui32;
+      return 1;
 
-		case XDR_FREE:
-			return 1;
-		}
-	return 0;
+    case XDR_FREE:
+      return 1;
+    }
+  return 0;
 }
 
 static int
 xdr_char (XDR *xdrs, char *cp)
 {
-	int i;
+  int i;
 
-	i = (*cp);
-	if (!xdr_int (xdrs, &i))
-		{
-			return 0;
-		}
-	*cp = i;
-	return 1;
+  i = (*cp);
+  if (!xdr_int (xdrs, &i))
+    {
+      return 0;
+    }
+  *cp = i;
+  return 1;
 }
 
 static int
 xdr_u_char (XDR *xdrs, unsigned char *cp)
 {
-	unsigned int u;
+  unsigned int u;
 
-	u = (*cp);
-	if (!xdr_u_int (xdrs, &u))
-		{
-			return 0;
-		}
-	*cp = u;
-	return 1;
+  u = (*cp);
+  if (!xdr_u_int (xdrs, &u))
+    {
+      return 0;
+    }
+  *cp = u;
+  return 1;
 }
 
 /*
@@ -2253,47 +2253,47 @@ xdr_u_char (XDR *xdrs, unsigned char *cp)
 static int
 xdr_opaque (XDR *xdrs, char *cp, unsigned int cnt)
 {
-	unsigned int rndup;
-	static char crud[BYTES_PER_XDR_UNIT];
+  unsigned int rndup;
+  static char crud[BYTES_PER_XDR_UNIT];
 
-	/*
-	 * if no data we are done
-	 */
-	if (cnt == 0)
-		return 1;
+  /*
+   * if no data we are done
+   */
+  if (cnt == 0)
+    return 1;
 
-	/*
-	 * round byte count to full xdr units
-	 */
-	rndup = cnt % BYTES_PER_XDR_UNIT;
-	if (rndup > 0)
-		rndup = BYTES_PER_XDR_UNIT - rndup;
+  /*
+   * round byte count to full xdr units
+   */
+  rndup = cnt % BYTES_PER_XDR_UNIT;
+  if (rndup > 0)
+    rndup = BYTES_PER_XDR_UNIT - rndup;
 
-	switch (xdrs->x_op)
-		{
-		case XDR_DECODE:
-			if (!xdr_getbytes (xdrs, cp, cnt))
-				{
-					return 0;
-				}
-			if (rndup == 0)
-				return 1;
-			return xdr_getbytes (xdrs, (char *)crud, rndup);
+  switch (xdrs->x_op)
+    {
+    case XDR_DECODE:
+      if (!xdr_getbytes (xdrs, cp, cnt))
+        {
+          return 0;
+        }
+      if (rndup == 0)
+        return 1;
+      return xdr_getbytes (xdrs, (char *)crud, rndup);
 
-		case XDR_ENCODE:
-			if (!xdr_putbytes (xdrs, cp, cnt))
-				{
-					return 0;
-				}
-			if (rndup == 0)
-				return 1;
-			return xdr_putbytes (xdrs, xdr_zero, rndup);
+    case XDR_ENCODE:
+      if (!xdr_putbytes (xdrs, cp, cnt))
+        {
+          return 0;
+        }
+      if (rndup == 0)
+        return 1;
+      return xdr_putbytes (xdrs, xdr_zero, rndup);
 
-		case XDR_FREE:
-			return 1;
-		}
+    case XDR_FREE:
+      return 1;
+    }
 #undef BYTES_PER_XDR_UNIT
-	return 0;
+  return 0;
 }
 
 
@@ -2303,68 +2303,68 @@ xdr_opaque (XDR *xdrs, char *cp, unsigned int cnt)
 static int
 xdr_string (XDR *xdrs, char **cpp, unsigned int maxsize)
 {
-	char *sp = *cpp;	/* sp is the actual string pointer */
-	unsigned int size;
-	unsigned int nodesize;
+  char *sp = *cpp;  /* sp is the actual string pointer */
+  unsigned int size;
+  unsigned int nodesize;
 
-	/*
-	 * first deal with the length since xdr strings are counted-strings
-	 */
-	switch (xdrs->x_op)
-		{
-		case XDR_FREE:
-			if (sp == NULL)
-				{
-					return 1;		/* already free */
-				}
-			/* fall through... */
-		case XDR_ENCODE:
-			if (sp == NULL)
-				return 0;
-			size = strlen (sp);
-			break;
-		case XDR_DECODE:
-			break;
-		}
-	if (!xdr_u_int (xdrs, &size))
-		{
-			return 0;
-		}
-	if (size > maxsize)
-		{
-			return 0;
-		}
-	nodesize = size + 1;
+  /*
+   * first deal with the length since xdr strings are counted-strings
+   */
+  switch (xdrs->x_op)
+    {
+    case XDR_FREE:
+      if (sp == NULL)
+        {
+          return 1;    /* already free */
+        }
+      /* fall through... */
+    case XDR_ENCODE:
+      if (sp == NULL)
+        return 0;
+      size = strlen (sp);
+      break;
+    case XDR_DECODE:
+      break;
+    }
+  if (!xdr_u_int (xdrs, &size))
+    {
+      return 0;
+    }
+  if (size > maxsize)
+    {
+      return 0;
+    }
+  nodesize = size + 1;
 
-	/*
-	 * now deal with the actual bytes
-	 */
-	switch (xdrs->x_op)
-		{
-		case XDR_DECODE:
-			if (nodesize == 0)
-				{
-					return 1;
-				}
-			if (sp == NULL)
-				*cpp = sp = (char *) malloc (nodesize);
-			if (sp == NULL)
-				{
-					(void) fputs ("xdr_string: out of memory\n", stderr);
-					return 0;
-				}
-			sp[size] = 0;
-			/* fall into ... */
+  /*
+   * now deal with the actual bytes
+   */
+  switch (xdrs->x_op)
+    {
+    case XDR_DECODE:
+      if (nodesize == 0)
+        {
+          return 1;
+        }
+      if (sp == NULL)
+        *cpp = sp = (char *) malloc (nodesize);
+      if (sp == NULL)
+        {
+          (void) fputs ("xdr_string: out of memory\n", stderr);
+          return 0;
+        }
+      sp[size] = 0;
+      /* fall into ... */
 
-		case XDR_ENCODE:
-			return xdr_opaque (xdrs, sp, size);
+    case XDR_ENCODE:
+      return xdr_opaque (xdrs, sp, size);
 
-		case XDR_FREE:
-			free (sp);
-			*cpp = NULL;
-			return 1;
-		}
-	return 0;
+    case XDR_FREE:
+      free (sp);
+      *cpp = NULL;
+      return 1;
+    }
+  return 0;
 }
 
 
@@ -2374,33 +2374,33 @@ xdr_string (XDR *xdrs, char **cpp, unsigned int maxsize)
 static int
 xdr_float(XDR *xdrs, float *fp)
 {
-	switch (xdrs->x_op) {
+  switch (xdrs->x_op) {
 
-	case XDR_ENCODE:
-		if (sizeof(float) == sizeof(int32_t))
-			return (xdr_putlong(xdrs, (int32_t *)fp));
-		else if (sizeof(float) == sizeof(int)) {
-			int32_t tmp = *(int *)fp;
-			return (xdr_putlong(xdrs, &tmp));
-		}
-		break;
+  case XDR_ENCODE:
+    if (sizeof(float) == sizeof(int32_t))
+      return (xdr_putlong(xdrs, (int32_t *)fp));
+    else if (sizeof(float) == sizeof(int)) {
+      int32_t tmp = *(int *)fp;
+      return (xdr_putlong(xdrs, &tmp));
+    }
+    break;
 
-	case XDR_DECODE:
-		if (sizeof(float) == sizeof(int32_t))
-			return (xdr_getlong(xdrs, (int32_t *)fp));
-		else if (sizeof(float) == sizeof(int)) {
-			int32_t tmp;
-			if (xdr_getlong(xdrs, &tmp)) {
-				*(int *)fp = tmp;
-				return (1);
-			}
-		}
-		break;
+  case XDR_DECODE:
+    if (sizeof(float) == sizeof(int32_t))
+      return (xdr_getlong(xdrs, (int32_t *)fp));
+    else if (sizeof(float) == sizeof(int)) {
+      int32_t tmp;
+      if (xdr_getlong(xdrs, &tmp)) {
+        *(int *)fp = tmp;
+        return (1);
+      }
+    }
+    break;
 
-	case XDR_FREE:
-		return (1);
-	}
-	return (0);
+  case XDR_FREE:
+    return (1);
+  }
+  return (0);
 }
 
 
@@ -2435,55 +2435,55 @@ xdr_double(XDR *xdrs, double *dp)
      *     B           B       3f ef 9a dd 3c 0e 56 b8
      */
     if(ix==0xdd || ix==0x3f)
-		LSW=1;  /* Big endian word order */
+    LSW=1;  /* Big endian word order */
     else if(ix==0xb8 || ix==0x3c)
-		LSW=0;  /* Small endian word order */
+    LSW=0;  /* Small endian word order */
     else { /* Catch strange errors */
-		fprintf(stderr,"Cannot detect floating-point word order.\n"
-				"Do you have a non-IEEE system?\n"
-				"Use system XDR libraries or fix xdr_double().\n");
-		abort();
+    fprintf(stderr,"Cannot detect floating-point word order.\n"
+        "Do you have a non-IEEE system?\n"
+        "Use system XDR libraries or fix xdr_double().\n");
+    abort();
     }
 #endif /* end of dynamic detection of fp word order */
 
-	switch (xdrs->x_op) {
+  switch (xdrs->x_op) {
 
-	case XDR_ENCODE:
-		if (2*sizeof(int32_t) == sizeof(double)) {
-			int32_t *lp = (int32_t *)dp;
-			return (xdr_putlong(xdrs, lp+!LSW) &&
-					xdr_putlong(xdrs, lp+LSW));
-		} else if (2*sizeof(int) == sizeof(double)) {
-			int *ip = (int *)dp;
-			int32_t tmp[2];
-			tmp[0] = ip[!LSW];
-			tmp[1] = ip[LSW];
-			return (xdr_putlong(xdrs, tmp) &&
-					xdr_putlong(xdrs, tmp+1));
-		}
-		break;
+  case XDR_ENCODE:
+    if (2*sizeof(int32_t) == sizeof(double)) {
+      int32_t *lp = (int32_t *)dp;
+      return (xdr_putlong(xdrs, lp+!LSW) &&
+          xdr_putlong(xdrs, lp+LSW));
+    } else if (2*sizeof(int) == sizeof(double)) {
+      int *ip = (int *)dp;
+      int32_t tmp[2];
+      tmp[0] = ip[!LSW];
+      tmp[1] = ip[LSW];
+      return (xdr_putlong(xdrs, tmp) &&
+          xdr_putlong(xdrs, tmp+1));
+    }
+    break;
 
-	case XDR_DECODE:
-		if (2*sizeof(int32_t) == sizeof(double)) {
-			int32_t *lp = (int32_t *)dp;
-			return (xdr_getlong(xdrs, lp+!LSW) &&
-					xdr_getlong(xdrs, lp+LSW));
-		} else if (2*sizeof(int) == sizeof(double)) {
-			int *ip = (int *)dp;
-			int32_t tmp[2];
-			if (xdr_getlong(xdrs, tmp+!LSW) &&
-				xdr_getlong(xdrs, tmp+LSW)) {
-				ip[0] = tmp[0];
-				ip[1] = tmp[1];
-				return (1);
-			}
-		}
-		break;
+  case XDR_DECODE:
+    if (2*sizeof(int32_t) == sizeof(double)) {
+      int32_t *lp = (int32_t *)dp;
+      return (xdr_getlong(xdrs, lp+!LSW) &&
+          xdr_getlong(xdrs, lp+LSW));
+    } else if (2*sizeof(int) == sizeof(double)) {
+      int *ip = (int *)dp;
+      int32_t tmp[2];
+      if (xdr_getlong(xdrs, tmp+!LSW) &&
+        xdr_getlong(xdrs, tmp+LSW)) {
+        ip[0] = tmp[0];
+        ip[1] = tmp[1];
+        return (1);
+      }
+    }
+    break;
 
-	case XDR_FREE:
-		return (1);
-	}
-	return (0);
+  case XDR_FREE:
+    return (1);
+  }
+  return (0);
 }
 
 
@@ -2499,15 +2499,15 @@ static void xdrstdio_destroy (XDR *);
  * Ops vector for stdio type XDR
  */
 static const struct xdr_ops xdrstdio_ops =
-	{
-		xdrstdio_getlong,		/* deserialize a long int */
-		xdrstdio_putlong,		/* serialize a long int */
-		xdrstdio_getbytes,       	/* deserialize counted bytes */
-		xdrstdio_putbytes,     	/* serialize counted bytes */
-		xdrstdio_getpos,		/* get offset in the stream */
-		xdrstdio_setpos,		/* set offset in the stream */
-		xdrstdio_destroy,		/* destroy stream */
-	};
+  {
+    xdrstdio_getlong,    /* deserialize a long int */
+    xdrstdio_putlong,    /* serialize a long int */
+    xdrstdio_getbytes,         /* deserialize counted bytes */
+    xdrstdio_putbytes,       /* serialize counted bytes */
+    xdrstdio_getpos,    /* get offset in the stream */
+    xdrstdio_setpos,    /* set offset in the stream */
+    xdrstdio_destroy,    /* destroy stream */
+  };
 
 /*
  * Initialize a stdio xdr stream.
@@ -2517,10 +2517,10 @@ static const struct xdr_ops xdrstdio_ops =
 static void
 xdrstdio_create (XDR *xdrs, FILE *file, enum xdr_op op)
 {
-	xdrs->x_op = op;
+  xdrs->x_op = op;
 
-	xdrs->x_ops = (struct xdr_ops *) &xdrstdio_ops;
-	xdrs->x_private = (char *) file;
+  xdrs->x_ops = (struct xdr_ops *) &xdrstdio_ops;
+  xdrs->x_private = (char *) file;
 }
 
 /*
@@ -2530,47 +2530,47 @@ xdrstdio_create (XDR *xdrs, FILE *file, enum xdr_op op)
 static void
 xdrstdio_destroy (XDR *xdrs)
 {
-	(void) fflush ((FILE *) xdrs->x_private);
-	/* xx should we close the file ?? */
+  (void) fflush ((FILE *) xdrs->x_private);
+  /* xx should we close the file ?? */
 }
 
 static int
 xdrstdio_getlong (XDR *xdrs, int32_t *lp)
 {
-	int32_t mycopy;
+  int32_t mycopy;
 
-	if (fread ((char *) & mycopy, 4, 1, (FILE *) xdrs->x_private) != 1)
-		return 0;
-	*lp = (int32_t) xdr_ntohl (mycopy);
-	return 1;
+  if (fread ((char *) & mycopy, 4, 1, (FILE *) xdrs->x_private) != 1)
+    return 0;
+  *lp = (int32_t) xdr_ntohl (mycopy);
+  return 1;
 }
 
 static int
 xdrstdio_putlong (XDR *xdrs, int32_t *lp)
 {
-	int32_t mycopy = xdr_htonl (*lp);
-	lp = &mycopy;
-	if (fwrite ((char *) lp, 4, 1, (FILE *) xdrs->x_private) != 1)
-		return 0;
-	return 1;
+  int32_t mycopy = xdr_htonl (*lp);
+  lp = &mycopy;
+  if (fwrite ((char *) lp, 4, 1, (FILE *) xdrs->x_private) != 1)
+    return 0;
+  return 1;
 }
 
 static int
 xdrstdio_getbytes (XDR *xdrs, char *addr, unsigned int len)
 {
-	if ((len != 0) && (fread (addr, (int) len, 1,
-							  (FILE *) xdrs->x_private) != 1))
-		return 0;
-	return 1;
+  if ((len != 0) && (fread (addr, (int) len, 1,
+                (FILE *) xdrs->x_private) != 1))
+    return 0;
+  return 1;
 }
 
 static int
 xdrstdio_putbytes (XDR *xdrs, char *addr, unsigned int len)
 {
-	if ((len != 0) && (fwrite (addr, (int) len, 1,
-							   (FILE *) xdrs->x_private) != 1))
-		return 0;
-	return 1;
+  if ((len != 0) && (fwrite (addr, (int) len, 1,
+                 (FILE *) xdrs->x_private) != 1))
+    return 0;
+  return 1;
 }
 
 
@@ -2589,7 +2589,7 @@ xdrstdio_setpos (XDR *xdrs, off_t pos, int whence)
     /* We return errno relying on the fact that it is never set to 0 on
      * success, which means that if an error occurrs it'll never be the same
      * as exdrOK, and xdr_seek won't be confused.*/
-	return fseeko((FILE *) xdrs->x_private, pos, whence) < 0 ? errno : exdrOK;
+  return fseeko((FILE *) xdrs->x_private, pos, whence) < 0 ? errno : exdrOK;
 }
 
 

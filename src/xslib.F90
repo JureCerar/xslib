@@ -1,45 +1,78 @@
-#define _VERSION "v@PROJECT_VERSION@"
+! This file is part of xslib
+! https://github.com/JureCerar/xslib
+!
+! Copyright (C) 2019-2020  Jure Cerar
+!
+! This program is free software: you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation, either version 3 of the License, or
+! (at your option) any later version.
+!
+! This program is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib
-	use xslib_common
-	use xslib_utilities
-	use xslib_array
-	use xslib_csv
-	use xslib_gro
-	use xslib_pdh
-	use xslib_pdb
-	use xslib_tpl
-	use xslib_ndx
-	use xslib_trj
-	use xslib_xyz
-	use xslib_frame
-	implicit none
+  use xslib_cstring
+  use xslib_vector
+  use xslib_error
+  use xslib_time
+  use xslib_fileio
+  use xslib_groio
+  use xslib_pdbio
+  use xslib_xyzio
+  use xslib_xtcio
+  use xslib_dcdio
+  use xslib_cubio
+  use xslib_ndxio
+  use xslib_tplio
+  use xslib_pdhio
+  use xslib_csvio
+  use xslib_list
+  implicit none
 
-	character*16, parameter :: xslib_version=_VERSION
-	character*32, parameter :: xslib_date=__DATE__//" "//__TIME__
+  character(32), parameter :: xslib_version="v@PROJECT_VERSION@"
+  character(32), parameter :: xslib_date=__DATE__//" "//__TIME__
 
 contains
 
-	! Returns Xslib version and compile date. By default only version is returned.
-	function xslibinfo (version, date)
-		implicit none
-		character*(:), allocatable	:: xslibinfo
-		logical, optional			 			:: version, date
-		logical											:: v, d
+! Returns Xslib version and compile date.
+character(:) function xslibInfo()
+  implicit none
+  allocatable :: xslibinfo
+  xslibinfo = trim(xslib_version)//" -- "//trim(xslib_date)
+  return
+end function xslibInfo
 
-		v = merge(version, .true., present(version))
-		d = merge(date, .false., present(date))
 
-		xslibinfo=""
-		if (v .AND. d) then
-			xslibinfo = trim(xslib_version)//" -- "//trim(xslib_date)
-		else if (v) then
-			xslibinfo = trim(xslib_version)
-		else if (d) then
-			xslibinfo = trim(xslib_date)
-		end if
+! Custom fortran flags option
+#ifdef NDEBUG
+#define _Fortran_FLAGS "@CMAKE_Fortran_FLAGS_RELEASE@"
+#else
+#define _Fortran_FLAGS "@CMAKE_Fortran_FLAGS_DEBUG@"
+#endif
 
-		return
-	end function xslibinfo
+! More extensive xslib infor and copyright.
+subroutine xslibAbout()
+  use, intrinsic :: iso_fortran_env
+  implicit none
+  write (*,*) "Name:             ", "xslib - Extra small library"
+  write (*,*) "URL:              ", "@PROJECT_URL@"
+  write (*,*) "Version:          ", "@PROJECT_VERSION@"
+  write (*,*) "Build date:       ", __DATE__//" "//__TIME__
+  write (*,*) "Compiler:         ", compiler_version()
+  write (*,*) "Compiler flags:   ", _Fortran_FLAGS, &
+  & "@CMAKE_Fortran_FLAGS@"
+  ! write (*,*) "Compiler flags:   ", compiler_options() ! Retruns clusterfuck of flags
+  write (*,*) ""
+  write (*,*) "Copyright (C) 2019-2020 Jure Cerar"
+  write (*,*) " This is free software; See the source for copying conditions. There is NO warranty; "
+  write (*,*) " Not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+  return
+end subroutine xslibAbout
 
 end module xslib

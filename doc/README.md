@@ -1,151 +1,279 @@
 # API
-
 ## Table of contents
-
-- [Molecular file types - General](#molecular-file-types-general)
-- [Molecular file types - File specific data](#molecular-file-types-file-specific-data)
-	- [`pdb_file` format](#pdb_file-format)
-      <!-- - [Example](#Example)
-      - [Structure](#Structure)
-      - [Interface](#Interface) -->
-	- [`gro_file` format](#gro_file-format)
-      <!-- - [Example](#Example)
-      - [Structure](#Structure)
-      - [Interface](#Interface) -->
-	- [`trj_file` format](#trj_file-format)
-	- [`xyz_file` format](#xyz_file-format)
-	- [`frame_file` object format](#frame_file-object-format)
-- [Supporting file types](#supporting-file-types)
-	- [`ndx_file` format](#ndx_file-format)
-	- [`tpl_file` format](#tpl_file-format)
+- [Molecular file types: General](#molecular-file-types-general)
+- [Molecular file types: Interface](#molecular-file-types-interface)
+- [Molecular file types: Structure](#molecular-file-types-data)  
+  - [`xyz_t` type definition](#xyz_t-format)
+  - [`gro_t` type definition](#gro_t-format)
+  - [`pdb_t` type definition](#pdb_t-format)
+  - [`xtc_t` type definition](#trj_t-format)
+  - [`dcd_t` ftype definition](#dcd_t-format)
+  - [`cub_t` type definition](#cub_t-format)
+  - [`file_t` type definition](#frame_file-object-format)
+- [Supporting file types: General](#supporting-file-types)
+- [Supporting file types: Interface](#supporting-file-types)
+- [Supporting file types: Structure](#supporting-file-types)
+  - [`ndx_t` type definition](#ndx_t-format)
+  - [`tpl_t` type definition](#tpl_t-format)
 - [Data file types](#data-file-types)
-	- [`pdh_file` format](#pdh_file-format)
-	- [`csv_file` format](#csv_file-format)
-- [Functions and Subroutines](#functions-and-subroutines)
-	- [`xslibinfo()`](#xslibinfo)
-	- [`str()`](#str)
-	- [`error()` and `warning()`](#error-and-warning)
-	- [`newUnit()`](#newunit)
-	- [`cross()`](#cross)
-	- [`minImg()`](#minimg)
-	- [`getDistance()`](#getdistance)
-	- [`getAngle()`](#getangle)
-	- [`getDihedral()`](#getdihedral)
-	- [`rotate()`](#rotate)
-	- [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
-	- [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
-	- [`get_wtime()`](#get_wtime)
-	- [`write_time()`](#write_time)
-	- [`msleep()`](#msleep)
-	- [`variance()`](#variance)
-	- [`pathname()`](#pathname)
-	- [`baseName()`](#basename)
-	- [`extension()`](#extension)
-	- [`stripComment()`](#stripcomment)
-	- [`backup()`](#backup)
-	- [`nextFreeName()`](#nextfreename)
-	- [`isEmpty()`](#isempty)
-	- [`isWord()`](#isword)
-	- [`replaceText()`](#replacetext)
-	- [`tab2space()`](#tab2space)
-	- [`toLower()` and `toUpper()`](#tolower-and-toupper)
-	- [`progressBar()`](#progressbar)
+  - [`pdh_t` type definition](#pdh_t-format)
+  <!-- - [`csv_t` format](#csv_file-format) -->
+- [xslib](#xslib)
+  - [`xslibInfo()`](#xslibinfo)
+  - [`xslibAbout()`](#xslibabout)
+- [xslib_cstring](#xslib_cstring)
+  - [`str()`](#str)
+  - [`toLower()` and `toUpper()`](#tolower-and-toupper)
+  - [`stripComment`](#stripComment)
+  - [`isWord()`](#isword)
+  - [`replaceText()`](#replacetext)
+  - [`setColor()`](#setColor)
+  - [`getColor()`](#getColor)
+  - [`strtok()`](#strtok)
+  - [`cnttok()`](#cnttok)
+  - [`baseName()`](#basename)
+  - [`pathname()`](#pathname)
+  - [`extension()`](#extension)
+  - [`backup()`](#backup)
+  - [`progressBar()`](#progressbar)
+- [xslib_vector](#xslib_vector)
+  - [`cross()`](#cross)
+  - [`rotate()`](#rotate)
+  - [`deg2rad()` and  `rad2deg()`](#deg2rad-and-rad2deg)
+  - [`crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`](#crt2sph-sph2cart-crt2cyl-and-cyl2crt)
+  - [`minImg()`](#minimg)
+  - [`getDistance()`](#getdistance)
+  - [`getAngle()`](#getangle)
+  - [`getDihedral()`](#getdihedral)
+  - [`variance()`](#variance)
+  - [`lerp()`](#lerp)
+  - [`findKClosest()`](#findKClosest)
+  - [`findCrossOver()`](#findCrossOver)
+  - [`swap()`](#swap)
+- [xslib_time](#xslib_time)
+  - [`wtime`](#wtime)
+  - [`write_wtime`](#write_wtime)
+  - [`msleep()`](#msleep)
+- [xslib_list](#xslib_list)
+- [xslib_error](#xslib_error)
+  - [`error()` and `error_()`](#error-and-error_)
+  - [`warning()` and `warning_()`](#warning-and-warning_)
+  - [`xslibErrMsg()`](#xslibErrMsg)
+  <!-- - [`set_env_colors()`](#set_env_colors) -->
 - [Notes](#notes)
 
 -----------------------------------------------
 
 ## Molecular file types: General
 
-XsLib supports the use of multiple molecular coordinate files:  
+xslib supports the use of multiple molecular coordinate files:  
+- [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *"name,x,y,z"* file that gets the job done in most cases.
 - [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS coordinate file.  
 - [.pdb](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html) - Protein Data Bank which is most commonly used and widely spread molecular coordinate file.
-- [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *"name,x,y,z"* file that gets the job done in most cases.
-- [.trr/.xtc](https://en.wikipedia.org/wiki/XYZ_file_format) - GROMACS binary trajectory and compressed trajectory files, respectively.
+- [.xtc](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS compressed binary trajectory files.
+- [.dcd](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html) - Single precision binary trajectory used by NAMD, CHARMM and LAMMPS.
+- [.cub](https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html) - Gaussian CUBE file format.
+<!-- - [.trr](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS binary trajectory files. -->
 
-They are implemented as derived type variables consisting of data and procedure bound to that type. They can be used with `type(obj_file)`:
-```fortran
-type(xyz_file) :: xyz
-type(pdb_file) :: pdb
-type(gro_file) :: gro
-type(trj_file) :: trj !.xtc and .trr
+The xslib library uses object oriented approach for handling molecular files *i.e.* each object contains all the data as well procedures bound to that file type. In order to use each object you must first define it Fortran declaration section as `type(obj_t) :: <obj-name>`, for example:
+```Fortran
+type(xyz_t) :: xyz
+```
+All objects (with exception of CUBE cub_t, but we will return to that latter) are structured in same way *i.e.* each object is composed of multiple frames (or just one) where the all data is stored. Each frame consists of number of atoms, their coordinates, and simulation box size, plus additional data that is specific to each file type. So in order to access for example the coordinates of the 2nd atoms in 1st frame:
+```Fortran
+obj%frame(1)%coor(:,2)
+```
+Note that the Fortran language uses **row-major** indexing *i.e.* `array(row,column)` and that convention is retained here.
+
+The general API is the same for all derived types. All procedures are defined as functions with an integer return value that contains error code:
+```Fortran
+type(obj_t) :: obj
+integer     :: error
+
+error = obj%procedure(arg)
+```
+If zero is returned the execution was successful. The error code can be obtained with [`xslibErrMsg()`](#xslibErrMsg).
+
+The general structure of object is as follows:
+```Fortran
+type obj_frame
+  integer           :: natoms
+  real, allocatable :: coor(:,:)
+  real              :: box(3,3)
+  ! ... file specific data.
+contains
+  generic   :: assignment(=)
+  procedure :: allocate
+end type obj_frame
+
+type obj_t
+  integer                      :: nframes
+  type(obj_frame), allocatable :: frame(:)
+contains
+  generic   :: assignment(=)
+  generic   :: allocate
+  procedure :: read
+  procedure :: open
+  procedure :: read_next
+  procedure :: skip_next
+  procedure :: close
+  procedure :: write
+  procedure :: getAllframes
+  procedure :: getNatoms
+  procedure :: getBox
+end type obj_t
 ```
 
-All molecular coordinate files are generally structured in same manner *i.e.* each file is composed of multiple frames. These frames stored as "frame arrays" - `obj%frameArray(n)%...`. Each frame array is composed of simulation box size, number of atoms, and atom coordinates - `...%box(3)`, `...%natoms`, `...%coor(1:3,:)`, respectively, and additional data that is specific to each file type.
+## Molecular file types: Interface
+The most simple way to read molecular file is using read method. This opens a file, reads all of the data, and then closes it.
+```Fortran
+error = obj%read( "path/to/file.ext" )
+```
+This method is not recommended for large files as it consumes too much memory. The more typical way of reading file is to open it, read it frame-by-frame and then close it when you are done. To open a file use:
+```Fortran
+error = obj%open( "path/to/file.ext" )
+```
+Opening a file additionally preforms file check (for formatting and corrupted/missing data) so it can take a while to open large files.  
+To read frame use:
+```Fortran
+error = obj%read_next()
+! or
+error = obj%read_next(nframes)
+```
+where `nframes` is optional parameter that defines how many frames to read (default is one). Note that when you call `read_next()` all previous data is deallocated.  
+Similarly, in order to skip frames use `skip_next()`, that works same way, but does not store or allocate any data:
+```Fortran
+error = obj%skip_next()
+! or
+error = obj%skip_next(nframes)
+```
+**NOTE:** If you read/skip more frames that are present/left in file, only the remaining number of frames will be allocated and read. It is up to the user to check if how many frames were actually read. Example:
+```Fortran
+error = obj%read_next(10)
+if ( obj%nframes /= 10 ) then
+  ! ...
+```
 
-The general API is the same for all derived types. Each file is opened with:
-```fortran
-call obj%open("path/to/file.obj")
+Finally, when you are done you should close file with:
+```Fortran
+error = obj%close()
 ```
-Each frame can be read individually or in multiples with:
-```fortran
-int = obj%read_next(n)
-```
-where `n` is optional parameter denoting the number of frames to read. Returning argument (in this case *int*) contains the actual number of frames that were read (0 if no frames could be read). Data in each frame can be accessed as `obj%frameArray(n)%...`. Alternatively, entire file can be read at once by using:
-```fortran
-call obj%read("path/to/file.obj")
-```
-Once you are done with reading the file it is closed with:
-```fortran
-call obj%close()
-```
-Closing the file does not affect the data stored in `obj` (it does not deallocate the data).
+Closing the file does not effect any stored data.
 
-The starting/ending frame and stride between frames can be changed using `obj%set`:
-```fortran
-call obj%set(FIRST=first, LAST=last, STRIDE=stride)
-```
-**NOTE:** `obj%set` must be called only ONCE and BEFORE reading any data (`obj%read()` or `obj%read_next()`).
-
-After calling `obj%read()` or `obj%read_next()` every atom's coordinates are accessible as `obj%frameArray(n)%coor(:,:)`. Note that the Fortran language uses **row-major indexing** *i.e.* `array(row, column)` and that convention is retained here.
-
-To inquire the box size and number of atoms prior to actually reading the file it can be done with:
-```fortran
-integer :: natoms
+Additionally, when file is opened you can obtain general information about the file *i.e.* total num. of frames, num. of atoms, and simulation box size:
+```Fortran
+integer :: nframes, natoms
 real    :: box(3)
 
-box = obj%box()
-natoms = obj%natoms()
+nframes = obj%getAllFrames()
+natoms = obj%getNatoms()
+box(:) = obj%getBox()
 ```
-**NOTE:** Calling this function retains your current position in file.  
-**NOTE:** This does not work for `trj_file`... dont ask why...
+Calling this functions does not effect your positioning in file. For practical reasons `getBox()` returns cubic box data (size=3) instead of 3x3 size matrix.  
 
-If you want to allocate new data, you have to first allocate number of frames and then each frame individually, as:
+All derived types have defined assignment(=) function, which allows you to copy data, either the whole object or frame-by-frame:
+```Fortran
+type(obj_t) :: obj, cpy
+cpy = obj
+! or
+cpy%frame(1) = obj%frame(1)
+```
+You don't have worry about memory allocation as it automatically.
 
-```fortran
-! Create 10 frames consisting of 100 atoms
-nframes = 10
-natoms = 100
-call obj%allocate(nframes)
-do i = 1, nframes
-  call obj%frameArray(i)%allocate(natoms, INITIALIZE=.true.)
-
+If you want to create completely new object you first need to allocate the memory. This too can be done either whole object or frame-by-frame:
+```Fortran
+! Allocate memory in one call
+error = obj%allocate(natoms,nframes)
+! or frame-by-frame; Both cases yield same result
+error = obj%allocate(nframes)
+do i = 1, obj%nframes
+  error = obj%frame(i)%allocate(natoms)
 end do
 ```
-The optional `INITIALIZE` argument formats the newly allocated data to empty values or 0. Alternatively, it can be done with `...%initialize()` procedure call.
-The stored data can be outputted to file UNIT, FILE or STDOUT:
-```fortran
-call obj%write(UNIT=unit)
-! or
-call obj%write(FILE="path/to/file.obj")
-! or
-call obj%write()
+where `nframes` and `natoms` denote number of frames and number of atoms to allocate, respectively. Note that data is not initialized upon memory allocation.
+
+The stored data can be written to STDOUT, FILE, or file UNIT by:
+```Fortran
+! Default write is to STDOUT
+error = obj%write()
+! or write to file
+error = obj%write(FILE="path/to/file.obj")
+! or write to file unit (must be opened by user)
+error = obj%write(UNIT=unit)
 ```
-**NOTE:** This does not work for `trj_file`.  
+**NOTE:** The STDOUT and file UNIT methods do not work for `xtc_t` and `dcd_t` objects, as they are not human readable formats. Alternatevly, in latter cases you can use dump method, to obtain human readable format (useful for debugging):
+```Fortran
+! Default write is to STDOUT
+error = obj%dump()
+! or write to file
+error = obj%dump(FILE="path/to/file.obj")
+! or write to file unit (must be opened by user)
+error = obj%dump(UNIT=unit)
+```
+When either write or dump procedure is called all frames are written.
 
---------------------------------------------------------------------------------
+---------------------
 
-## Molecular file types: File specific data
-
-Each file type contains additional information (unique to format) that is listed down bellow:
-
-### `pdb_file` format
-
-For more information on variables please read [PDB Manual](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html).
+### `xyz_t` type definition
+For more information please read [XYZ manual](https://en.wikipedia.org/wiki/XYZ_file_format).
 
 #### Example
 ```
-         1         2         3         4         5         6         7         8
-12345678901234567890123456789012345678901234567890123456789012345678901234567890
+128
+This is comment line
+C      14.84292  11.24345  10.00000
+O       5.15708   8.75655  10.00000
+...
+```
+**NOTE:** In .xyz format [name] is optional. Will be empty string if not present in file.
+
+#### Structure
+```Fortran
+type xyz_frame
+  integer                   :: natoms
+  character(:), allocatable :: comment
+  character(6), allocatable :: name(:)
+  real, allocatable         :: coor(:,:)
+  real                      :: box(3,3)
+end type xyz_frame
+```
+
+### `gro_t` type definition
+For more information please read [GRO manual](http://manual.gromacs.org/archive/5.0.3/online/gro.html).
+
+#### Example
+```
+This is title, t=0.00000
+ 128
+    1LIG      C    1   1.484   1.124   1.000
+    2LIG      O    2   0.516   0.876   1.000
+...
+   2.00000   2.00000   2.00000
+```
+**NOTE:** In .gro format velocities are optional.
+
+#### Structure
+```Fortran
+type gro_frame
+  character(:), allocatable  :: title
+  real                       :: time
+  integer                    :: natoms
+  integer, allocatable       :: resn(:), atomn(:)
+  character(6), allocatable  :: resnm(:), atomnm(:)
+  real, allocatable          :: coor(:,:), vel(:,:)
+  real                       :: box(3,3)
+end type gro_frame
+```
+
+### `pdb_t` type definition
+For more information please read [PDB manual](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html).
+**NOTE:** This is only partial implementation i.e. not all PDB directives are supported.
+<!-- To be honest we only care about names and coordinates, everything other is pretty much useless -->
+
+#### Example
+```none
+REMARK    THIS IS A REMARK
+...
 CRYST1   20.000   20.000   20.000  90.00  90.00  90.00 P 1           1
 ...
 ATOM     36  C  AARG A  -3      13.559  86.257  95.222  0.50 37.37           C
@@ -154,596 +282,201 @@ END
 ```
 
 #### Structure
-```fortran
-type, private :: pdb_frame
-  real                       :: box(3)
-  integer                    :: natoms
-  character*20, allocatable  :: record_type(:), atom_name(:), alt_loc_indicator(:), residue_name(:), chain_identifier(:)
-  character*20, allocatable  :: res_insert_code(:), segment_identifier(:), element_symbol(:)
-  integer, allocatable       :: atom_serial_number(:), residue_sequence_number(:)
-  real, allocatable          :: coor(:,:)
-  real, allocatable          :: occupancy(:), temp_factor(:), charge(:)
-contains
-  procedure :: allocate
-  procedure :: deallocate
-  procedure :: initialize
+```Fortran
+type pdb_frame
+  real                      :: box(3,3) = 0.000
+  integer                   :: natoms = 0
+  character(6), allocatable :: type(:), atomnm(:), altloc(:), resnm(:), ch(:), resic(:), segnm(:), elem(:)
+  integer, allocatable      :: atomn(:), resn(:)
+  real, allocatable         :: coor(:,:), occup(:), bfac(:), charge(:)
 end type pdb_frame
+```
+**Legend:**  
+type    = record_type  
+atomn   = atom_serial_number  
+atomnm  = atom_name  
+altloc  = alternate_location_indicator  
+resnm   = residue_name  
+ch      = chain_identifier  
+resn    = residue_sequence_number  
+resic   = residue_insertion_code  
+coor    = x, y, z coordinates  
+occup   = occupancy  
+bfac    = beta_factor  
+elem    = element_name  
+charge  = element_partial_charge  
+segnm   = segment_identifier  
 
-type pdb_file
+### `xtc_t` type definition
+For more information please read [XTC "manual"](http://manual.gromacs.org/archive/5.0.3/online/xtc.html). For any additional information take a crash course in C/C++ and start reading the original code, because the documentation is basically non-existent. And even with that I wish you best of luck (you WILL need it).
+
+#### Structure
+```Fortran
+type xtc_frame
+  integer           :: natoms
+  integer           :: step
+  real              :: prec
+  real              :: time
+  real              :: box(3,3)
+  real, allocatable :: coor(:,:)
+end type xtc_frame
+```
+
+### `dcd_t` type definition
+For more information please read [DCD manual](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html).  
+**NOTE:** DCD file type has some additional data stored in `dcd_t` definition.
+
+#### Structure
+```Fortran
+type dcd_frame
+  integer           :: natoms = 0
+  real, allocatable :: coor(:,:)
+  real              :: box(3,3) = 0.000
+end type dcd_frame
+
+type dct_t
+  integer                       :: start_time, every_time, end_time
+  real                          :: timestep
+  character(80), allocatable    :: remarks(:)
   integer                       :: nframes
-  type(pdb_frame), allocatable  :: frameArray(:)
-contains
-  procedure :: open
-  procedure :: close
-  procedure :: allocate
-  procedure :: set
-  procedure :: next
-  procedure :: read_next
-  procedure :: read
-  procedure :: box
-  procedure :: natoms
-  procedure :: write
-end type pdb_file
+  type(dcd_frame), allocatable  :: frame(:)
+end type dcd_t
 ```
 
-#### Interface
-```Fortran
-! Allocate npoints data; Use ONLYCOOR option to allocate only coor. data;
-! INITIALIZE options initializes all allocated values.
-subroutine allocate (npoints, onlycoor, initialize)
-  integer, intent(in) :: npoints
-  logical, optional   :: onlycoor, initialize
-end subroutine allocate
-
-! Deallocate data.
-subroutine deallocate ()
-end subroutine deallocate
-
-! Initialize all allocated variables.
-subroutine initialize ()
-end subroutine initialize
-```
-
-```Fortran
-! Open a file.
-subroutine open (file)
-  character*(*) :: file
-end subroutine open
-
-! Close a file.
-subroutine close ()
-end subroutine close
-
-! Allocate num. of frames.
-subroutine allocate (nframes)
-  integer :: nframes
-end subroutine allocate
-
-! Set first/last frame and frame stride
-subroutine set (first, last, stride)
-  integer, optional :: first, last, stride
-end subroutine set
-
-! Skip one or 'nframes' number of frames
-integer function next (nframes)
-  integer, optional :: nframes
-end function next
-
-! Read next frame, where returned integer is the actual number of frames that were read
-! Use ONLYCOOR option to read only coordinate data (to speedup read process and save memory).
-integer function read_next (nframes, onlycoor)
-  integer, optional :: nframes
-  logical, optional :: onlycoor
-end function read_next
-
-! Read entire file.
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-! Get simulation box size of current frame (without changing the position in file).
-function box () result (box)
-  real :: box(3)
-end function box
-
-! Get number of atoms in current frame (without changing the position in file).
-function natoms () result (natoms)
-  integer :: natoms
-end function natoms
-
-! Write all data to stdout, unit or file.
-subroutine write (unit, file)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine write
-```
-
-----------------------------------------
-
-### `gro_file` format
-
-For more information please read [GRO manual](link).
+### `cub_t` type definition
+For more information please read [CUBE manual](http://paulbourke.net/dataformats/cube/).
+**NOTE:** CUBE file is different from other file formats as data is not presented as coordinates but rather as voxel grid.
 
 #### Example
 ```
-         1         2         3         4         5         6         7         8
-12345678901234567890123456789012345678901234567890123456789012345678901234567890
-COMMENT
- 12889
-    1LIG      C    1   1.484   1.124   1.000
-    2LIG      O    2   0.516   0.876   1.000
-...
-   2.00000   2.00000   2.00000
+CPMD CUBE FILE.
+OUTER LOOP: X, MIDDLE LOOP: Y, INNER LOOP: Z
+    3    0.000000    0.000000    0.000000
+   40    0.283459    0.000000    0.000000
+   40    0.000000    0.283459    0.000000
+   40    0.000000    0.000000    0.283459
+    8    0.000000    5.570575    5.669178    5.593517
+    1    0.000000    5.562867    5.669178    7.428055
+    1    0.000000    7.340606    5.669178    5.111259
+ -0.25568E-04  0.59213E-05  0.81068E-05  0.10868E-04  0.11313E-04  0.35999E-05
+      :             :             :           :            :            :
+      :             :             :           :            :            :
+      :             :             :           :            :            :
+        In this case there will be 40 x 40 x 40 floating point values
+      :             :             :           :            :            :
+      :             :             :           :            :            :
+      :             :             :           :            :            :
 ```
 
 #### Structure
-```fortran
-type, private :: gro_frame
-  character*512             :: title
-  real                      :: time
-  integer                   :: natoms
-  real                      :: box(3)
-  integer, allocatable      :: res_num(:), atom_num(:)
-  character*5, allocatable  :: res_name(:), atom_name(:)
-  real, allocatable         :: coor(:,:), vel(:,:)
-contains
-  procedure :: allocate
-  procedure :: deallocate
-  procedure :: initialize
-
-end type gro_frame
-
-type gro_file
-  integer                       :: nframes, framesLeft
-  type(gro_frame), allocatable  :: frameArray(:)
-contains
-  procedure :: open
-  procedure :: close
-  procedure :: allocate
-  procedure :: set
-  procedure :: next
-  procedure :: read_next
-  procedure :: read
-  procedure :: write
-  procedure :: natoms
-  procedure :: box
-end type gro_file
-```
-
-#### Interface
 ```Fortran
-! Allocate npoints data; Use ONLYCOOR option to allocate only coor. data;
-! INITIALIZE options initializes all allocated values.
-subroutine allocate (npoints, onlycoor, initialize)
-  integer, intent(in) :: npoints
-  logical, optional   :: onlycoor, initialize
-end subroutine allocate
+type cub_atom
+  integer :: z ! Atomic number
+  real    :: pcharge ! Partial charge
+  real    :: coor(3) ! Coordinates
+end type cub_atom
 
-! Deallocate data.
-subroutine deallocate ()
-end subroutine deallocate
-
-! Initialize all allocated variables.
-subroutine initialize ()
-end subroutine initialize
+type cub_t
+  character(256)              :: comment(2)
+  integer                     :: natoms
+  type(cub_atom), allocatable :: atom(:)
+  real                        :: origin(3)
+  real                        :: voxel(3,3)
+  integer                     :: nx, ny, nz
+  real, allocatable           :: grid(:,:,:)
+end type cub_t
 ```
 
-```Fortran
-! Open a file.
-subroutine open (file)
-  character*(*) :: file
-end subroutine open
-
-! Close a file.
-subroutine close ()
-end subroutine close
-
-! Allocate num. of frames.
-subroutine allocate (nframes)
-  integer :: nframes
-end subroutine allocate
-
-! Set first/last frame and frame stride
-subroutine set (first, last, stride)
-  integer, optional :: first, last, stride
-end subroutine set
-
-! Skip one or 'nframes' number of frames
-integer function next (nframes)
-  integer, optional :: nframes
-end function next
-
-! Read next frame, where returned integer contains the actual number of frames read;
-! Use ONLYCOOR option to read only coor. data (to speedup read process and save memory)
-integer function read_next (nframes, onlycoor)
-  integer, optional  :: nframes
-  logical, optional  :: onlycoor
-end function read_next
-
-! Read entire file.
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-! Get simulation box size of current frame (without changing the position in file).
-function box () result (box)
-  real :: box(3)
-end function box
-
-! Get number of atoms in current frame (without changing the position in file).
-function natoms () result (natoms)
-  integer :: natoms
-end function natoms
-
-! Write all data to stdout, unit or file.
-subroutine write (unit, file)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine write
-```
-
-----------------------------------------
-
-### `trj_file` format
-
-This is a direct port of [gmxfort](https://github.com/wesbarnett/libgmxfort) library (for more details please read the provided API).
-
-#### Structure
-```fortran
-type, private :: frame_trj
-  real(C_FLOAT), allocatable :: coor(:,:)
-  integer(C_INT)             :: STEP
-  real(C_FLOAT)              :: box(3,3), prec, time
-end type
-
-type trj_file
-  type(xdrfile), pointer        :: xd
-  type(frame_trj), allocatable  :: frameArray(:)
-  type(ndx_file)                :: ndx
-  integer                       :: NFRAMES
-  integer                       :: NUMATOMS, N
-  integer                       :: FRAMES_REMAINING
-  logical                       :: read_only_index_group
-contains
-  procedure :: open
-  procedure :: read
-  procedure :: read_next
-  procedure :: set
-  procedure :: next
-  procedure :: close
-  procedure :: x
-  procedure :: natoms
-  procedure :: box
-  procedure :: time
-  procedure :: step
-end type
-```
-
-#### Interface
-
-```Fortran
-! Open file.
-subroutine open (file, ndxfile)
-  character*(*)            :: file
-  character*(*), optional  :: ndxfile
-end subroutine open
-
-! Read entire trajectory.
-subroutine read (file, ndxfile, ndxgroup)
-  character*(*)            :: file
-  character*(*), optional  :: ndxfile, ndxgroup
-end subroutine read
-
-! Set first/last frame and frame stride
-subroutine set (first, last, stride)
-  integer, optional :: first, last, stride
-end subroutine set
-
-! Skip one or 'nframes' number of frames
-integer function next (nframes)
-  integer, optional :: nframes
-end function next
-
-! Read next frame, where returned integer contains the actual number of frames read;
-! Read more than one frame by passing nframes.
-integer function read_next (nframes)
-  integer, optional  :: nframes
-end function read_next
-
-! Close the file.
-subroutine close ()
-end subroutine close
-
-! Get position of any atom in any frame (provided frames were already read).
-function x (frame, atom, group)
-  real                    :: x(3)
-  integer                 :: frame, atom
-  character*(*), optional :: group
-end function x
-
-! Return num. of atoms in current frame.
-integer function natoms (group)
-  character*(*), optional :: group
-end function natoms
-
-! Return box size of current frame.
-! NOTE: The result is a diagonal 3x3 matrix.
-function box (frame)
-  real    :: box(3,3)
-  integer :: frame
-end function box
-
-! Get the simulation time of any frame.
-real function time (frame)
-  integer :: frame
-end function time
-
-! Get the time step size of any frame.
-integer function step (frame)
-  integer :: frame
-end function step
-```
-
-----------------------------------------------------
-
-### `xyz_file` format
-
-For more informations please read [XYZ manual](https://en.wikipedia.org/wiki/XYZ_file_format).
-
-#### Example
-
-```
-         1         2         3         4         5         6         7         8
-12345678901234567890123456789012345678901234567890123456789012345678901234567890
-128
-Comment line
-...
-C      14.84292  11.24345  10.00000
-O       5.15708   8.75655  10.00000
-...
-```
-
-#### Structure
-
-```Fortran
-type, provate :: xyz_frame
-  integer                   :: natoms
-  character*512             :: comment
-  character*5, allocatable  :: name(:)
-  real, allocatable         :: coor(:,:)
-  real                      :: box(3)
-contains
-  procedure :: allocate
-  procedure :: deallocate
-  procedure :: initialize
-end type
-
-type xyz_file
-  integer, private              :: unit
-  integer                       :: nframes, framesLeft
-  type(xyz_frame), allocatable  :: frameArray(:)
-contains
-  procedure :: open
-  procedure :: close
-  procedure :: allocate
-  procedure :: set
-  procedure :: next
-  procedure :: read_next
-  procedure :: read
-  procedure :: box
-  procedure :: natoms
-  procedure :: write
-end type
-```
-
-#### Interface
-
-```Fortran
-! Allocate npoints data; Use INITIALIZE option to  initializes all allocated values.
-subroutine allocate (npoints, initialize)
-  integer, intent(in) :: npoints
-  logical, optional   :: initialize
-end subroutine allocate
-
-! Deallocate data.
-subroutine deallocate ()
-end subroutine deallocate
-
-! Initialize all allocated variables.
-subroutine initialize ()
-end subroutine initialize
-```
-
-```Fortran
-! Open a file.
-subroutine open (file)
-  character*(*) :: file
-end subroutine open
-
-! Close a file.
-subroutine close ()
-end subroutine close
-
-! Allocate num. of frames.
-subroutine allocate (nframes)
-  integer :: nframes
-end subroutine allocate
-
-! Set first/last frame and frame stride
-subroutine set (first, last, stride)
-  integer, optional :: first, last, stride
-end subroutine set
-
-! Skip one or 'nframes' number of frames
-integer function next (nframes)
-  integer, optional :: nframes
-end function next
-
-! Read next frame, where returned integer contains the actual number of frames read.
-integer function read_next (nframes)
-  integer, optional  :: nframes
-  class(*), optional :: onlycoor
-end function read_next
-
-! Read entire file.
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-! Get simulation box size of current frame (without changing the position in file).
-! NOTE: .xyz format does note necessarily contain simulation box data.
-function box () result (box)
-  real :: box(3)
-end function box
-
-! Get number of atoms in current frame (without changing the position in file).
-function natoms () result (natoms)
-  integer :: natoms
-end function natoms
-
-! Write all data to stdout, unit or file.
-subroutine write (unit, file)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine write
-```
-
-----------------------------------------------------------------
-
-### `frame_file` object format
-
+### `file_t` class definition
 > "One object to rule them all, one object to find them,  
 > one object to bring them all, and in the darkness bind them."
 
-The `frame_file` object (not to be confused with other frame objects) combines all other molecular coordinate files (.gro, .pdb, .xyz, .trr and .xtc) into one simple to use API. It is a bit different, as contains only one frame at the time, in order to be more compatible with OpenMP programming (one thread = one frame).
+The `file_t` object combines all other molecular coordinate files (.gro, .pdb, .xyz, .dcd, and .xtc) into one simple to use API. **NOTE:** As this is not yet fully implemented it currently only supports one frame at the time in order to be more compatible with OpenMP programming ("one thread" = "one frame" paradigm). This means that `read()` method does not work, only `read_next()` and `skip_next()`.
 
 #### Structure
-
 ```Fortran
-type frame_data
-  integer            :: natoms
-  real               :: box(3)
-  real, allocatable  :: coor(:,:)
-contains
-  procedure :: open
-  procedure :: set
-  procedure :: read_next
-  procedure :: close
-  procedure :: nframes
-  procedure :: get_natoms
-  procedure :: get_box
-end type frame_data
+type file_t
+  integer           :: natoms
+  real              :: box(3,3)
+  real, allocatable :: coor(:,:)
+end type file_t
 ```
 
-#### Interface
-
-```fortran
-! Open file. Supported types: .gro, .pdb, .xyz, .trr or .xtc
-subroutine open (file)
-  character*(*) :: file
-end subroutine open
-
-! Set first/last frame and frame stride
-subroutine set (first, last, stride)
-  integer, optional :: first, last, stride
-end subroutine set
-
-! Read next frame, where returned integer contains the actual number of frames read.
-integer function read_next ()
-function read_next
-
-! Close file.
-subroutine close ()
-end subroutine close
-
-function nframes ()
-  integer :: nframes
-end function nframes
-
-function get_natoms () result (natoms)
-  integer :: natoms
-end function get_natoms
-
-function get_box () result (box)
-  integer :: box(3)
-end function get_box
-```
-
---------------------------------------------------
+---------------------
 
 ## Supporting file types
 
-XsLib contains two "supporting file" types:
+xslib contains two "supporting file" types:
 - [.ndx](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) - GROMACS index file containing user defined sets of atoms.
-- .tpl - Our own proprietary file type, containing condensed configuration information (created by [A. Lajovic](https://github.com/alajovic)).
+- [.tpl](#More-INFO) - Our own proprietary file type, containing condensed configuration information (created by [A. Lajovic](https://github.com/alajovic)).
 
-### `ndx_file` format
+### Supporting file types: Interface
 
-[GROMACS index](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) (.ndx) file containing user defined sets of atoms.
+To read any supporting file simply use:
+```Fortran
+error = obj%read("path/to/file.ext")
+```
+If you want to create completely new supporting file you first need to allocate the memory. In case of .ndx:
+```Fortran
+error = obj%allocate([natoms,natoms,...])
+! of (only works for .ndx)
+error = ndx%allocate(ngroups)
+do i = 1, ngroups/ntypes
+  error = obj%group(i)%allocate(natoms)
+end do
+```
+The stored data can be written to STDOUT, FILE, or file UNIT by:
+```Fortran
+! Default write is to STDOUT
+error = obj%write()
+! or write to file
+error = obj%write(FILE="path/to/file.obj")
+! or write to file unit (must be opened by user)
+error = obj%write(UNIT=unit)
+```
+
+### Supporting file types: Structure
+
+### `ndx_t` type definition
+For more information please read [NDX manual](http://manual.gromacs.org/archive/5.0.3/online/ndx.html).
+
+#### Example
+```
+[ System ]
+1    2    3    4    5    6    7    8    9   10   11   12   13   14   15
+16   17   18   19   20   21   22   23   24   25
+...
+```
 
 #### Structure
+```Fortran
+type ndx_group
+  character(:), allocatable :: title
+  integer                   :: natoms
+  integer, allocatable      :: loc(:)
+end type ndx_group
 
-```fortran
-type, private :: ndxgroups
-  integer, allocatable          :: loc(:)
-  integer                       :: natoms
-  character*(:), allocatable    :: title
-end type ndxgroups
-
-type ndx_file
-  type (ndxgroups), allocatable :: group(:)
-  integer                       :: ngroups=0
-  logical                       :: group_warning=.true.
+type ndx_t
+  integer                       :: ngroups
+  type(ndx_group), allocatable  :: group(:)
 contains
+  generic   :: assignment(=)
+  generic   :: allocate
   procedure :: read
   procedure :: write
-  procedure :: tpl2ndx
   procedure :: display
-  procedure :: get
-end type ndx_file
+end type ndx_t
+```
+To help with UI use display() utility to display all present index groups:
+```Fortran
+error = ndx%display()
+! Present static index groups:
+!  Group  X "System" (xxxxx atoms)
+!  ...
 ```
 
-#### Interface
-
-```fortran
-! Read file.
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-! Write file to stdout, file or unit.
-subroutine write (file, unit)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine read
-
-! Transform .tpl file format to .ndx file format for all groups that have non-zero index.
-! Use SYSTEM option to add "System group" containing indices of all particles.  
-subroutine tpl2ndx_ndx (tpl, system)
-  implicit none
-  type(tpl_file)     :: tpl
-  class(*), optional :: system
-end subroutine tpl2ndx
-
-! Displays present static index groups.
-! >Present static index groups:
-! > Group  X "System" (xxxxx atoms)
-! > ...
-subroutine display ()
-end subroutine display
-
-! Gets the number of atoms in a group. If an atom is specified, integer returns the overall index for that atom.
-integer function get (group, i)
-  character*(*)     :: group_name
-  integer, optional :: i
-end function get
-```
-
------------------------------------------------------------
-
-### `tpl_file` format
-
-Template file (.tpl) contains condensed information about all particles in system.
+### `tpl_file` type definition
+For more information please read format definition below.
 
 #### Example
 ```
@@ -757,186 +490,125 @@ O  -0.700  1
 CH2 0.265  0
 CH3 0.000  0
 
-molecule 4 100  # TIP4P water
-O  −1.1128  2
-H   0.5564  2
-H   0.5564  2
+molecule 3 100  #Water
+O
+H
+H
 ```
 
 #### Structure
-
-```fortran
-type, private :: tpl_frame
-  integer              :: natoms, nmol
-  integer, pointer     :: id(:)
-  character*3, pointer :: name(:)
-  real, pointer        :: pcharge(:)
+```Fortran
+type tpl_frame
+  integer               :: natoms, nmol
+  integer, pointer      :: id(:)
+  character(3), pointer :: name(:)
+  real, pointer         :: pcharge(:)
 end type tpl_frame
 
 type tpl_file
   real                         :: box(3)
-  integer                      :: ntypes=0
+  integer                      :: ntypes
   type(tpl_frame), allocatable :: type(:)
   integer                      :: natoms
+  ! Use for sequential data access
   integer, pointer             :: id(:)
-  character*3, pointer         :: name(:)
+  character(3), pointer        :: name(:)
   real, pointer                :: pcharge(:)
-contains
-  procedure :: read
-  procedure :: write
 end type tpl_file
 ```
 
-#### Interface
-
-```Fortran
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-subroutine write (file, unit)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine write
-```
-
 #### More INFO
-
 The .tpl file consists of three directives:  
 - `side` (optional) directive contains information about the simulation box size. If cubic box is used only one box-side needs to be present. Units of box side must be the same as in accompanying molecular file. **NOTE:** Setting side any value (other than 0.) usually overrides the configuration box side (depends on implementation).  
-- `moltype` (optional, legacy) specifies how many *molecule* directives are present in the file.  
+- `moltype` (optional) specifies how many *molecule* directives are present in the file.  
 - `molecule` directive must be specified along with **number of atoms** (in molecule) and **number of molecules**. This directive is followed by description of each particle: *name*, *pcharge*, and *id*.
   - `Name` (3-characters) parameter is required and provides general description of the particle,
   - `pcharge` (optional, float) descriptor contains partial-charge of particle, and
   - `id` (optional, integer) descriptor denotes particle ID.  
 
-<!-- Internally supported particle types are: *H, O, C, N, S, CH, CH2, and CH3* -->
-
 Everything after `#` character is threated as comment. Empty lines and excess spaces are ignored.  
 
 Once file is read you can access the data in two ways:  
-- individually by each molecule type  
-- or sequentially all at the same time as "list".  
+- directly for each molecule type,  
+- or sequentially for all molecule types at the same time.  
 
-Example (Both cases yield same result):
+Example (both cases yield same result):
 ```Fortran
-! Access all particles sequentially as list
+! Sequential access
 do i = 1, tpl%natoms
   write (*,*)  tpl%name(i), tpl%pcharge(i), tpl%id(i)
-
 end do
 
-! or access particle of each molecule type
+! or direct access
 do n = 1, tpl%ntypes
   do i = 1, tpl%type(n)%natoms
     write (*,*) tpl%type(n)%name(i), tpl%type(n)%pcharge(i), tpl%type(n)%id(i)
-
   end do
 end do
-! Both cases yield same result  
 ```
-**NOTE:** Data is stored using pointers; This means by changing the data for "each type" also changes the data in "list".
+**NOTE:** Data is stored using pointers; This means by changing the data in "direct access" also changes the data in "sequential access".
 
----------------------------------------------------------
+---------------------
 
 ## Data file types
 
-### `pdh_file` format
-
+### `pdh_t` type definition
 [PDH file](http://goldenberg.biology.utah.edu/downloads/usTooDocs_Sept2012.pdf) format was created by O. Glatter *et al.* for storing Small-Angle X-Ray Scattering (SAXS) data. It is generally accepted as standard format by the scattering community.
 
 #### Example
-
 ```
-1         2         3         4         5         6         7         8
-12345678901234567890123456789012345678901234567890123456789012345678901234567890
 COMMENT LINE                                                 
 KEY1 KEY2 ....                                                                               
       100         0         0         0         0         0         0         0
   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00
   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00   0.000000E+00
-...
   1.000000E+00   1.000000E+00  -1.000000E+00
-...
+  2.000000E+00   2.000000E+00  -1.000000E+00
+  ...
+```
+
+#### Interface
+Similarly with other data types one can read file with:
+```Fortran
+error = pdh%read("path/to/file.pdh")
+```
+Copy data with:
+```Fortran
+type(pdh_t) :: pdh, cpy
+cpy = pdh
+```
+Allocate memory with:
+```Fortran
+error = pdh%allocate( npoints )
+```
+Where `npoints` is number of data points, or write with:
+```Fortran
+! Default is Write to STDOUT
+error = pdh%write()
+! or write to FILE
+error = pdh%write(FILE="path/to/file.pdh")
+! or write to file UNIT
+error = pdh%write(UNIT=unit)
 ```
 
 #### Structure
-
-```fortran
-type pdh_file
-  character*80      :: text
-  character*4       :: key_words(16)
+```Fortran
+type pdh_t
+  character(80)     :: text
+  character(4)      :: key_words(16)
   integer           :: int_const(8)
   integer           :: num_points
   real              :: real_const(10)
   real, allocatable :: x(:), y(:), y_error(:)
-contains
-  procedure :: allocate
-  procedure :: deallocate
-  procedure :: initialize
-  procedure :: read
-  procedure :: write
-  procedure :: smearing
-  procedure :: bining
-  procedure :: normalize
-end type pdh_file
+end type pdh_t
 ```
 
-#### Interface
-
-```fortran
-! Allocate data; Use INITIALIZE option to initializes all allocated values.
-subroutine allocate (npoints, initialize)
-  integer            :: npoints
-  class(*), optional :: initialize
-end subroutine allocate
-
-! Deallocate data.
-subroutine deallocate ()
-end subroutine deallocate
-
-! Initialize all allocated variables.
-subroutine initialize ()
-end subroutine initialize
-```
-
-```fortran
-! Read file.
-subroutine read (file)
-  character*(*) :: file
-end subroutine read
-
-! write file to stdout, unit, or file.
-subroutine write (file, unit)
-  character*(*), optional :: file
-  integer, optional       :: unit
-end subroutine write
-
-! Numerical width and length smearing operations.
-subroutine smearing (width, length)
-  type(pdh_file), optional :: width, length
-end subroutine smearing
-
-! Interpolate 'npoints' equidistant points between fist and last point.
-subroutine bining (npoints)
-  integer :: npoints
-end subroutine bining
-
-! Normalizes area under the curve to 1.0. Data must be binned.
-subroutine normalize ()
-end subroutine normalize
-```
-
-----------------------------------------------------------------
-
-### `csv_file` format
-
-XsLib also includes *crude* implementation of [Comma Separated Value](https://en.wikipedia.org/wiki/Comma-separated_values) (.csv) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data; only procedures. The data is obtained as returning argument to function call.
+### `csv_t` type definition
+xslib also includes *crude* implementation of [comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data; only procedures. The data is obtained as returning argument to function call.
 
 #### Example
-
 ```
-x,y,err
+this,is,header
 ...
 0.000,-1.000,0.000
 1.000,0.000,0.000
@@ -944,352 +616,526 @@ x,y,err
 ```
 
 #### Structure
-
-```fortran
-type csv_file
+*[not yet implemented]*
+<!-- ```Fortran
+type csv_t
 contains
-  procedure :: read
-  procedure :: write
-end type csv_file
-```
+  procedure, nopass :: read
+  procedure, nopass :: write
+end type csv_t
 
-#### Interface
-
-```fortran
 ! Read file. Header contains .csv header if present
-subroutine read (file, data, header)
-  character*(*)                         :: file
-  real, allocatable                     :: data(:,:)
-  character*(*), allocatable, optional  :: header(:)
+integer function read(file, data, header)
+  character(*)                         :: file
+  real, allocatable                    :: data(:,:)
+  character(*), allocatable, optional  :: header(:)
 end subroutine read
 
 ! Write data to stdout, file or unit. Custom data delimiter can be specified (default is ',').
-subroutine write (data, header, unit, file, delimiter)
+integer function write( data, header, unit, file, delimiter )
   real                    :: data(:,:)
   character*(*), optional :: file, delimiter, header(:)
   integer, optional       :: unit
-end subroutine write
+integer function write
+``` -->
 
-```
+---------------------
 
------------------------------------------------------------------------------
-
-## Functions and Subroutines
-
+## xslib
 <!-- xslib.F90 -->
 
-### `xslibinfo()`
-Returns basic information about xslib library: version, compile date and time. Same info is available via variables `xslib_version` and `xslib_date`, respectivly.  
-```fortran
-character*16, parameter :: xslib_version
-character*32, parameter :: xslib_date
-
-function xslibinfo (version, date)
-	logical, optional 				 :: version ! default=.true.
-	logical, optional 				 :: date ! default=.false.
-	character*(:), allocatable :: xslibinfo
-end function xslibinfo
+### `xslibInfo()`
+Returns xslib library version and compile date in format: "vX.Y.Z -- MMM DD YYYY HH:MM:SS".  
+```Fortran
+function xslibInfo()
+  character(:), allocatable :: xslibinfo
 ```
 
-<!-- common.f90 -->
+### `xslibInfo()`
+Writes more extensive xslib library information along with license info to STDOUT.  
+```Fortran
+subroutine xslibAbout()
+```
+
+## xslib_cstring
+<!-- xslib_cstring.f90 -->
 
 ### `str()`
-Transform SCALAR or ARRAY of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument. In case of ARRAY a custom `DELIMITER` can be defined.
-```fortran
-function str (value, fmt) result (string)
-  integer, real, complex, logical  :: value
-  character*(*), optional          :: fmt
-  character*(:), allocatable       :: string
-end function str
-
-function str (array, fmt, delimiter) result (string)
-  integer, real, complex, logical  :: array(:)
-  character*(*), optional          :: fmt, delimiter
-  character*(:), allocatable       :: string
-end function str
+Transform SCALAR or ARRAY of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument. In case of ARRAY a custom `DELIMITER` can be defined (default is " ").
+```Fortran
+function str( value, fmt ) result( string )
+  class(*)                  :: value
+  character(*), optional    :: fmt
+  character(:), allocatable :: string
+```
+```Fortran
+function str( array, fmt, delim ) result( string )
+  class(*)                  :: value
+  character(*), optional    :: fmt, delim
+  character(:), allocatable :: string
 ```
 
-### `error()` and `warning()`
-Writes error/warning message to STDERR. Calling `error()` also terminates the program and returns exit status 1 to shell.  
-*i.e. <name\> ERROR/WARNING - <message\>*  
-```fortran
-subroutine error (message, name)
-  character*(*)            :: message
-  character*(*), optional  :: name
-end subroutine error
-
-subroutine warning (message, name)
-  character*(*)            :: message
-  character*(*), optional  :: name
-end subroutine error
+### `toLower()` and `toUpper()`
+Returns string to all lower or all upper case, respectively.  
+Example: "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."
+```Fortran
+character(:) function toLower( string )
+  allocatable               :: toLower
+  character(*), intent(in)  :: string
+```
+```Fortran
+character(:) function toUpper( string )
+  allocatable               :: toUpper
+  character(*), intent(in)  :: string
 ```
 
-### `newUnit()`
-Finds next free file unit and returns it as `newUnit`. Optionally the output can be stored as `unit`. Use with `open (UNIT=...)`   
-**DEPRECATED:** Use `open (NEWUNIT=unit, ...)`
-```fortran
-integer function newUnit (unit)
-  integer, optional, intent(out)  :: unit
-end function newUnit
+### `stripComment()`
+Removes all characters trailing comment sign `cmt`.  
+Example: "text #comment" &rarr; "text "
+```Fortran
+character(:) function stripComment( string, cmt )
+  allocatable               :: stripComment
+  character(*), intent(in)  :: string, cmt
 ```
 
-<!-- ### utilities.f90 ### -->
+### `isWord()`
+Check if string contains any ASCII letters.
+```Fortran
+logical function isWord( string )
+  character(*), intent(in)  :: string
+```
+
+### `replaceText()`
+Replaces `text` with `rep` within `string`.  
+Example: "This is bad." &rarr; "This is good."
+```Fortran
+character(:) function replaceText( string, old, new )
+  allocatable               :: replaceText
+  character(*), intent(in)  :: string, old, new
+```
+
+### `getColor()` and `setColor()`
+Add some colours in your life and set terminal colour.  
+ATTR=attribute, FG=foreground, BG=background  
+**Attributes:** bold, dim, underline, blink, reverse and hidden  
+**Colors:** black, red, yellow, blue, magenta, cyan, light grey, dark grey, light red, light yellow, light blue, light magenta, light cyan and white.  
+Example: "This is red" &rarr; <font color="red">"This is red."</font>
+```Fortran
+! NOTE: Max len. of output string is 11; "e[x;xx;xxxm"
+character(:) function getColor( attr, fg, bg )
+  allocatable                         :: getColor
+  character(*), intent(in), optional  :: attr, fg, bg
+```
+```Fortran
+character(:) function setColor( string, attr, fg, bg )
+  allocatable                         :: setColor
+  character(*), intent(in)            :: string
+  character(*), intent(in), optional  :: attr, fg, bg
+```
+
+### `strtok`
+Tokenize string i.e. breaks string into a series of tokens using the delimiter. Works in same way as ANSI C strtok, except instead of NULL feed char(0)
+```Fortran
+character(:) function strtok( string, delim )
+  allocatable               :: strtok
+  character(*), intent(in)  :: string
+  character(*), intent(in)  :: delim
+```
+
+### `cnttok`
+Count number of tokens in string.
+```Fortran
+integer function cnttok( string, delim )
+  implicit none
+  character(*), intent(in)  :: string
+  character(*), intent(in)  :: delim
+```
+
+### `baseName()`
+Returns base name of file.  
+Example: "path/to/file.txt" &rarr; "file"
+```Fortran
+character(:) function baseName( name )
+  allocatable               :: basename
+  character(*), intent(in)  :: file
+```
+
+### `pathName()`
+Returns path name of file.  
+Example: "path/to/file.txt" &rarr; "path/to/"
+```Fortran
+character(:) function pathName( name )
+  allocatable               :: pathname
+  character(*), intent(in)  :: file
+```
+
+### `extension()`
+Returns file extension.    
+Example: "path/to/file.txt" &rarr; "txt"
+```Fortran
+character(:) function extension( file )
+  allocatable               :: extension
+  character(*), intent(in)  :: file
+```
+
+### `backup()`
+Checks if "file.txt" exists and renames it to "#file.txt.n#" (n=1,2,..).
+```Fortran
+subroutine backup( file, status )
+  character(*), intent(in)       :: file
+  integer, intent(out), optional :: status
+```
+
+### `progressBar()`
+Writes gradual progress bar to STDOUT (on the same output line). The size of the progress bar is determined by (optional) `size` variable. Write to STDOUT is "forbidden" until progress reaches 1.0.  
+Example: " 50.0% |############------------|"
+```Fortran
+subroutine progressBar( x, size )
+  real, intent(in)              :: x
+  integer, intent(in), optional :: size
+```
+
+## xslib_vector
+<!-- xslib_vector.f90 -->
+**NOTE:** All functions are by default single precision `dp = REAL32`. If you are in need of double precision routines change `dp = REAL64` and recompile.
 
 ### `cross()`
 Returns vector product: v &times; u.
-```fortran
-function cross (v, u)
-  real, dimmension(3)  :: v, u, cross
-end function cross
+```Fortran
+real(dp) function cross( v, u )
+  dimension             :: cross(3)
+  real(dp), intent(in)  :: v(3), u(3)
+```
+
+### `rotate()`
+[Rotates](https://en.wikipedia.org/wiki/Rotation_matrix) vector `x` around `vector` by `angle` in [rad].   
+```Fortran
+real(dp) function rotate( x, vector, angle )
+  dimension            :: rotate(3)
+  real(dp), intent(in) :: x(3), vector(3), angle
 ```
 
 ### `minImg()`
-Return reduced coordinates according to [minimal image convention](https://en.wikipedia.org/wiki/Periodic_boundary_conditions).  
+Returns reduced coordinates according to [minimal image convention](https://en.wikipedia.org/wiki/Periodic_boundary_conditions).  
 _I.e. a=a-box*floor(a/box+0.5) <.OR.> a=a-sign(box/2,r-box/2)-sign(box/2,r+box/2)_  
-```fortran
-function minImg (r, box)
-  real, dimension(3)  :: r, box, minImg
-end function minImg
+```Fortran
+real(dp) function minImg( r, box )
+  dimension             :: minImg(3)
+  real(dp), intent(in)  :: r(3), box(3)
 ```
 
 ### `getDistance()`
 Returns distance between two points.  
 **NOTE:** This is (awkward) alternative to `norm2(a-b)`; use the latter if possible.
-```fortran
-real function getDistance (a, b)
-  real, dimension(3) :: a, b
-end function getDistance
+```Fortran
+real(dp) function getDistance( a, b )
+  real(dp), intent(in) :: a(3), b(3)
 ```
 
 ### `getAngle()`
 Returns angle between three points (A-B-C).
-```fortran
-real function getAngle (a, b, c)
-  real, dimension(3) :: a, b, c
-end function getAngle
-
-real function getAngle2 (a, b, c)
-  real, dimension(3) :: a, b, c
-end function getAngle2
+```Fortran
+real(dp) function getAngle( a, b, c )
+  real(dp), intent(in) :: a(3), b(3), c(3)
 ```
 
 ### `getDihedral()`
 Return [dihedral angle (theta)](https://en.wikipedia.org/wiki/Dihedral_angle) between four points (A-B-|-C-D).
-```fortran
-real function getDihedral (a, b, c, d)
-  real, dimension(3) :: a, b, c, d
-end function getDihedral
-```
-
-### `rotate()`
-[Rotates vector](https://en.wikipedia.org/wiki/Rotation_matrix) around AXIS or specified VECTOR.   
-```fortran
-function rotate (in, axis, angle) result (out)
-  real, dimension(3) :: in, out
-  character*1        :: axis ! "X", "Y", or "Z"
-  real               :: angle
-end function rotate
-
-function rotate (in, vector, angle) result (out)
-  real, dimension(3) :: in, out, vector
-  real               :: angle
-end function rotate
+```Fortran
+real(dp) function getDihedral( a, b, c, d )
+  real(dp), intent(in) :: a(3), b(3), c(3), d(3)
 ```
 
 ### `deg2rad()` and  `rad2deg()`
 Translates angle from degrees to radians and back.
-```fortran
-real function deg2rad (deg)
-  real :: deg
-end function deg2rad
-
+```Fortran
+real(dp) function deg2rad (deg)
+  real(dp), intent(in) :: deg
+```
+```Fortran
 real function rad2deg (rad)
-  real :: rad
-end function rad2deg
+  real(dp), intent(in) :: rad
 ```
 
 ### `crt2sph()`, `sph2cart()`, `crt2cyl()`, and `cyl2crt()`
 Coordinate system transformations, where:  
-*crt* = cartesian (x,y,z),  
-*sph* = spherical (r,theta,phi)   
-*cyl* = cylindrical (r,theta,z)  
-```fortran
-function crt2sph (crt) result (sph)
-  real, dimension(3) :: crt, sph
-end function crt2sph
-
-function sph2crt (sph) result (crt)
-  real, dimension(3) :: sph, crt
-end function sph2crt
-
-function crt2cyl (crt) result (cyl)
-  real, dimension(3) :: crt, cyl
-end function crt2cyl
-
-function cyl2crt (cyl) result (crt)
-  real, dimension(3) :: cyl, crt
-end function cyl2crt
+*crt* = cartesian - x,y,z  
+*sph* = spherical - r,theta,phi  
+*cyl* = cylindrical - r,theta,z  
+```Fortran
+function(dp) crt2sph( crt ) result( sph )
+  real(dp), intent(in)  :: crt(3)
+  real(dp), intent(out) :: sph(3)
 ```
-<!-- ------------------------------------------------------------------------------ -->
+```Fortran
+function(dp) sph2crt( sph ) result( crt )
+  real(dp), intent(in)  :: sph(3)
+  real(dp), intent(out) :: crt(3)
+```
+```Fortran
+function(dp) crt2cyl( crt ) result( cyl )
+  real(dp), intent(in)  :: crt(3)
+  real(dp), intent(out) :: cyl(3)
+```
+```Fortran
+function(dp) cyl2crt( cyl ) result( crt )
+  real(dp), intent(in)  :: cyl(3)
+  real(dp), intent(out) :: crt(3)
+```
 
-### `get_wtime()`
-Returns arbitrary high precision time in seconds.  
-```fortran
-real*8 function get_wtime ()
-end function get_wtime
+### `variance()`
+Calculates [on-line variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance) for any real scalar or array, where `n` is data counter for variance aggregate. Works for both single and double precession (`dp`).  
+**NOTE:** True variance must be "corrected" after calculation as `var = merge( var/(n-1), -1.0, n>1 )`
+```Fortran
+subroutine variance( value, mean, var, n )
+  real(dp), intent(in)    :: value
+  real(dp), intent(inout) :: mean, var
+  integer, intent(in)     :: n          
+```
+```Fortran
+subroutine variance( value, mean, var, n )
+  real(dp), intent(in)    :: value(:)
+  real(dp), intent(inout) :: mean(:), var(:)
+  integer, intent(in)     :: n        
+```
+
+### `lerp()`
+Linear interpolation. Works for both single and double precision.
+```Fortran
+real(dp) function lerp( v0, v1, x )
+  real(dp), intent(in) :: v0, v1, x
+```
+
+### `findKClosest()`
+Return `k` closest elements to `val` in `array`. Works for both single and double precision.
+```Fortran
+function findKClosest( val, array, k )
+  integer(dp), intent(in)  :: val, array(:)
+  integer, intent(in)      :: k
+  integer(dp), intent(out) :: findKClosest(k)
+```
+```Fortran
+function findKClosest( val, array, k )
+  real(dp), intent(in)  :: val, array(:)
+  integer, intent(in)   :: k
+  real(dp), intent(out) :: findKClosest(k)
+```
+
+### `findKClosest()`
+Return `k` closest elements to `val` in `array(:)`. Works for both single and double precision.
+```Fortran
+function findKClosest( val, array, k )
+  integer(dp), intent(in)  :: val, array(:)
+  integer, intent(in)      :: k
+  integer(dp), intent(out) :: findKClosest(k)
+```
+```Fortran
+function findKClosest( val, array, k )
+  real(dp), intent(in)  :: val, array(:)
+  integer, intent(in)   :: k
+  real(dp), intent(out) :: findKClosest(k)
+```
+
+### `findCrossOver()`
+Returns the cross over point of `array` i.e. the point at which elements are smaller than or equal to `x` and after which are greater than `x`.  Works for both single and double precision.
+```Fortran
+integer(dp) function findCrossOver( array, low, high, x )
+ integer(dp), intent(in) :: array(:), x
+ integer, intent(in)     :: low, high
+```
+```Fortran
+integer(dp) function findCrossOver( array, low, high, x )
+ real(dp), intent(in) :: array(:), x
+ integer, intent(in)  :: low, high
+```
+
+### `swap()`
+Swap values of A and B. Works for both single and double precision.
+```Fortran
+subroutine swap( a, b )
+  class(*), intent(inout) :: a, b
+```
+
+## xslib_time
+
+### `wtime()`
+Return high precision time in sec.
+```Fortran
+real(REAL64) function wtime()
 ```
 
 ### `write_time()`
-Transfors time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` or `get_wtime()`.  
-```fortran
-function write_time (time) result (string)
-  real*8       :: time ! seconds
-  character*16 :: string
-end function write_time
+Transforms time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` or `wtime()`.  
+```Fortran
+character(16) function write_wtime( time )
+  real(REAL64), intent(in) :: time
 ```
 
 ### `msleep()`
 Suspend execution for millisecond intervals.
-```fortran
-subroutine msleep (time)
-  integer :: time ! millisecond
-end subroutine msleep
+```Fortran
+integer function msleep( time )
+  integer, intent(in) :: time
 ```
 
-<!-- ------------------------------------------------------------------------- -->
-
-### `variance()`
-Calculates [on-line variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance) for any real scalar or array, where `n` is data counter for variance aggregate.  
-**NOTE:** True variance must be "corrected" after calculation as `var = merge( var/(n-1), -1.0, n>1 )`
-```fortran
-subroutine variance (value, mean, var, n)
-  real or real*8 :: value(:), mean(:), var(:)
-  integer        :: n
-end subroutine variance
+## xslib_list
+This is my implementation of unlimited polymorphic double-linked list (DLL).
+```Fortran
+type list_t
+contains
+  ! List add/ remove elements
+  procedure :: add
+  procedure :: insert
+  procedure :: pop
+  procedure :: remove
+  procedure :: clear
+  ! Check list
+  procedure :: isEmpty
+  ! Basic I/O
+  generic   :: write(formatted)
+  generic   :: read(formatted)
+  ! Moving around the list
+  procedure :: next
+  procedure :: prev
+  procedure :: start
+  procedure :: end
+  ! Execute command on linked list
+  procedure :: execute
+  ! Print all elements to STDOUT
+  procedure :: printAll
+end type list_t
 ```
-<!-- ------------------------------------------------------------------------- -->
-
-### `pathName()`
-Returns path name of file.  
-*E.g. "./path/to/file.txt" &rarr; "./path/to/"*
-```fortran
-function pathName (name)
-  character*(*)               :: name
-  character*(:), allocatable  :: pathName
-end function pathName
+In order to use this list you must first define it Fortran declaration:
+```Fortran
+type(list_t) :: list
 ```
+This linked list uses unlimited polymorphic variables `class(*)`, therefore, you can store any *type* (not class) of item.
 
-### `baseName()`
-Returns base name of file.  
-*E.g. "./path/to/file.txt" &rarr; "file"*
-```fortran
-function baseName (name)
-  character*(*)               :: name
-  character*(:), allocatable  :: baseName
-end function baseName
+To add item to the list use add or insert functions. `add` functions adds item to the end of list, where as `insert` adds an item before current pointed by the list.
+```Fortran
+call list%add( 1 )
+! List: 1
+call list%insert( 0 )
+! List: 0, 1
 ```
-
-### `extension()`
-Returns file extension.    
-*E.g. "./path/to/file.txt" &rarr; "txt"*
-```fortran
-function extension (name)
-  character*(*)               :: name
-  character*(:), allocatable  :: extension
-end function extension
+To remove item from the list use either pop or remove functions. `pop` removes the last item on the list, where as `remove` removes current item on the list.
+```Fortran
+! [] - indicates where the list is currently pointing
+! list: 1, [2], 3, 4
+call list%pop()
+! list: 1, [2], 3
+call list%remove()
+! list: [1], 3; List now points to the item previous from deleted item.
 ```
-
-### `stripComment()`
-Removes all characters trailing comment sign `cmt`.  
-*E.g. "text #comment" &rarr; "text"*
-```fortran
-function stripComment (string, cmt)
-  character*(*)               :: string, cmt
-  character*(:), allocatable  :: stripComment
-end function stripComment
+To remove all items form the list use:
+```Fortran
+call list%clear()
+! list: *empty*
 ```
-
-### `backup()`
-Renames file if it already exits.    
-*E.g. "./path/to/file.txt" &rarr; "./path/to/#file.txt.n#" (n=1,2,..)*
-```fortran
-subroutine backup (file)
-  character*(*) :: file
-end subroutine backup
+To retrive item from the list use assignment(=):
+```Fortran
+call list%add(1)
+int = list
 ```
-
-### `nextFreeName()`
-Returns next free available variation of the file name.  
-*E.g. "out.txt" &rarr; "out.n.txt" (n=1,2,..)*
-```fortran
-function nextFreeName (name)
-  character*(*)              :: name
-  character(:), allocatable  :: nextFreeName
-function nextFreeName
+To move around the list use start, next, prev, end:
+```Fortran
+call list%start()
+! list: [1], 2, 3, 4
+call list%next()
+! list: 1, [2], 3, 4
+call list%prev()
+! list: [1], 2, 3, 4
+call list%end()
+! list: 1, 2, 3, [4]
 ```
-
-### `isEmpty()`
-Check if string is empty ("tab" or "space" do not count).   
-**DEPRECATED:** Use `verify(string, " ")==0`
-```fortran
-logical function isEmpty (string)
-  character*(*)  :: string
+To check if there are any items on the list use:
+```Fortran
+if ( list%isEmpty() ) then
+  ! ...
 ```
-
-### `isWord()`
-Check if string is a word *i.e.* contains any ASCII letters.
-```fortran
-logical function isWord (string)
-  character*(*)  :: string
-end function isWord
+This implementation has defined basic I/O, so you can read/write to/from list directly:
+```Fortran
+write (*,*) list
+! or
+read (unit,*) list
 ```
+Reading to the list adds new item to the end of the list. **NOTE:** When calling read the new item is always stored as `character(:)`.
 
-### `replaceText()`
-Replaces `text` with `rep` within `string`.  
-*E.g. "This is bad." &rarr; "This is good."*
-```fortran
-function replaceText (string, text, rep) result (out)
-  character(*)                :: string, text, rep
-  character*(:), allocatable  :: out
-end function replaceText
+Use execute functionality to preform operation on all items on the list:
+```Fortran
+! Used function must have this interface
+interface
+  subroutine addOne( value )
+    class(*), intent(inout) :: value
+  end subroutine addOne
+end interface
+
+call list%execute( addOne )
 ```
 
-### `tab2space()`
-Transforms *tab* to four *space* characters.
-```fortran
-function tab2space (string) result (out)
-  character(*)                :: string
-  character*(:), allocatable  :: out
-end function tab2space
+## xslib_error
+
+### `error()` and `error_()`
+Write error message to ERROUT and terminates the program.  
+Example: "<font color="red">ERROR:</font> This is error message."  
+```Fortran
+subroutine error( message )
+  character(*), intent(in) :: message
+```
+or extended error message.  
+Example: "main.f90:10: <font color="red">ERROR:</font> This is error message."  
+```Fortran
+#define error(x) error_( x, __FILE__, __LINE__ )
+subroutine error_( message, file, line )
+  character(*), intent(in)  :: message, file
+  integer, intent(in)       :: line
 ```
 
-### `toLower()` and `toUpper()`
-Transforms string to lower or all upper case, respectively.  
-*E.g. "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."*
-```fortran
-function toLower (string)
-  character*(*)           :: string
-  character(len(string))  :: toLower
-end function toLower
-
-function toUpper (string)
-  character*(*)           :: string
-  character(len(string))  :: toUpper
-end function toUpper
+### `warning()` and `warning_()`
+Write warning message to ERROUT.  
+Example: "<font color="Fuchsia">WARNING:</font> This is warning message."  
+```Fortran
+subroutine warning( message )
+  character(*), intent(in) :: message
+```
+or extended warning message.  
+Example: "main.f90:10: <font color="Fuchsia">WARNING:</font> This is warning message."  
+```Fortran
+#define warning(x) warning_( x, __FILE__, __LINE__ )
+subroutine warning_( message, file, line )
+  character(*), intent(in)  :: message, file
+  integer, intent(in)       :: line
 ```
 
-### `progressBar()`
-Writes gradual progress bar to STDOUT (on the same output line). The size of the progress bar is determined by (optional) `size` variable. Write to STDOUT is "forbidden" until progress reaches 1.0 - use (optional) `message` instead.  
-*E.g. 50.0% |############------------| [message]*
-```fortran
-subroutine progressBar (progress, size, message)
-  real                   :: progress
-  integer, optional      :: size
-  character(*), optional :: message
-end subroutine progressBar
+### `xslibErrMsg()`
+Returns error message for xslib error code.
+```Fortran
+character(:) function xslibErrMsg( errnum )
+  allocatable         :: xslibErrMsg
+  integer, intent(in) :: errnum
 ```
+**Legend:**    
+0 - OK  
+1 - Cannot read file header.  
+2 - Cannot read variable of kind: character.  
+4 - Cannot read variable of kind: double.  
+5 - Cannot read variable of kind: integer.  
+6 - Cannot read variable of kind: float.  
+7 - Cannot read variable of kind: unsigned integer.  
+8 - Cannot read coordinate data.  
+9 - Cannot close file.  
+10 - Cannot read magic number.  
+11 - Memory allocation failure.  
+12 - End of file.  
+13 - File not found.  
+14 - File unit/pointer not assigned.  
+15 - Wrong number of atoms.  
+16 - Unknown error.  
 
 ----------------------------------------------
 
 ## Notes
-Most of the routines in XsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*.
+For more examples of xslib usage check `xslib/examples/` directory.
+
+
+<!-- Most of the routines in XsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*. -->
