@@ -1,10 +1,8 @@
 # Changelog
 
 #### To-do (someday):
-- [ ] Finish documentation.  
 - [ ] Add .trr handling.
 - [ ] Add `obj%open( file, first, last, stride )`
-- [ ] `csv_t` still pending implementation.  
 
 #### v2.1.0 - 17.01.2020
 - Improved and restructured most routines.   

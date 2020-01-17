@@ -1,16 +1,16 @@
 ### Examples
 Tests also serve as examples for using xslib:  
-- **simple:**  
+- **test_simple:**  
   Test if library links correctly.
-- **vector:**  
+- **test_vector:**  
   Test vector library functionality.
-- **cstring:**  
+- **test_cstring:**  
   Test string library functionality. Also tests *xslib_time* functionality.
-- [ ] **list:**  
+- **test_list:**  
   Test linked-list functionality.
-- **error:**  
+- **test_error:**  
   Test error library functionality. NOTE: expected failure.  
-- **fileio:**  
+- **test_fileio:**  
   Test file I/O library functionality.  
-- **openmp:**  
+- **test_openmp:**  
   Test file I/O library functionality when using OpenMP library.  
