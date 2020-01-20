@@ -11,10 +11,10 @@ if ( OpenMP_FOUND )
   set ( TESTS ${TESTS} openmp )
 endif ()
 
-# Compile tests as par of 'check'.
+# Compile tests as part of 'check'.
 foreach ( TEST ${TESTS} )
   add_executable ( ${TEST} EXCLUDE_FROM_ALL test_${TEST}.f90 )
-  target_link_libraries ( ${TEST} ${CMAKE_PROJECT_NAME} )
+  target_link_libraries ( ${TEST} ${CMAKE_PROJECT_NAME}_shared )
   add_dependencies ( check ${TEST} )
 
 endforeach ()

@@ -173,7 +173,7 @@ integer function xtc_skip( xd, natoms, box )
   type(xdrfile), intent(in), pointer  :: xd
   integer, intent(in)                 :: natoms
   real, intent(out)                   :: box(3,3)
-  integer                             :: i, framebytes, intx(1), stat
+  integer                             :: framebytes
   enum, bind(C)
     enumerator :: SEEK_SET, SEEK_CUR, SEEK_END
   end enum
@@ -212,7 +212,7 @@ integer function xtc_skip( xd, natoms, box )
     xtc_skip = xdr_seek( xd, int(36,INT64), SEEK_CUR )
 
     ! Read framebytes
-    if ( xdrfile_read_int( intx, 1, xd ) == 0 ) then
+    if ( xdrfile_read_int( framebytes, 1, xd ) == 0 ) then
       xtc_skip = exdrINT
       return
     end if
@@ -220,7 +220,7 @@ integer function xtc_skip( xd, natoms, box )
     ! Round to next 32-bit boundry.
     ! C source:
     ! > int framebytes = ( framebytes + 3 ) & ~0x03
-    framebytes = AND((intx(1)+3),NOT(x'03'))
+    framebytes = int(AND((framebytes+3),NOT(x'03')))
     xtc_skip = xdr_seek( xd, int(framebytes,INT64), SEEK_CUR )
     if ( xtc_skip /= xslibOK ) return
 

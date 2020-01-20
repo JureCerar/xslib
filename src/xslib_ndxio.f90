@@ -167,8 +167,7 @@ integer function ndx_group_write( this, unit )
   implicit none
   class(ndx_group)    :: this
   integer, intent(in) :: unit
-  integer             :: i, cols, offset, stat
-  character(128)      :: buffer
+  integer             :: i, cols
   character(9)        :: action
   logical             :: opened
 
@@ -288,7 +287,7 @@ integer function ndx_read( this, file )
   implicit none
   class(ndx_t)             :: this
   character(*), intent(in) :: file
-  integer                  :: n, offset, unit, stat
+  integer                  :: n, unit, stat
   character(256)           :: buffer
 
   ! Open file

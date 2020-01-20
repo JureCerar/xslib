@@ -204,7 +204,7 @@ character function btoa( bool, fmt )
   implicit none
   logical, intent(in)                 :: bool
   character(*), intent(in), optional  :: fmt
-  btoa = merge( "T", "F", bool )
+  btoa = merge("T","F",bool)
   return
 end function btoa
 

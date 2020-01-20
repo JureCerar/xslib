@@ -162,7 +162,7 @@ integer function dcd_coor_read( unit, natoms, box, coor )
   integer, intent(in)       :: unit, natoms
   real, intent(out)         :: coor(3,natoms)
   real, intent(out)         :: box(3,3)
-  integer                   :: dummy(6), nbytes, stat
+  integer                   :: dummy(6), nbytes
   real(REAL64)              :: ibox(6)
   logical                   :: opened
   character(9)              :: action
@@ -193,9 +193,9 @@ integer function dcd_coor_read( unit, natoms, box, coor )
   ! end if
   ! Transform box
   box(:,:) = 0.000
-  box(1,1) = ibox(1)
-  box(2,2) = ibox(3)
-  box(3,3) = ibox(6)
+  box(1,1) = real(ibox(1))
+  box(2,2) = real(ibox(3))
+  box(3,3) = real(ibox(6))
 
   ! Coordinates
   ! 48, then no. of bytes for x coordinates, x coordinates (repeat for y and z coordinates)
@@ -255,9 +255,9 @@ integer function dcd_coor_skip( unit, natoms, box )
 
   ! Simulation box size: XX,gamma,YY,beta,alpha,ZZ
   read (unit) ibox(1:6)
-  box(1,1) = ibox(1)
-  box(2,2) = ibox(3)
-  box(3,3) = ibox(6)
+  box(1,1) = real(ibox(1))
+  box(2,2) = real(ibox(3))
+  box(3,3) = real(ibox(6))
 
   ! Each frame has natoms*3 (4 bytes each) = natoms*12
   ! plus 6 box dimensions (8 bytes each) = 48
@@ -283,10 +283,9 @@ integer function dcd_header_write( unit, remarks, start_time, every_time, end_ti
   real, intent(in)              :: timestep
   integer, intent(in)           :: start_time, every_time, end_time
   integer(INT64), intent(out)   :: nframes_pos
-  ! ------
-  character(80)             :: remarks1, remarks2
-  character(16)               :: date, time
-  integer               :: i, nframes, iend
+  character(16)                 :: date, time
+  character(80)                 :: remarks1, remarks2
+  integer                       :: i, nframes
 
   ! Remarks
   call date_and_time(date=date,time=time)
@@ -294,8 +293,9 @@ integer function dcd_header_write( unit, remarks, start_time, every_time, end_ti
   remarks2 = "REMARK Created on "//date//" "//time
 
   ! Terminate wit C_NULL_CHAR
-  remarks1(80:80) = C_NULL_CHAR
-  remarks2(80:80) = C_NULL_CHAR
+  ! do i = 1, size(remarks)
+  !   remarks(i)(80:80) = C_NULL_CHAR
+  ! end do
 
   ! Leave empty header; it will be updated each time frame is written.
   nframes = 0

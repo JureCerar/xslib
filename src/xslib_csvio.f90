@@ -160,19 +160,19 @@ integer function csv_write( data, header, file, unit, delim )
   real, intent(in)          :: data(:,:)
   character(*), optional    :: header(:), file, delim
   integer, optional         :: unit
-  integer                   :: i, j, out, stat
+  integer                   :: i, out, stat
   logical                   :: opened
   character(:), allocatable :: dl
   character(64)             :: action, fmtHeader, fmtData
 
   if ( present(file) ) then
-    open( UNIT=out, FILE=trim(file), ACTION="write", STATUS="unknown", IOSTAT=stat )
+    open( NEWUNIT=out, FILE=trim(file), ACTION="write", STATUS="unknown", IOSTAT=stat )
     if ( stat /= 0 ) then
       csv_write = xslibFILENOTFOUND
       return
     end if
 
-  else if (present(file)) then
+  else if ( present(unit) ) then
     inquire( UNIT=unit, OPENED=opened, ACTION=action )
     if ( .not. opened .or. index(action,"WRITE") == 0 ) then
       csv_write = xslibOPEN
@@ -252,6 +252,7 @@ logical function isWord( string )
   character(*), intent(in)  :: string
   integer                   :: i
 
+  isWord = .false.
   do i = 1, len_trim(string)
     isWord = ichar(string(i:i)) > 64 .and. ichar(string(i:i)) < 123
     if ( isWord ) return

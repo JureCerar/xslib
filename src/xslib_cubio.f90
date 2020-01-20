@@ -79,7 +79,7 @@ integer function cube_header_read( unit, comment, natoms, origin, nx, ny, nz, vo
   character(*), intent(out) :: comment(2)
   integer, intent(out)      :: natoms, nx, ny, nz
   real, intent(out)         :: origin(3), voxel(3,3)
-  integer                   :: i, stat
+  integer                   :: stat
   logical                   :: opened
   character(9)              :: action
 

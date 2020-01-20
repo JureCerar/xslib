@@ -4,6 +4,9 @@
 - [ ] Add .trr handling.
 - [ ] Add `obj%open( file, first, last, stride )`
 
+#### v2.1.1 - 21.01.2020
+- Minor bug fixes.
+
 #### v2.1.0 - 17.01.2020
 - Improved and restructured most routines.   
 - Better internal error handling.

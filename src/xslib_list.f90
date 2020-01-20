@@ -241,7 +241,6 @@ end subroutine list_remove
 subroutine list_clear( this )
   implicit none
   class(list_t)           :: this
-  class(link_t), pointer  :: link
 
   ! One way to do it.
   do while ( associated(this%first) )
@@ -380,7 +379,7 @@ subroutine list_read( this, unit, iotype, v_list, iostat, iomsg )
   implicit none
   class(list_t), intent(inout)  :: this
   integer, intent(in)           :: unit
-	character(*), intent(in)     :: iotype
+  character(*), intent(in)      :: iotype
   integer, intent(in)           :: v_list(:)
   integer, intent(out)          :: iostat      ! non zero on error, etc.
   character(*), intent(inout)   :: iomsg  ! define if iostat non zero.

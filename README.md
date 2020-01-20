@@ -58,6 +58,9 @@ include_directories ( ${xslib_INCLUDE_DIRS} )
 
 # Link xslib library
 target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_LIBRARIES} )
+
+# or link STATIC xslib libraries
+target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_STATIC_LIBRARIES} )
 ```
 **NOTE:** In case of non-standard installation path use the following CMake option (with the appropriate value instead of `xxx`):
 - `-Dxslib_DIR=xxx` equal to path to `xslib-config.cmake` (default is */usr/local/lib/cmake/xslib-X.X.X/* ).

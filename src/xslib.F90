@@ -60,7 +60,7 @@ end function xslibInfo
 subroutine xslibAbout()
   use, intrinsic :: iso_fortran_env
   implicit none
-  write (*,*) "Name:             ", "xslib - Extra small library"
+  write (*,*) "Name:             ", "xslib - Extra Small Library"
   write (*,*) "URL:              ", "@PROJECT_URL@"
   write (*,*) "Version:          ", "@PROJECT_VERSION@"
   write (*,*) "Build date:       ", __DATE__//" "//__TIME__

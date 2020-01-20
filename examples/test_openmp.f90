@@ -21,7 +21,7 @@ program main
   use xslib
   implicit none
   character(512)  :: arg
-  integer         :: i, nthreads = 1
+  integer         :: nthreads = 1
   integer         :: next, stat
 
   ! Set OpenMP environment
