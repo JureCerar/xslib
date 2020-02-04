@@ -31,6 +31,11 @@ module xslib_vector
     module procedure :: variance_float, variance_float8, variance_array, variance_array8
   end interface variance
 
+  ! Generic rotate interface
+  interface rotate
+    module procedure :: rotate, rotate_axis
+  end interface rotate
+
   ! Generic linear interpolation
   interface lerp
     module procedure :: lerp_float, lerp_float8
@@ -71,11 +76,11 @@ real(dp) function rotate( x, vector, angle )
   implicit none
   dimension            :: rotate(3)
   real(dp), intent(in) :: x(3), vector(3), angle
-  real(dp)             :: u(3)
+  real(dp)             :: k(3)
   ! SOURCE:
-  ! https://en.wikipedia.org/wiki/Rotation_matrix
-  u(:) = vector/norm2(vector)
-  rotate(:) = u*dot_product(u,x) + cos(angle)*cross(u,x)+sin(angle)*cross(u,x)
+  ! https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+  k(:) = vector/norm2(vector)
+  rotate(:) = x*cos(angle) + cross(k,x)*sin(angle) + k*dot_product(k,x)*(1.000_dp-cos(angle))
   return
 end function rotate
 
@@ -88,22 +93,23 @@ real(dp) function rotate_axis( x, axis, angle )
   character(*), intent(in)  :: axis
   real(dp), intent(in)      :: angle
   real(dp)                  :: R(3,3) ! rotation matrix
-  ! SOURCE:
-  ! https://en.wikipedia.org/wiki/Rotation_matrix
+  ! SOURCE: https://en.wikipedia.org/wiki/Rotation_matrix
+  ! NOTE: Rotation matrix is transposed compared to SOURCE,
+  ! * because fortran is row-major language.
   select case (trim(axis))
   case( "x", "X" )
     R(:,:) = reshape(    [1.0_dp,      0.0_dp,      0.0_dp, &
-    &                     0.0_dp,  cos(angle), -sin(angle), &
-    &                     0.0_dp,  sin(angle),  cos(angle)], shape(R) )
+    &                     0.0_dp,  cos(angle),  sin(angle), &
+    &                     0.0_dp, -sin(angle),  cos(angle)], shape(R) )
 
   case( "y", "Y" )
-    R(:,:) = reshape([cos(angle),      0.0_dp,  sin(angle),   &
+    R(:,:) = reshape([cos(angle),      0.0_dp, -sin(angle),   &
     &                     0.0_dp,      1.0_dp,      0.0_dp,   &
-    &                -sin(angle),      0.0_dp,  cos(angle)], shape(R) )
+    &                 sin(angle),      0.0_dp,  cos(angle)], shape(R) )
 
   case( "z", "Z" )
-    R(:,:) = reshape([cos(angle), -sin(angle),      0.0_dp,   &
-    &                 sin(angle),  cos(angle),      0.0_dp,   &
+    R(:,:) = reshape([cos(angle),  sin(angle),      0.0_dp,   &
+    &                -sin(angle),  cos(angle),      0.0_dp,   &
     &                     0.0_dp,      0.0_dp,      1.0_dp], shape(R) )
   case default
     ! Return NaN an exit
@@ -147,8 +153,8 @@ real(dp) function crt2sph( crt )
   ! theta = acos(z/r)
   ! phi = atan2(y/x)
   crt2sph(1) = norm2( crt(:) )
-  crt2sph(2) = merge( 0.0_dp, acos(crt(3)/crt2sph(1)), crt2sph(1) /= 0.0_dp )
-  crt2sph(3) = merge( 0.0_dp, atan2(crt(2),crt(1)), crt(1) /= 0.0_dp )
+  crt2sph(2) = merge( acos(crt(3)/crt2sph(1)), 0.0_dp, crt2sph(1) /= 0.0_dp )
+  crt2sph(3) = merge( atan2(crt(2),crt(1)), 0.0_dp, crt(1) /= 0.0_dp )
   return
 end function crt2sph
 
@@ -215,6 +221,14 @@ real(dp) function getDistance( a, b )
   getDistance = norm2(a-b)
   ! getDistance(:) = sqrt(dot_product(a(:),b(:)))
 end function getDistance
+
+! Calculates distance between two points, applying PBC.
+real(dp) function getDistance_pbc( a, b, box )
+  implicit none
+  real(dp), dimension(3), intent(in)  :: a, b, box
+  getDistance_pbc =  norm2( (a-b)-box*floor((a-b)/box+0.5) )
+  return
+end function getDistance_pbc
 
 ! Calculates angle between three points.
 real(dp) function getAngle( a, b, c )
@@ -312,7 +326,7 @@ end subroutine variance_array8
 real function lerp_float( v0, v1, x )
   implicit none
   real, intent(in) :: v0, v1, x
-  lerp_float = v0 + x * (v0-v1)
+  lerp_float = v0 + x * (v1-v0)
   return
 end function lerp_float
 
@@ -320,7 +334,7 @@ real(REAL64) function lerp_float8( v0, v1, x )
   use, intrinsic :: iso_fortran_env, only: REAL64
   implicit none
   real(REAL64), intent(in) :: v0, v1, x
-  lerp_float8 = v0 + x * (v0-v1)
+  lerp_float8 = v0 + x * (v1-v0)
   return
 end function lerp_float8
 

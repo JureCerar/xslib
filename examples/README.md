@@ -1,16 +1,18 @@
-### Examples
+## Examples
 Tests also serve as examples for using xslib:  
-- **test_simple:**  
-  Test if library links correctly.
+- **test_simple.f90:**  
+  Simple test to see if library links correctly. Outputs basic xslib info.
+- **test_error.f90:**  
+  Test error/Warning functions, error codes/messages, and assert. NOTE: expected failure.
+- **test_cstring.f90:**  
+  Test string manipulation and transformation functions. Also tests timing functions.
+- **test_xmalloc.f90:**  
+  Test memory allocation functions.
 - **test_vector:**  
-  Test vector library functionality.
-- **test_cstring:**  
-  Test string library functionality. Also tests *xslib_time* functionality.
+  Test vector operation functions.
 - **test_list:**  
-  Test linked-list functionality.
-- **test_error:**  
-  Test error library functionality. NOTE: expected failure.  
+  Test double linked-list functionality.
 - **test_fileio:**  
   Test file I/O library functionality.  
-- **test_openmp:**  
-  Test file I/O library functionality when using OpenMP library.  
+- **test_master:**  
+  Test file I/O library functionality with `file_t` & when using OpenMP library.  

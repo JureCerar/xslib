@@ -21,18 +21,20 @@ module xslib
   use xslib_vector
   use xslib_error
   use xslib_time
+  use xslib_list
+  use xslib_xmalloc
   use xslib_fileio
   use xslib_groio
   use xslib_pdbio
   use xslib_xyzio
   use xslib_xtcio
+  use xslib_trrio
   use xslib_dcdio
   use xslib_cubio
   use xslib_ndxio
   use xslib_tplio
   use xslib_pdhio
   use xslib_csvio
-  use xslib_list
   implicit none
 
   character(32), parameter :: xslib_version="v@PROJECT_VERSION@"
@@ -60,14 +62,14 @@ end function xslibInfo
 subroutine xslibAbout()
   use, intrinsic :: iso_fortran_env
   implicit none
-  write (*,*) "Name:             ", "xslib - Extra Small Library"
+  write (*,*) "Name:             ", "xslib - Extra-Small Library"
   write (*,*) "URL:              ", "@PROJECT_URL@"
   write (*,*) "Version:          ", "@PROJECT_VERSION@"
   write (*,*) "Build date:       ", __DATE__//" "//__TIME__
-  write (*,*) "Compiler:         ", compiler_version()
-  write (*,*) "Compiler flags:   ", _Fortran_FLAGS, &
+  write (*,*) "Fortran compiler: ", compiler_version()
+  write (*,*) "Fortran flags:    ", _Fortran_FLAGS, &
   & "@CMAKE_Fortran_FLAGS@"
-  ! write (*,*) "Compiler flags:   ", compiler_options() ! Retruns clusterfuck of flags
+  ! write (*,*) "Compiler flags:   ", compiler_options() ! Returns clusterfuck of flags
   write (*,*) ""
   write (*,*) "Copyright (C) 2019-2020 Jure Cerar"
   write (*,*) " This is free software; See the source for copying conditions. There is NO warranty; "

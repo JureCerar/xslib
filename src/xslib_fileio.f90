@@ -21,6 +21,7 @@ module xslib_fileio
   use xslib_pdbio, only: pdb_t
   use xslib_xyzio, only: xyz_t
   use xslib_xtcio, only: xtc_t
+  use xslib_trrio, only: trr_t
   use xslib_dcdio, only: dcd_t
   implicit none
   private
@@ -29,8 +30,14 @@ module xslib_fileio
   ! Import error definitions
   include "fileio.h"
 
-  ! IMPORTANT NOTE:
-  ! * Coordinate units are dependant on the file type.
+  ! NOTE: Coordinate and box units are dependant on the file type.
+  ! *Default unit for `file_t` is [nm].
+  ! .xyz = [A]
+  ! .gro = [nm]
+  ! .pdb = [A]
+  ! .xtc = [nm]
+  ! .trr = [nm]
+  ! .dcd = [A]
 
   class(*), allocatable :: obj
 
@@ -61,10 +68,6 @@ integer function file_open( this, file, first, last, stride )
   logical                       :: exist
   character(:), allocatable     :: keyword
 
-  ! Close file if any opened
-  file_open = this%close()
-  if ( file_open /= xslibOK ) return
-
   ! Check if file exists
   inquire( FILE=trim(file), EXIST=exist )
   if ( .not. exist ) then
@@ -86,8 +89,10 @@ integer function file_open( this, file, first, last, stride )
     allocate( pdb_t :: obj, STAT=stat )
   case( "xtc" )
     allocate( xtc_t :: obj, STAT=stat )
+  case( "trr" )
+    allocate( trr_t :: obj, STAT=stat )
   case( "dcd" )
-    allocate( xtc_t :: obj, STAT=stat )
+    allocate( dcd_t :: obj, STAT=stat )
   case default
     file_open = xslibNR
     return
@@ -119,6 +124,10 @@ integer function file_open( this, file, first, last, stride )
     file_open = obj%open(file)
     this%allframes = obj%getAllframes()
 
+  class is ( trr_t )
+    file_open = obj%open(file)
+    this%allframes = obj%getAllframes()
+
   class is ( dcd_t )
     file_open = obj%open(file)
     this%allframes = obj%getAllframes()
@@ -140,8 +149,6 @@ integer function file_open( this, file, first, last, stride )
   if ( this%last < 0 .or. this%last > this%allframes ) this%last = this%allframes
   if ( this%stride < 1 ) this%stride = 1
 
-  ! TODO: Use this%skip_next()
-
   select type( obj )
   class is ( xyz_t )
     file_open = obj%skip_next( this%first-1 )
@@ -150,6 +157,8 @@ integer function file_open( this, file, first, last, stride )
   class is ( pdb_t )
     file_open = obj%skip_next( this%first-1 )
   class is ( xtc_t )
+    file_open = obj%skip_next( this%first-1 )
+  class is ( trr_t )
     file_open = obj%skip_next( this%first-1 )
   class is ( dcd_t )
     file_open = obj%skip_next( this%first-1 )
@@ -166,8 +175,8 @@ end function file_open
 ! Read one frame from already opened file.
 integer function file_read_next( this )
   implicit none
-  class(file_t) :: this
-  integer       :: stat
+  class(file_t)   :: this
+  integer         :: stat
 
   ! Check if file is opened
   if ( .not. allocated(obj) ) then
@@ -190,7 +199,7 @@ integer function file_read_next( this )
 
     ! Copy frame properties
     this%natoms = obj%frame(1)%natoms
-    this%box(:,:) = obj%frame(1)%box
+    this%box(:,:) = obj%frame(1)%box/10. ! UNITS [nm]
 
     ! Check if array is allocated and same size.
     if ( .not. allocated(this%coor) .or. size(this%coor) /= size(obj%frame(1)%coor) ) then
@@ -204,6 +213,9 @@ integer function file_read_next( this )
       ! Just copy data.
       this%coor(:,:) = obj%frame(1)%coor
     end if
+
+    ! Correct to [nm]
+    this%coor(:,:) = this%coor(:,:)/10. ! UNITS [nm]
 
     ! Skip to next frame
     stat = obj%skip_next( this%stride-1 )
@@ -231,7 +243,7 @@ integer function file_read_next( this )
     file_read_next = obj%read_next()
     if( file_read_next /= xslibOK ) return
     this%natoms = obj%frame(1)%natoms
-    this%box(:,:) = obj%frame(1)%box
+    this%box(:,:) = obj%frame(1)%box/10. ! UNITS [nm]
     if ( .not. allocated(this%coor) .or. size(this%coor) /= size(obj%frame(1)%coor) ) then
       if ( allocated(this%coor) ) deallocate( this%coor, STAT=stat )
       allocate( this%coor(3,this%natoms), SOURCE=obj%frame(1)%coor, STAT=stat )
@@ -242,6 +254,7 @@ integer function file_read_next( this )
     else
       this%coor(:,:) = obj%frame(1)%coor
     end if
+    this%coor(:,:) = this%coor(:,:)/10. ! UNITS [nm]
     stat = obj%skip_next( this%stride-1 )
     this%current = this%current+this%stride
 
@@ -263,7 +276,7 @@ integer function file_read_next( this )
     stat = obj%skip_next( this%stride-1 )
     this%current = this%current+this%stride
 
-  class is ( dcd_t )
+  class is ( trr_t )
     file_read_next = obj%read_next()
     if( file_read_next /= xslibOK ) return
     this%natoms = obj%frame(1)%natoms
@@ -278,6 +291,25 @@ integer function file_read_next( this )
     else
       this%coor(:,:) = obj%frame(1)%coor
     end if
+    stat = obj%skip_next( this%stride-1 )
+    this%current = this%current+this%stride
+
+  class is ( dcd_t )
+    file_read_next = obj%read_next()
+    if( file_read_next /= xslibOK ) return
+    this%natoms = obj%frame(1)%natoms
+    this%box(:,:) = obj%frame(1)%box/10. ! UNITS [nm]
+    if ( .not. allocated(this%coor) .or. size(this%coor) /= size(obj%frame(1)%coor) ) then
+      if ( allocated(this%coor) ) deallocate( this%coor, STAT=stat )
+      allocate( this%coor(3,this%natoms), SOURCE=obj%frame(1)%coor, STAT=stat )
+      if ( stat /= 0 ) then
+        file_read_next = xslibNOMEM
+        return
+      end if
+    else
+      this%coor(:,:) = obj%frame(1)%coor
+    end if
+    this%coor(:,:) = this%coor(:,:)/10. ! UNITS [nm]
     stat = obj%skip_next( this%stride-1 )
     this%current = this%current+this%stride
 
@@ -329,6 +361,10 @@ integer function file_skip_next( this )
     file_skip_next = obj%skip_next( this%stride )
     this%current = this%current+this%stride
 
+  class is ( trr_t )
+    file_skip_next = obj%skip_next( this%stride )
+    this%current = this%current+this%stride
+
   class is ( dcd_t )
     file_skip_next = obj%skip_next( this%stride )
     this%current = this%current+this%stride
@@ -345,7 +381,6 @@ end function file_skip_next
 integer function file_close( this )
   implicit none
   class(file_t) :: this
-  integer       :: stat
 
   ! Act according to file type
   select type( obj )
@@ -357,19 +392,18 @@ integer function file_close( this )
     file_close = obj%close()
   class is ( xtc_t )
     file_close = obj%close()
+  class is ( trr_t )
+    file_close = obj%close()
+  class is ( dcd_t )
+    file_close = obj%close()
   class default
     ! Nothing to do
     file_close = xslibOK
   end select
 
   ! Deallocate data
-  if ( allocated(obj) ) then
-    deallocate( obj, STAT=stat )
-    if ( stat /= 0 ) then
-      file_close = xslibNOMEM
-      return
-    end if
-  end if
+  if ( allocated(obj) ) deallocate( obj, STAT=file_close )
+  if ( file_close /= 0 ) file_close = xslibNOMEM
 
   return
 end function file_close
@@ -388,6 +422,8 @@ integer function file_getAllframes( this )
   class is ( pdb_t )
     file_getAllframes = obj%getAllframes()
   class is ( xtc_t )
+    file_getAllframes = obj%getAllframes()
+  class is ( trr_t )
     file_getAllframes = obj%getAllframes()
   class is ( dcd_t )
     file_getAllframes = obj%getAllframes()
@@ -413,6 +449,8 @@ integer function file_getNatoms( this )
     file_getNatoms = obj%getNatoms()
   class is ( xtc_t )
     file_getNatoms = obj%getNatoms()
+  class is ( trr_t )
+    file_getNatoms = obj%getNatoms()
   class is ( dcd_t )
     file_getNatoms = obj%getNatoms()
   class default
@@ -432,15 +470,17 @@ real function file_getCubicBox( this )
   ! Act according to file type
   select type( obj )
   class is ( xyz_t )
-    file_getCubicBox(:) = obj%getBox()
+    file_getCubicBox(:) = obj%getBox()/10.
   class is ( gro_t )
     file_getCubicBox(:) = obj%getBox()
   class is ( pdb_t )
-    file_getCubicBox(:) = obj%getBox()
+    file_getCubicBox(:) = obj%getBox()/10.
   class is ( xtc_t )
     file_getCubicBox(:) = obj%getBox()
-  class is ( dcd_t )
+  class is ( trr_t )
     file_getCubicBox(:) = obj%getBox()
+  class is ( dcd_t )
+    file_getCubicBox(:) = obj%getBox()/10.
   class default
     file_getCubicBox(:) = 0.000
   end select

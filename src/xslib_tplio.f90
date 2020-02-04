@@ -29,7 +29,7 @@ module xslib_tplio
 
   ! NOTE: Comment symbol is hidden in processLine utility
 
-  ! NOTE: To understand how pointers are connected/structures see tpl_allocate().
+  ! NOTE: To understand how pointers are connected/structured see tpl_allocate().
 
   type, private :: tpl_mol
     integer               :: natoms = 0, nmol = 0

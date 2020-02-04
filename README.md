@@ -1,12 +1,34 @@
 # xslib - Extra-Small Library
 
-[![GitHub version](https://img.shields.io/github/release/JureCerar/xslib.svg?label=Version&color=blue)](https://github.com/JureCerar/xslib/releases)
+[![Version](https://img.shields.io/badge/Version-v2.2.0-blue.svg)](https://github.com/JureCerar/xslib/releases)
 ![Language](https://img.shields.io/badge/Language-Fortran,_C-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
-<!-- [![Generic badge](https://img.shields.io/badge/<SUBJECT>-<STATUS>-<COLOR>.svg)](https://shields.io/) -->
 
-## Synopsis
-The Extra-Small Library (xslib) is a modern Fortran library consisting of useful utilities and functions that "computer chemist" might need during his/her work. The library features functions to handle standard molecular coordinate files (**.gro**, **.pdb**, **.cub**, and **.xyz**), trajectory files (**.dcd** and **.xtc**), supporting files (**.ndx** and **.tpl**), and data files (**.csv** and **.pdh**). It uses an object-oriented philosophy for reading and storing data for analysis. The library is written with primary purpose of learning modern Fortran language, good coding practices and in hopes that it helps someone else in their pursuit of knowledge.
+<!--
+NOTE: Old dynamic badge for package version.
+[![GitHub version](https://img.shields.io/github/release/JureCerar/xslib.svg?label=Version&color=blue)](https://github.com/JureCerar/xslib/releases)
+Generic badge:
+[![Generic badge](https://img.shields.io/badge/<SUBJECT>-<STATUS>-<COLOR>.svg)](https://shields.io/)
+-->
+
+The Extra-Small Library (xslib) is a modern Fortran library consisting of useful utilities and functions that "computer chemist" might need during his/her work. It uses an object-oriented philosophy for reading and storing data for analysis. The library is written with primary purpose of learning modern Fortran language, good coding practices, and in hopes that it helps someone else in their pursuit of knowledge.
+
+The library features functions to handle different molecular file types:
+- [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *"name,x,y,z"* file that gets the job done in most cases,
+- [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS coordinate file,  
+- [.pdb](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html) - Protein Data Bank which is most commonly used and widely spread molecular coordinate file,
+- [.xtc](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS compressed binary trajectory files,
+- [.trr](hhttp://manual.gromacs.org/archive/5.0.3/online/trr.html) - GROMACS binary trajectory files containing coordinates/velocities/forces,
+- [.dcd](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html) - Single precision binary trajectory used by NAMD, CHARMM and LAMMPS,
+- [.cub](https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html) - Gaussian CUBE file format,
+
+supporting file types:
+- [.ndx](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) - GROMACS index file containing user defined sets of atoms,
+- [.tpl]() - Our own proprietary file type with condensed configuration information,
+
+and data file types
+- [.pdh](http://goldenberg.biology.utah.edu/downloads/usTooDocs_Sept2012.pdf) - Standard format for storing Small-Angle X-Ray Scattering (SAXS) data.
+- [.csv](https://en.wikipedia.org/wiki/Comma-separated_values) - Comma-separated value files.
 
 ## Build & Install
 Clone or download repository from GitHub:
@@ -56,10 +78,10 @@ include_directories ( ${xslib_INCLUDE_DIRS} )
 
 ...
 
-# Link xslib library
+# link (shared) xslib library
 target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_LIBRARIES} )
 
-# or link STATIC xslib libraries
+# or link STATIC xslib library
 target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_STATIC_LIBRARIES} )
 ```
 **NOTE:** In case of non-standard installation path use the following CMake option (with the appropriate value instead of `xxx`):

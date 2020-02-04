@@ -18,79 +18,121 @@
 
 program main
   use xslib_vector
+  use xslib_error, only: assert
   implicit none
   real, parameter     :: pi = acos(-1.0)
   real, dimension(3)  :: a, b, c, d
   real, allocatable   :: array(:)
-  real                :: x, y, ave, err
+  real                :: ave, var
+  real                :: x, y
+  real(8)             :: xd, yd
+  character(1)        :: xc, yc
   integer             :: i, stat
-
-  ! Define vectors
-  a(:) = [ 0., 1., 0. ]
-  b(:) = [ 0., 0., 0. ]
-  c(:) = [ 1., 0., 0. ]
-  d(:) = [ 1., 0., 1. ]
+  real, parameter     :: delta = 1.0e-3
 
   ! Cross-product
-  write (*,*) "Cross:"
-  write (*,*) cross( a, c )
+  a(:) = [ 1., 0., 0. ]
+  b(:) = [ 0., 1., 0. ]
+  c(:) = [ 0., 0., 1. ]
+  call assert( cross(a,b), c, TOL=delta )
+  write (*,*) "Cross:", cross( a, b )
 
   ! Rotate around z-axis by 90 deg
-  write (*,*) "Rotate:"
-  write (*,*) rotate( a, [0.,0.,1.], pi/2. )
+  a(:) = [ 1., 0., 0. ]
+  b(:) = [ 0., 0., 1. ] ! z-axis
+  c(:) = [ 0., 1., 0. ]
+  call assert( rotate(a,b,pi/2.), c, TOL=delta )
+  write (*,*) "Rotate:", rotate( a, b, pi/2. )
+  call assert( rotate(a,"z",pi/2.), c, TOL=delta )
+  write (*,*) "Rotate:", rotate( a, "z", pi/2. )
 
-  ! 'Coordinate vector operations
-  write (*,*) "Coor-vector:"
-  write (*,*) minImg( a, [0.75,0.75,0.75] )
-  write (*,*) getDistance( a, b )
-  write (*,*) getAngle( a, b, c )
-  write (*,*) getDihedral( a, b, c, d )
+  ! Minimum image
+  a(:) = [ 0.25,  0.75, -0.75 ]
+  b(:) = [ 0.25, -0.25,  0.25 ]
+  c(:) = [ 1.00,  1.00,  1.00 ] ! box
+  call assert( minImg(a,c), b, TOL=delta )
+  write (*,*) "minImg:", minImg(a,c)
 
-  ! Transform coordinate systems
-  write (*,*) "crt2sph & sph2crt:"
+  ! Vector distance
+  a(:) = [ 0.0,  0.0,  0.0 ]
+  b(:) = [ 1.0,  1.0,  1.0 ]
+  call assert( getDistance(a,b), sqrt(3.), TOL=delta )
+  write (*,*) "getDistance:", getDistance(a,b)
+
+  ! Vector angle
+  a(:) = [ 1., 0., 0. ]
+  b(:) = [ 0., 0., 0. ]
+  c(:) = [ 0., 0., 1. ]
+  call assert( getAngle(a,b,c), pi/2., TOL=delta )
+  write (*,*) "getAngle:", getAngle(a,b,c)
+
+  ! Vector dihedral angle
   a(:) = [ 0., 1., 0. ]
-  a(:) = crt2sph( a )
-  write (*,*) a(:)
-  a(:) = sph2crt( a )
-  write (*,*) a(:)
+  b(:) = [ 0., 0., 0. ]
+  c(:) = [ 0., 0., 1. ]
+  d(:) = [ 1., 0., 1. ]
+  call assert( getDihedral(a,b,c,d), pi/2., TOL=delta )
+  write (*,*) "getDihedral:", getDihedral(a,b,c,d)
 
-  write (*,*) "crt2cyl & cyl2crt:"
-  a(:) = [ 0., 1., 0. ]
-  a(:) = crt2cyl( a )
-  write (*,*) a(:)
-  a(:) = cyl2crt( a )
-  write (*,*) a(:)
+  ! Transform to spherical coordinate systems
+  a(:) = [ 1., 1., 1. ]
+  b(:) = [ 1.7320508075689, 0.95531661812451, 0.78539816339745 ]
+  call assert( crt2sph(a), b, TOL=delta )
+  write (*,*) "crt2sph:", crt2sph(a)
+  call assert( sph2crt(b), a, TOL=delta )
+  write (*,*) "sph2crt:", sph2crt(b)
 
-  ! Linear interpolation
-  write (*,*) lerp( 0.0, 10.0, 0.5 )
-  write (*,*) lerp( 0.0d0, 10.0d0, 0.5d0 )
+  ! Transform to cylindrical coordinate systems
+  a(:) = [ 1., 1., 1. ]
+  b(:) = [ 1.4142135623731, 0.78539816339745, 1.0 ]
+  call assert( crt2cyl(a), b, TOL=delta )
+  write (*,*) "crt2cyl:", crt2cyl(a)
+  call assert( cyl2crt(b), a, TOL=delta )
+  write (*,*) "cyl2crt:", cyl2crt(b)
 
-  ! On-line variance
-  write (*,*) "On-line variance:"
+  ! Linear interpolation (exact)
+  call assert( lerp(0.0,10.0,0.75) == 7.5 )
+  write (*,*) "lerp:", lerp(0.0,10.0,0.75)
+  call assert( lerp(0.0d0,10.0d0,0.75d0) == 7.5d0 )
+  write (*,*) "lerp8:", lerp(0.0d0,10.0d0,0.75d0)
+
+  ! On-line variance algorithm (exact)
+  ! * sum of all numbers from 1 to 100
   ave = 0.000
-  err = 0.000
+  var = 0.000
   do i = 1, 100
-    call variance( real(i), ave, err, i )
+    call variance( real(i), ave, var, i )
   end do
-
-  ! Transform to true variance
-  err = merge( err/(i-1), 0.000, i>1 )
-  write (*,*) ave, "+-", err
+  var = merge( var/real(i-1), 0.000, i>1 )
+  call assert( ave == 50.5 )
+  call assert( var == 833.25 )
+  write (*,*) "On-line variance:", ave, var
 
   ! Allocate and fill array.
   allocate( array(10), SOURCE=[(real(i),i=1,10)], STAT=stat )
 
-  ! Find 3 closest numbers to 5.5
-  write (*,*) "Kind k-closests:"
-  write (*,*) 5.5
-  write (*,*) findKClosest( 5.5, array(:), 3 )
+  ! Find 3 closest numbers to 5.6
+  ! * Should be correct order: 6,5,7 (exact)
+  call assert( findKClosest(5.6,array(:),3) == [6.,5.,7.] )
+  write (*,*) "Kind k-closests:", findKClosest(5.6,array(:),3)
 
-  ! Swap numbers
-  write (*,*) "Swap:"
-  x = 1.000
-  y = 2.000
-  write (*,*) x, y
-  call swap( x, y )
-  write (*,*) x, y
+  ! Swap numbers (exact)
+  x = 1.0
+  y = 2.0
+  call swap(x,y)
+  call assert( [x,y] == [2.0,1.0] )
+  write (*,*) "Swap:", x, y
+
+  xd = 1.0d0
+  yd = 2.0d0
+  call swap(xd,yd)
+  call assert( [xd,yd] == [2.0d0,1.0d0] )
+  write (*,*) "Swap8:", xd, yd
+
+  xc = "a"
+  yc = "z"
+  call swap(xc,yc)
+  call assert( [xc,yc] == ["z","a"] )
+  write (*,*) "SwapC:", xc, yc
 
 end program main

@@ -1,11 +1,23 @@
 # Changelog
 
 #### To-do (someday):
-- [ ] Add .trr handling.
-- [ ] Add `obj%open( file, first, last, stride )`
+- [ ] There is always something to do... 
+
+#### v2.2.0 - 04.02.2020
+- Fixed documentation typos.  
+- Added `xslib_xmalloc` module.  
+- Added .trr file handling; new type `trr_t`.
+- Fixed `replaceText`.
+- Add `file_t%open( file, first, last, stride )`.
+- Bugfix in `crt2sph` and `rotate`.
+- Added `assert()` function.  
+- `file_t` is now always in [nm] units.
+- Added `Makefile` as backup.
+- Added more strict testing.
 
 #### v2.1.1 - 21.01.2020
 - Minor bug fixes.
+- Added both shared and static library.
 
 #### v2.1.0 - 17.01.2020
 - Improved and restructured most routines.   

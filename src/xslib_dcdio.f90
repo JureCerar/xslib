@@ -816,7 +816,7 @@ integer function dcd_skip_next( this, nframes )
     if ( dcd_skip_next /= xslibOK ) return
 
     ! One less frame remaining
-    this%remaining = this%remaining
+    this%remaining = this%remaining-1
 
   end do
 

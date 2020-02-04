@@ -40,7 +40,7 @@ module xdrfor
   ! * Not entire interface is here. Just the ones I need.
   ! * NOTE: xrdfile read is same as write. He he he.
 
-  ! Read one or more integer type variable(s)
+  ! Read/write one or more integer type variable(s)
   ! * Returns number of integers read/written. If this is negative, an error occured.
   interface xdrfile_read_int
     integer(C_INT) function xdrfile_read_int( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_int" )
@@ -50,49 +50,76 @@ module xdrfor
       type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
     end function xdrfile_read_int
 
-    integer(C_INT) function xdrfile_read_int_x( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_int" )
+    integer(C_INT) function xdrfile_read_int_1d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_int" )
       import
       integer(C_INT), intent(inout)     :: ptr(*) ! Pointer to memory where data should be read/written
       integer(C_INT), value, intent(in) :: ndata  ! Number of integers to write/read.
       type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_read_int_x
+    end function xdrfile_read_int_1d
 
-    integer(C_INT) function xdrfile_read_int_xx( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_int" )
+    integer(C_INT) function xdrfile_read_int_2d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_int" )
       import
       integer(C_INT), intent(inout)     :: ptr(1,*) ! Pointer to memory where data should be read/written
       integer(C_INT), value, intent(in) :: ndata    ! Number of integers to write/read.
       type(xdrfile), intent(in)         :: xfp      ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_read_int_xx
+    end function xdrfile_read_int_2d
   end interface xdrfile_read_int
 
 
-  ! Read one or more float type variable(s)
+  ! Read/write one or more float type variable(s)
   ! * Returns number of floats read/written. If this is negative, an error occured.
   interface xdrfile_read_float
     integer(C_INT) function xdrfile_read_float( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_float" )
       import
       real(C_FLOAT), intent(inout)      :: ptr    ! Pointer to memory where data should be read/written
-      integer(C_INT), value, intent(in) :: ndata  ! Number of integers to write.
+      integer(C_INT), value, intent(in) :: ndata  ! Number of floats to write/read.
       type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
     end function xdrfile_read_float
 
-    integer(C_INT) function xdrfile_read_float_x( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_float" )
+    integer(C_INT) function xdrfile_read_float_1d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_float" )
       import
       real(C_FLOAT), intent(inout)      :: ptr(*) ! Pointer to memory where data should be read/written
-      integer(C_INT), value, intent(in) :: ndata  ! Number of integers to write.
+      integer(C_INT), value, intent(in) :: ndata  ! Number of floats to write/read.
       type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_read_float_x
+    end function xdrfile_read_float_1d
 
-    integer(C_INT) function xdrfile_read_float_xx( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_float" )
+    integer(C_INT) function xdrfile_read_float_2d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_float" )
       import
       real(C_FLOAT), intent(inout)      :: ptr(1,*) ! Pointer to memory where data should be read/written
-      integer(C_INT), value, intent(in) :: ndata    ! Number of integers to write.
+      integer(C_INT), value, intent(in) :: ndata    ! Number of floats to write/read.
       type(xdrfile), intent(in)         :: xfp      ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_read_float_xx
+    end function xdrfile_read_float_2d
   end interface xdrfile_read_float
 
+
+  ! Read/write one or more double type variable(s)
+  ! * Returns number of doubles read/written. If this is negative, an error occured.
+  interface xdrfile_read_double
+    integer(C_INT) function xdrfile_read_double( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_double" )
+      import
+      real(C_DOUBLE), intent(inout)     :: ptr    ! Pointer to memory where data should be read/written
+      integer(C_INT), value, intent(in) :: ndata  ! Number of doubles to write/read.
+      type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
+    end function xdrfile_read_double
+
+    integer(C_INT) function xdrfile_read_double_1d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_double" )
+      import
+      real(C_DOUBLE), intent(inout)     :: ptr(*) ! Pointer to memory where data should be read/written
+      integer(C_INT), value, intent(in) :: ndata  ! Number of doubles to write/read.
+      type(xdrfile), intent(in)         :: xfp    ! Pointer to an abstract XDRFILE datatype.
+    end function xdrfile_read_double_1d
+
+    integer(C_INT) function xdrfile_read_double_2d( ptr, ndata, xfp ) bind( C, NAME="xdrfile_read_double" )
+      import
+      real(C_DOUBLE), intent(inout)     :: ptr(1,*) ! Pointer to memory where data should be read/written
+      integer(C_INT), value, intent(in) :: ndata    ! Number of doubles to write/read.
+      type(xdrfile), intent(in)         :: xfp      ! Pointer to an abstract XDRFILE datatype.
+    end function xdrfile_read_double_2d
+  end interface xdrfile_read_double
+
+
   ! Decompress coordiates from XDR file to array of floats
-  ! * Number of coordinate triplets read/written. If this is negative, an error occured.
+  ! * Returns number of coordinate triplets read/written. If this is negative, an error occured.
   interface xdrfile_decompress_coord_float
     integer(C_INT) function xdrfile_decompress_coord_float( ptr, ncoord, precision, xfp ) &
       & bind( C, NAME="xdrfile_decompress_coord_float" )
@@ -103,28 +130,28 @@ module xdrfor
       type(xdrfile), intent(in)   :: xfp        ! Pointer to an abstract XDRFILE datatype.
     end function xdrfile_decompress_coord_float
 
-    integer(C_INT) function xdrfile_decompress_coord_float_x( ptr, ncoord, precision, xfp ) &
+    integer(C_INT) function xdrfile_decompress_coord_float_1d( ptr, ncoord, precision, xfp ) &
       & bind( C, NAME="xdrfile_decompress_coord_float" )
       import
       real(C_FLOAT), intent(out)  :: ptr(*)     ! Pointer to coordinates to compress ( length >= 3*ncoord )
       integer(C_INT), intent(in)  :: ncoord     ! Max number of coordinate triplets to read on input.
       real(C_FLOAT), intent(out)  :: precision  ! The precision used in the compression.
       type(xdrfile), intent(in)   :: xfp        ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_decompress_coord_float_x
+    end function xdrfile_decompress_coord_float_1d
 
-    integer(C_INT) function xdrfile_decompress_coord_float_xx( ptr, ncoord, precision, xfp ) &
+    integer(C_INT) function xdrfile_decompress_coord_float_2d( ptr, ncoord, precision, xfp ) &
       & bind( C, NAME="xdrfile_decompress_coord_float" )
       import
       real(C_FLOAT), intent(out)  :: ptr(1,*)   ! Pointer to coordinates to compress ( length >= 3*ncoord )
       integer(C_INT), intent(in)  :: ncoord     ! Max number of coordinate triplets to read on input.
       real(C_FLOAT), intent(out)  :: precision  ! The precision used in the compression.
       type(xdrfile), intent(in)   :: xfp        ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_decompress_coord_float_xx
+    end function xdrfile_decompress_coord_float_2d
   end interface xdrfile_decompress_coord_float
 
 
   ! Compresses coordiates to XDRFILE to array of floats
-  ! * Return number of coordinate triplets written. If this is negative, an error occured.
+  ! * Returns number of coordinate triplets written. If this is negative, an error occured.
   interface xdrfile_compress_coord_float
     integer(C_INT) function xdrfile_compress_coord_float( ptr, ncoord, precision, xfp ) &
     & bind( C, NAME="xdrfile_compress_coord_float" )
@@ -135,28 +162,47 @@ module xdrfor
       type(xdrfile), intent(in)         :: xfp        ! Pointer to an abstract XDRFILE datatype.
     end function xdrfile_compress_coord_float
 
-    integer(C_INT) function xdrfile_compress_coord_float_x( ptr, ncoord, precision, xfp ) &
+    integer(C_INT) function xdrfile_compress_coord_float_1d( ptr, ncoord, precision, xfp ) &
     & bind( C, NAME="xdrfile_compress_coord_float" )
       import
       real(C_FLOAT), intent(in)         :: ptr(*)     ! Pointer to coordinates to decompress ( length >= 3*ncoord )
       integer(C_INT), value, intent(in) :: ncoord     ! Max number of coordinate triplets to written on output.
       real(C_FLOAT), value, intent(in)  :: precision  ! The precision used in the compression.
       type(xdrfile), intent(in)         :: xfp        ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_compress_coord_float_x
+    end function xdrfile_compress_coord_float_1d
 
-    integer(C_INT) function xdrfile_compress_coord_float_xx( ptr, ncoord, precision, xfp ) &
+    integer(C_INT) function xdrfile_compress_coord_float_2d( ptr, ncoord, precision, xfp ) &
     & bind( C, NAME="xdrfile_compress_coord_float" )
       import
       real(C_FLOAT), intent(in)         :: ptr(1,*)   ! Pointer to coordinates to decompress ( length >= 3*ncoord )
       integer(C_INT), value, intent(in) :: ncoord     ! Max number of coordinate triplets to written on output.
       real(C_FLOAT), value, intent(in)  :: precision  ! The precision used in the compression.
       type(xdrfile), intent(in)         :: xfp        ! Pointer to an abstract XDRFILE datatype.
-    end function xdrfile_compress_coord_float_xx
+    end function xdrfile_compress_coord_float_2d
   end interface xdrfile_compress_coord_float
+
 
   interface
 
-    ! Return absolute current position in XDRFILE.
+    ! Read string type (array of characters) variable
+    ! * If no end-of-string is encountered, one byte less than this is read and end-of-string appended.
+    ! * Returns number of characters read, including end-of-string.
+    integer(C_INT) function xdrfile_read_string( ptr, maxlen, xfp ) bind( C, NAME="xdrfile_read_string" )
+      import
+      character(C_CHAR), intent(out)  :: ptr(*)  ! Pointer to memory where data should be written.
+      integer(C_INT), intent(in)      :: maxlen       ! Maximum length of string.
+      type(xdrfile), intent(in)       :: xfp          ! Pointer to an abstract XDRFILE datatype.
+    end function xdrfile_read_string
+
+    ! Write string type (array of characters) variable
+    ! * Returns number of characters written, including end-of-string.
+    integer(C_INT) function xdrfile_write_string( ptr, xfp ) bind( C, NAME="xdrfile_write_string" )
+      import
+      character(C_CHAR), intent(in) :: ptr(*)  ! Pointer to memory where data should be written.
+      type(xdrfile), intent(in)     :: xfp    ! Pointer to an abstract XDRFILE datatype.
+    end function xdrfile_write_string
+
+    ! Returns absolute current position in XDRFILE.
     integer(C_INT64_T) function xdr_tell( xd ) bind( C, NAME="xdr_tell" )
       import
       type(xdrfile), intent(in) :: xd ! Pointer to an abstract XDRFILE datatype.

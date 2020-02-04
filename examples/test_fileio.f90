@@ -22,7 +22,9 @@ program main
   implicit none
   ! character(:), allocatable :: arg
   character(128)  :: ext, arg
-  integer        :: next, stat
+  integer         :: next, stat
+  real            :: x(3) = [1.059,1.342,0.015] ! frame: 2, atom: 1
+  real, parameter :: delta = 1.0e-3
 
   ! Get file from command line
   next = 0
@@ -44,6 +46,8 @@ program main
       call test_pdb( arg )
     case( "xtc" )
       call test_xtc( arg )
+    case( "trr" )
+      call test_trr( arg )
     case( "cub" )
       call test_cub( arg )
     case( "dcd" )
@@ -105,6 +109,8 @@ subroutine test_xyz( file )
   write (*,*) "Skip -- OK"
   call xslibCheck( obj%read_next( 1 ) )
   write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
+  write (*,*) "Coor -- OK"
   call xslibCheck( obj%write() )
   write (*,*) "Write -- OK"
   call xslibCheck( obj%close() )
@@ -138,6 +144,7 @@ subroutine test_gro( file )
 
   call xslibCheck( obj%open( file ) )
   write (*,*) "Open -- OK"
+
   write (*,*) obj%getAllframes()
   write (*,*) obj%getBox()
   write (*,*) obj%getNatoms()
@@ -149,6 +156,8 @@ subroutine test_gro( file )
   write (*,*) "Skip -- OK"
   call xslibCheck( obj%read_next( 1 ) )
   write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  write (*,*) "Coor -- OK"
   call xslibCheck( obj%write() )
   write (*,*) "Write -- OK"
   call xslibCheck( obj%close() )
@@ -182,6 +191,7 @@ subroutine test_pdb( file )
 
   call xslibCheck( obj%open( file ) )
   write (*,*) "Open -- OK"
+
   write (*,*) obj%getAllframes()
   write (*,*) obj%getBox()
   write (*,*) obj%getNatoms()
@@ -193,6 +203,8 @@ subroutine test_pdb( file )
   write (*,*) "Skip -- OK"
   call xslibCheck( obj%read_next( 1 ) )
   write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
+  write (*,*) "Coor -- OK"
   call xslibCheck( obj%write() )
   write (*,*) "Write -- OK"
   call xslibCheck( obj%close() )
@@ -226,6 +238,7 @@ subroutine test_xtc( file )
 
   call xslibCheck( obj%open( file ) )
   write (*,*) "Open -- OK"
+
   write (*,*) obj%getAllframes()
   write (*,*) obj%getBox()
   write (*,*) obj%getNatoms()
@@ -237,6 +250,8 @@ subroutine test_xtc( file )
   write (*,*) "Skip -- OK"
   call xslibCheck( obj%read_next( 1 ) )
   write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  write (*,*) "Coor -- OK"
   call xslibCheck( obj%dump() )
   write (*,*) "Write -- OK"
   call xslibCheck( obj%close() )
@@ -251,6 +266,53 @@ subroutine test_xtc( file )
 
   return
 end subroutine test_xtc
+
+! Comment
+subroutine test_trr( file )
+  use xslib_trrio
+  implicit none
+  type(trr_t)               :: obj, cpy
+  character(*), intent(in)  :: file
+
+  call xslibCheck( obj%read(file) )
+  write (*,*) "Read -- OK"
+  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
+  write (*,*) "Read+opt -- OK"
+  call xslibCheck( obj%dump() )
+  write (*,*) "Write -- OK"
+
+  ! -----------------
+
+  call xslibCheck( obj%open( file ) )
+  write (*,*) "Open -- OK"
+
+  write (*,*) obj%getAllframes()
+  write (*,*) obj%getBox()
+  write (*,*) obj%getNatoms()
+  write (*,*) "Data -- OK"
+
+  ! -----------------
+
+  call xslibCheck( obj%skip_next( 1 ) )
+  write (*,*) "Skip -- OK"
+  call xslibCheck( obj%read_next( 1 ) )
+  write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  write (*,*) "Coor -- OK"
+  call xslibCheck( obj%dump() )
+  write (*,*) "Write -- OK"
+  call xslibCheck( obj%close() )
+  write (*,*) "Close -- OK"
+
+  ! -----------------
+
+  cpy = obj
+  write (*,*) "Copy -- OK"
+  cpy%frame(1) = obj%frame(1)
+  write (*,*) "Frame copy -- OK"
+
+  return
+end subroutine test_trr
 
 ! Comment
 subroutine test_cub( file )
@@ -287,6 +349,7 @@ subroutine test_dcd( file )
 
   call xslibCheck( obj%open( file ) )
   write (*,*) "Open -- OK"
+
   write (*,*) obj%getAllframes()
   write (*,*) obj%getBox()
   write (*,*) obj%getNatoms()
@@ -298,6 +361,8 @@ subroutine test_dcd( file )
   write (*,*) "Skip -- OK"
   call xslibCheck( obj%read_next( 1 ) )
   write (*,*) "Read_next -- OK"
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
+  write (*,*) "Coor -- OK"
   call xslibCheck( obj%dump() )
   write (*,*) "Write -- OK"
   call xslibCheck( obj%close() )
@@ -420,12 +485,10 @@ subroutine test_csv( file )
   implicit none
   type(csv_t)               :: obj
   character(*), intent(in)  :: file
-  character(:), allocatable :: header(:)
-  real, allocatable         :: data(:,:)
 
-  call xslibCheck( obj%read( file, data, header, DELIM="," ) )
+  call xslibCheck( obj%read(file,DELIM=",") )
   write (*,*) "Read -- OK"
-  call xslibCheck( obj%write( DATA=data, HEADER=header, DELIM=";" ) )
+  call xslibCheck( obj%write(DELIM=";") )
   write (*,*) "Write -- OK"
 
   return

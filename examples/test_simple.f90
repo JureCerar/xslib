@@ -19,9 +19,12 @@
 program main
   use xslib
   implicit none
-  write (*,*) "xslib: ", xslibinfo()
+
+  ! Single line xslib info
+  write (*,*) "xslib: ", xslibInfo()
   write (*,*) "----------------------"
 
+  ! Detailed information
   call xslibAbout()
 
 end program main

@@ -1,23 +1,27 @@
-# API
+# xslib API
 ## Table of contents
+### xslib file I/O modules
 - [Molecular file types: General](#molecular-file-types-general)
 - [Molecular file types: Interface](#molecular-file-types-interface)
-- [Molecular file types: Structure](#molecular-file-types-data)  
-  - [`xyz_t` type definition](#xyz_t-format)
-  - [`gro_t` type definition](#gro_t-format)
-  - [`pdb_t` type definition](#pdb_t-format)
-  - [`xtc_t` type definition](#trj_t-format)
-  - [`dcd_t` ftype definition](#dcd_t-format)
-  - [`cub_t` type definition](#cub_t-format)
-  - [`file_t` type definition](#frame_file-object-format)
-- [Supporting file types: General](#supporting-file-types)
-- [Supporting file types: Interface](#supporting-file-types)
-- [Supporting file types: Structure](#supporting-file-types)
-  - [`ndx_t` type definition](#ndx_t-format)
-  - [`tpl_t` type definition](#tpl_t-format)
+- [Molecular file types: Structure](#molecular-file-types-structure)  
+  - [`xyz_t` type definition](#xyz_t-type-definition)
+  - [`gro_t` type definition](#gro_t-type-definition)
+  - [`pdb_t` type definition](#pdb_t-type-definition)
+  - [`xtc_t` type definition](#xtc_t-type-definition)
+  - [`trr_t` type definition](#trr_t-type-definition)
+  - [`dcd_t` ftype definition](#dcd_t-type-definition)
+  - [`cub_t` type definition](#cub_t-type-definition)
+  - [`file_t` type definition](#file_t-type-definition)
+- [Supporting file types: General](#supporting-file-types-general)
+- [Supporting file types: Interface](#supporting-file-types-interface)
+- [Supporting file types: Structure](#supporting-file-types-structure)
+  - [`ndx_t` type definition](#ndx_t-type-definition)
+  - [`tpl_t` type definition](#tpl_t-type-definition)
 - [Data file types](#data-file-types)
-  - [`pdh_t` type definition](#pdh_t-format)
-  <!-- - [`csv_t` format](#csv_file-format) -->
+  - [`pdh_t` type definition](#pdh_t-type-definition)
+  - [`csv_t` type definition](#csv_t-type-definition)
+
+### xslib other modules
 - [xslib](#xslib)
   - [`xslibInfo()`](#xslibinfo)
   - [`xslibAbout()`](#xslibabout)
@@ -55,25 +59,29 @@
   - [`write_wtime`](#write_wtime)
   - [`msleep()`](#msleep)
 - [xslib_list](#xslib_list)
+- [xslib_xmalloc](#xslib-xmalloc)
+  - [`xmalloc`](#xmalloc)  
+  - [`xcalloc`](#xcalloc)  
+  - [`xrealloc`](#xrealloc)  
 - [xslib_error](#xslib_error)
   - [`error()` and `error_()`](#error-and-error_)
   - [`warning()` and `warning_()`](#warning-and-warning_)
   - [`xslibErrMsg()`](#xslibErrMsg)
+  - [`assert()`](#assert)
   <!-- - [`set_env_colors()`](#set_env_colors) -->
 - [Notes](#notes)
 
 -----------------------------------------------
-
+# xslib file I/O modules
 ## Molecular file types: General
-
 xslib supports the use of multiple molecular coordinate files:  
 - [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *"name,x,y,z"* file that gets the job done in most cases.
 - [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS coordinate file.  
 - [.pdb](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html) - Protein Data Bank which is most commonly used and widely spread molecular coordinate file.
 - [.xtc](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS compressed binary trajectory files.
+- [.trr](hhttp://manual.gromacs.org/archive/5.0.3/online/trr.html) - GROMACS binary trajectory files containing coordinates/velocities/forces .
 - [.dcd](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html) - Single precision binary trajectory used by NAMD, CHARMM and LAMMPS.
 - [.cub](https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html) - Gaussian CUBE file format.
-<!-- - [.trr](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS binary trajectory files. -->
 
 The xslib library uses object oriented approach for handling molecular files *i.e.* each object contains all the data as well procedures bound to that file type. In order to use each object you must first define it Fortran declaration section as `type(obj_t) :: <obj-name>`, for example:
 ```Fortran
@@ -83,7 +91,7 @@ All objects (with exception of CUBE cub_t, but we will return to that latter) ar
 ```Fortran
 obj%frame(1)%coor(:,2)
 ```
-Note that the Fortran language uses **row-major** indexing *i.e.* `array(row,column)` and that convention is retained here.
+**NOTE** the Fortran language uses **row-major** indexing *i.e.* `array(row,column)` and that convention is retained here.
 
 The general API is the same for all derived types. All procedures are defined as functions with an integer return value that contains error code:
 ```Fortran
@@ -192,6 +200,16 @@ end do
 ```
 where `nframes` and `natoms` denote number of frames and number of atoms to allocate, respectively. Note that data is not initialized upon memory allocation.
 
+**NOTE:** `trr_t` type consists of coordinates, velocities, and forces. In order to save memory you can choose which will be allocated via "mode" optional argument:
+```Fortran
+! x=coordinates, v = velocities, and f = forces
+error = trr%allocate(natoms,nframes,"xvf") ! Allocate all
+error = trr%allocate(natoms,nframes,"xv") ! Only coor and vel
+error = trr%allocate(natoms,nframes) ! Default is only coor
+! or
+error = trr%frame(1)%allocate(natoms,"xvf")
+```
+
 The stored data can be written to STDOUT, FILE, or file UNIT by:
 ```Fortran
 ! Default write is to STDOUT
@@ -201,7 +219,7 @@ error = obj%write(FILE="path/to/file.obj")
 ! or write to file unit (must be opened by user)
 error = obj%write(UNIT=unit)
 ```
-**NOTE:** The STDOUT and file UNIT methods do not work for `xtc_t` and `dcd_t` objects, as they are not human readable formats. Alternatevly, in latter cases you can use dump method, to obtain human readable format (useful for debugging):
+**NOTE:** The STDOUT and file UNIT methods do not work for `xtc_t`, `trr_t`, and `dcd_t` objects, as they are not human readable formats. Alternatively, in latter cases you can use dump method, to obtain human readable format (useful for debugging):
 ```Fortran
 ! Default write is to STDOUT
 error = obj%dump()
@@ -213,7 +231,7 @@ error = obj%dump(UNIT=unit)
 When either write or dump procedure is called all frames are written.
 
 ---------------------
-
+# Molecular file types: Structure
 ### `xyz_t` type definition
 For more information please read [XYZ manual](https://en.wikipedia.org/wiki/XYZ_file_format).
 
@@ -322,6 +340,18 @@ type xtc_frame
 end type xtc_frame
 ```
 
+### `trr_t` type definition
+For more information please read [TRR "manual"](hhttp://manual.gromacs.org/archive/5.0.3/online/trr.html). Same here... good luck.
+
+#### Structure
+```Fortran
+type xtc_frame
+  integer           :: natoms, step
+  real              :: lambda, time, box(3,3)
+  real, allocatable :: coor(:,:), vel(:,:), force(:,:)
+end type xtc_frame
+```
+
 ### `dcd_t` type definition
 For more information please read [DCD manual](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html).  
 **NOTE:** DCD file type has some additional data stored in `dcd_t` definition.
@@ -404,7 +434,7 @@ end type file_t
 
 ---------------------
 
-## Supporting file types
+## Supporting file types: General
 
 xslib contains two "supporting file" types:
 - [.ndx](http://manual.gromacs.org/archive/5.0.3/online/ndx.html) - GROMACS index file containing user defined sets of atoms.
@@ -475,7 +505,7 @@ error = ndx%display()
 !  ...
 ```
 
-### `tpl_file` type definition
+### `tpl_t` type definition
 For more information please read format definition below.
 
 #### Example
@@ -604,7 +634,25 @@ end type pdh_t
 ```
 
 ### `csv_t` type definition
-xslib also includes *crude* implementation of [comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data; only procedures. The data is obtained as returning argument to function call.
+xslib also includes *crude* implementation of [comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values) files. Unlike in the rest of the library the `csv_file` objects does NOT contain any data; only procedures. The data is obtained as returning argument to function call. To read .csv file use:
+```Fortran
+type(csv_t)               :: csv
+integer                   :: error
+character(:), allocatable :: header(:)
+real, allocatable         :: data(:,:)
+
+error = csv%read( "file.txt", data, header, DELIM="," )
+```
+similarly, you can write data to STDOUT, FILE, or file UNIT by:
+```Fortran
+! Default write is to STDOUT
+error = csv%write( data, header )
+! or write to FILE
+error = csv%write( data, header, FILE="file.csv" )
+! or write to file UNIT
+error = csv%write( data, header, UNIT=unit )
+```
+**NOTE:** Default delimiter is `,` (as in **comma**-separated values).
 
 #### Example
 ```
@@ -616,33 +664,33 @@ this,is,header
 ```
 
 #### Structure
-*[not yet implemented]*
-<!-- ```Fortran
+```Fortran
 type csv_t
 contains
   procedure, nopass :: read
   procedure, nopass :: write
 end type csv_t
-
-! Read file. Header contains .csv header if present
-integer function read(file, data, header)
-  character(*)                         :: file
-  real, allocatable                    :: data(:,:)
-  character(*), allocatable, optional  :: header(:)
-end subroutine read
-
-! Write data to stdout, file or unit. Custom data delimiter can be specified (default is ',').
+```
+```Fortran
+integer function csv_read( file, data, header, delim )
+  character(*), intent(in)            :: file
+  real, allocatable, intent(inout)    :: data(:,:)
+  character(*), optional, intent(in)  :: delim
+  character(:), optional, allocatable, intent(inout) :: header(:)
+  ! Got any more of them attributes?
+```
+```Fortran
 integer function write( data, header, unit, file, delimiter )
-  real                    :: data(:,:)
-  character*(*), optional :: file, delimiter, header(:)
-  integer, optional       :: unit
-integer function write
-``` -->
+  real, intent(in)                    :: data(:,:)
+  character(*), optional, intent(in)  :: header(:), file, delim
+  integer, optional, intent(in)       :: unit
+```
 
 ---------------------
+# xslib other modules
 
 ## xslib
-<!-- xslib.F90 -->
+Master module *i.e.* it contains all other modules. Additionally it contains information about the library itself.
 
 ### `xslibInfo()`
 Returns xslib library version and compile date in format: "vX.Y.Z -- MMM DD YYYY HH:MM:SS".  
@@ -658,7 +706,7 @@ subroutine xslibAbout()
 ```
 
 ## xslib_cstring
-<!-- xslib_cstring.f90 -->
+Module containing routines for string manipulations.
 
 ### `str()`
 Transform SCALAR or ARRAY of any kind to character of shortest possible length. Optionally output format can be defined with `FMT` argument. In case of ARRAY a custom `DELIMITER` can be defined (default is " ").
@@ -670,7 +718,7 @@ function str( value, fmt ) result( string )
 ```
 ```Fortran
 function str( array, fmt, delim ) result( string )
-  class(*)                  :: value
+  class(*)                  :: array(:)
   character(*), optional    :: fmt, delim
   character(:), allocatable :: string
 ```
@@ -796,7 +844,8 @@ subroutine progressBar( x, size )
 ```
 
 ## xslib_vector
-<!-- xslib_vector.f90 -->
+Module containing routines for scalar/vector operations.
+
 **NOTE:** All functions are by default single precision `dp = REAL32`. If you are in need of double precision routines change `dp = REAL64` and recompile.
 
 ### `cross()`
@@ -957,6 +1006,7 @@ subroutine swap( a, b )
 ```
 
 ## xslib_time
+Module containing routines for time manipulation (sadly, not time travel).
 
 ### `wtime()`
 Return high precision time in sec.
@@ -979,7 +1029,7 @@ integer function msleep( time )
 ```
 
 ## xslib_list
-This is my implementation of unlimited polymorphic double-linked list (DLL).
+Module containing contains my implementation of unlimited polymorphic double-linked list (DLL).
 ```Fortran
 type list_t
 contains
@@ -1073,7 +1123,47 @@ end interface
 call list%execute( addOne )
 ```
 
+## xslib_xmalloc
+Module containing custom allocation/reallocation routines.  
+**NOTE:** Only supports arrays of rank up to 2 AND variables of type INT32, INT64, REAL32, and REAL64.  
+```Fortran
+integer, allocatable :: array(:), array2d(:,:)
+integer              :: error
+character(128)       :: errmsg
+
+error = xmalloc( array, [2] )
+error = xcalloc( array2d, [2,2], ERRMSG=errmsg )
+```
+
+### `xmalloc`
+Allocates a block of memory for an array of num. elements. The content of the newly allocated block of memory is not initialized, remaining with indeterminate values.  
+```Fortran
+integer function xmalloc( object, spec, errmsg )
+  type(*), allocatable, intent(inout) :: object(..)
+  integer, intent(in)                 :: spec(:)
+  integer, intent(out), optional      :: errmsg
+```
+
+### `xcalloc`
+Allocates a block of memory for an array of num. elements, and initializes all its bits to zero.  
+```Fortran
+integer function xcalloc( object, spec, errmsg )
+  type(*), allocatable, intent(inout) :: object(..)
+  integer, intent(in)                 :: spec(:)
+  integer, intent(out), optional      :: errmsg
+```
+
+### `xrealloc`
+hanges the size of memory block. The content of the memory block is preserved up to the lesser of the new and old sizes, even if the block is moved to a new location. If the new size is larger, the value of the newly allocated portion is indeterminate.
+```Fortran
+integer function xrealloc( object, spec, errmsg )
+  type(*), allocatable, intent(inout) :: object(..)
+  integer, intent(in)                 :: spec(:)
+  integer, intent(out), optional      :: errmsg
+```
+
 ## xslib_error
+Module containing routines for error/warning handling.  
 
 ### `error()` and `error_()`
 Write error message to ERROUT and terminates the program.  
@@ -1116,15 +1206,15 @@ character(:) function xslibErrMsg( errnum )
 ```
 **Legend:**    
 0 - OK  
-1 - Cannot read file header.  
-2 - Cannot read variable of kind: character.  
-4 - Cannot read variable of kind: double.  
-5 - Cannot read variable of kind: integer.  
-6 - Cannot read variable of kind: float.  
-7 - Cannot read variable of kind: unsigned integer.  
-8 - Cannot read coordinate data.  
+1 - Cannot read/write file header.  
+2 - Cannot read/write variable of kind: character.  
+4 - Cannot read/write variable of kind: double.  
+5 - Cannot read/write variable of kind: integer.  
+6 - Cannot read/write variable of kind: float.  
+7 - Cannot read/write variable of kind: unsigned integer.  
+8 - Cannot read/write coordinate data.  
 9 - Cannot close file.  
-10 - Cannot read magic number.  
+10 - Cannot read/write magic number.  
 11 - Memory allocation failure.  
 12 - End of file.  
 13 - File not found.  
@@ -1132,10 +1222,36 @@ character(:) function xslibErrMsg( errnum )
 15 - Wrong number of atoms.  
 16 - Unknown error.  
 
+### `assert()`
+If any of the argument expressions is false, a message is written to the STDERR and abort is called, terminating the program execution.  
+Example: "Assertion failed at [i,j]!"
+```Fortran
+subroutine assert( expression )
+  logical, intent(in) :: expression(..)
+```
+or extended abort message:  
+Example: "main.f90:10: Assertion failed at [i,j]!"
+```Fortran
+subroutine assert( expression, file, line )
+  logical, intent(in)       :: expression(..)
+  character(*), intent(in)  :: file
+  integer, intent(in)       :: line
+```
+or using with reals (dp = REAL32 or REAL64), where TOL is expected tolerance (default is 1.0e-3):
+```Fortran
+subroutine assert( actual, expected, tol )
+  real(dp), intent(in)  :: actual(..), expected(..), tol
+```
+or extended abort message:  
+```Fortran
+subroutine assert( actual, expected, tol, file, line )
+  real(dp), intent(in)      :: actual(..), expected(..), tol
+  character(*), intent(in)  :: file
+  integer, intent(in)       :: line
+```
 ----------------------------------------------
 
 ## Notes
-For more examples of xslib usage check [`xslib/examples/`](../examples) directory.
-
+For more examples of xslib usage check [`examples`](../examples).
 
 <!-- Most of the routines in XsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*. -->

@@ -121,15 +121,14 @@ integer function xtc_header( xd, natoms, step, time )
 end function xtc_header
 
 ! Read xtc file coordinates
-integer function xtc_coor( xd, natoms, box, x, prec, mode )
+integer function xtc_coor( xd, natoms, box, x, prec, bRead )
   implicit none
   type(xdrfile), intent(in), pointer  :: xd
-  character(*), intent(in)            :: mode
+  logical, intent(in)                 :: bRead
   integer, intent(in)                 :: natoms
   real, intent(inout)                 :: box(3,3)
   real, intent(inout)                 :: x(3,natoms)
   real, intent(inout)                 :: prec
-  integer                             :: stat
 
   ! Check pointer association
   if ( .not. associated(xd) ) then
@@ -138,26 +137,22 @@ integer function xtc_coor( xd, natoms, box, x, prec, mode )
   end if
 
   ! Box dimmension
-  stat = xdrfile_read_float( box, size(box), xd )
-  if ( stat /= size(box) ) then
+  if ( xdrfile_read_float( box, size(box), xd ) /= size(box) ) then
     xtc_coor = exdr3DX
     return
   end if
 
   ! Read coordinates
-  select case ( mode )
-  case( "r", "read" )
-    stat = xdrfile_decompress_coord_float( x, natoms, prec, xd )
-  case( "w", "write" )
-    stat = xdrfile_compress_coord_float( x, natoms, prec, xd )
-  case default
-    xtc_coor = xslibOPEN
-    return
-  end select
-
-  if ( stat /= natoms ) then
-    xtc_coor = exdr3DX
-    return
+  if ( bRead ) then
+    if ( xdrfile_decompress_coord_float( x, natoms, prec, xd ) /= natoms ) then
+      xtc_coor = exdr3DX
+      return
+    end if
+  else
+    if ( xdrfile_compress_coord_float( x, natoms, prec, xd ) /= natoms ) then
+      xtc_coor = exdr3DX
+      return
+    end if
   end if
 
   ! Return success
@@ -297,7 +292,7 @@ integer function xtc_frame_read( this, xd )
   if ( xtc_frame_read /= xslibOK ) return
 
   ! Read the rest of the frame.
-  xtc_frame_read = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, "r" )
+  xtc_frame_read = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, .true. )
   if ( xtc_frame_read /= xslibOK ) return
 
   return
@@ -320,7 +315,7 @@ integer function xtc_frame_write( this, xd )
   if ( xtc_frame_write /= xslibOK ) return
 
   ! Write data.
-  xtc_frame_write = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, "w" )
+  xtc_frame_write = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, .false. )
   if ( xtc_frame_write /= xslibOK ) return
 
   return
@@ -447,6 +442,7 @@ subroutine xtc_assign( this, other )
   ! Copy header
   this%natoms = other%natoms
   this%allframes = other%allframes
+  this%remaining = other%remaining
   this%box(:,:) = other%box
 
   ! Copy data
@@ -522,7 +518,7 @@ integer function xtc_open( this, file )
     xtc_open = xtc_skip( this%xd, natoms, box )
     if ( xtc_open /= xslibOK ) return
 
-    ! SAve biggest box
+    ! Save biggest box
     this%box(:,:) = merge( this%box, box, all(this%box>box) )
 
     ! Another frame was read

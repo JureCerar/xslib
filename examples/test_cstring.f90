@@ -22,14 +22,14 @@ program main
   use xslib_time
   implicit none
   integer, parameter :: dp = REAL64
-  integer            :: i, int = 1
+  integer            :: i, int = 1, stat
   integer(INT64)     :: int8 = 1_dp
   real               :: float = 1.234
-  real               :: array(3) = [1.,2.,3.]
   real(REAL64)       :: float8 = 1.234d0
   logical            :: bool = .true.
   complex            :: compl = (1.,1.)
   complex(REAL64)    :: compl8 = (1.0d0,1.0d0)
+  real               :: array(3) = [1.,2.,3.]
   character(128)     :: token, string = "Hello World!"
 
   ! str() on scalar
@@ -72,8 +72,8 @@ program main
   ! Set color
   write (*,*) setColor( "This text is bold.", ATTR="bold" )
   write (*,*) setColor( "This text is red.", FG="red" )
-  write (*,*) setColor( "This text is black on white.", FG="black", BG="light gray" )
-  write (*,*) setColor( "This text is bold + red on white.", ATTR="bold", FG="red", BG="white" )
+  write (*,*) setColor( "This text is red on white.", FG="red", BG="white" )
+  write (*,*) setColor( "This text is bold and red on white.", ATTR="bold", FG="red", BG="white" )
 
   ! File string manipulation
   write (*,*) "path/to/file.ext"
@@ -87,6 +87,11 @@ program main
 
   call backup( "file.txt", STATUS=int )
   if ( int /= 0 ) stop "Backup error."
+
+  ! Delete created file (aso check if it was created)
+  open( NEWUNIT=int, FILE="#file.txt.1#", STATUS="old", IOSTAT=stat )
+  if ( stat /= 0 ) error stop "Backup not created?"
+  close( int, STATUS="delete" )
 
   ! Start timer
   float8 = wtime()

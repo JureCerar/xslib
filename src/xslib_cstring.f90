@@ -281,15 +281,19 @@ end function isWord
 
 ! Replace <old> with <new> within <string>.
 character(:) function replaceText( string, old, new )
-  implicit none
-  allocatable               :: replaceText
+  allocatable               :: replacetext
   character(*), intent(in)  :: string, old, new
-  integer                   :: i
-  replaceText = trim(string)
-  i = 1
-  do while ( i /= 0 )
-    i = index( replaceText(i:), old )
-    if ( i /= 0 ) replaceText = replaceText(:i-1)//new//replaceText(i+len(old):)
+  integer                   :: pos, cur
+
+  ! Initialize
+  replaceText = string
+  cur = 1
+  do
+    pos = index( replacetext(cur:), old )
+    if (pos == 0) exit
+    replacetext = replacetext(:(cur-1+pos)-1) // new // string((cur-1+pos)+len(old):)
+    cur = cur+pos-1
+
   end do
 
   return

@@ -25,25 +25,52 @@ module xslib_csvio
   include "fileio.h"
 
   type csv_t
+    real, allocatable           :: data(:,:)
+    character(128), allocatable :: header(:)
   contains
-    procedure, nopass :: read => csv_read
-    procedure, nopass :: write => csv_write
+    procedure :: allocate => csv_allocate
+    procedure :: read => csv_read
+    procedure :: write => csv_write
   end type csv_t
 
 contains
 
-! Reads DATA and (optional) HEADER from csv file.
-integer function csv_read( file, data, header, delim )
+! Allocate and initialize data
+integer function csv_allocate( this, cols, rows )
+  implicit none
+  class(csv_t)        :: this
+  integer, intent(in) :: cols, rows
+
+  if ( allocated(this%data) ) deallocate( this%data, STAT=csv_allocate )
+  allocate( this%data(cols,rows), SOURCE=0.000, STAT=csv_allocate )
+  if ( csv_allocate /= 0 ) then
+    csv_allocate = xslibNOMEM
+    return
+  end if
+
+  ! TODO: implement various character sizes
+  if ( allocated(this%header) ) deallocate( this%header, STAT=csv_allocate )
+  allocate( this%header(cols), STAT=csv_allocate )
+  if ( csv_allocate /= 0 ) then
+    csv_allocate = xslibNOMEM
+    return
+  end if
+  this%header(:) = ""
+
+  return
+end function csv_allocate
+
+! Reads csv file.
+integer function csv_read( this, file, delim )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
-  character(*), intent(in)          :: file
-  real, allocatable, intent(inout)  :: data(:,:)
-  character(:), optional, allocatable, intent(inout) :: header(:) ! got any more of them attributes
-  character(*), optional            :: delim
-  integer                           :: i, unit, stat
-  integer                           :: cols, rows
-  character(512)                    :: buffer
-  logical                           :: hasHeader, exists
+  class(csv_t)                        :: this
+  character(*), intent(in)            :: file
+  character(*), optional, intent(in)  :: delim
+  integer                             :: i, unit, stat
+  integer                             :: cols, rows
+  character(512)                      :: buffer
+  logical                             :: exists, hasHeader
 
   ! Check if file exists
   inquire( FILE=trim(file), EXIST=exists )
@@ -98,51 +125,26 @@ integer function csv_read( file, data, header, delim )
 
   ! -------------------
   ! Allocate memory
+  csv_read = this%allocate(cols,rows)
+  if ( csv_read /= 0 ) return
 
-  ! Data
-  if ( allocated(data) ) deallocate( data, STAT=stat )
-  allocate( data(cols,rows), SOURCE=0., STAT=stat )
-  if ( stat /= 0 ) then
-    csv_read = xslibNOMEM
-    return
-  end if
-
-  ! Header
-  if (present(header)) then
-    if (allocated(header)) deallocate(header, STAT=stat)
-    allocate ( character(128) :: header(cols), STAT=stat )
-    if ( stat /= 0 ) then
-      csv_read = xslibNOMEM
-      return
-    end if
-    header(:)=""
-  end if
-
-  ! -------------------
   ! Read header
   if ( hasHeader ) then
-    ! Is header provided
-    if ( present(header) ) then
-      read (unit,*,IOSTAT=stat) header(:)
-    else
-      ! Skip header line
-      read (unit,*,IOSTAT=stat)
-    end if
-
-    ! Process error
+    read (unit,*,IOSTAT=stat) this%header(1:cols)
     if ( stat /= 0 ) then
       csv_read = merge(xslibENDOFFILE,xslibHEADER,stat==IOSTAT_END)
       return
-    end if
 
+    end if
   end if
 
   ! Read actual data
   do i = 1, rows
-    read (unit,*,IOSTAT=stat) data(:,i)
+    read (unit,*,IOSTAT=stat) this%data(:,i)
     if ( stat /= 0 ) then
       csv_read = merge(xslibENDOFFILE,xslib3DX,stat==IOSTAT_END)
       return
+
     end if
   end do ! for i
 
@@ -152,19 +154,21 @@ integer function csv_read( file, data, header, delim )
   return
 end function csv_read
 
-! Write DATA and (optional) HEADER in csv format to UNIT, FILE or STDOUT (if both absent).
-! Default DELIMITER is comma - ","
-integer function csv_write( data, header, file, unit, delim )
+! Write csv file to UNIT, FILE or STDOUT (if both absent).
+! * Default DELIMITER is comma - ","
+integer function csv_write( this, file, unit, delim )
   use iso_fortran_env, only: OUTPUT_UNIT
   implicit none
-  real, intent(in)          :: data(:,:)
-  character(*), optional    :: header(:), file, delim
+  class(csv_t)              :: this
+  character(*), optional    :: file, delim
   integer, optional         :: unit
-  integer                   :: i, out, stat
+  integer                   :: i, j, out, stat
   logical                   :: opened
   character(:), allocatable :: dl
-  character(64)             :: action, fmtHeader, fmtData
+  character(10)             :: action
+  character(128)            :: buffer
 
+  ! Select output method
   if ( present(file) ) then
     open( NEWUNIT=out, FILE=trim(file), ACTION="write", STATUS="unknown", IOSTAT=stat )
     if ( stat /= 0 ) then
@@ -184,48 +188,51 @@ integer function csv_write( data, header, file, unit, delim )
     out = OUTPUT_UNIT
 
   end if
+  ! --------------------------------
 
-  ! ================================
-  ! delimiter
+  ! Set delimiter
   if ( present(delim) ) then
     dl = delim
   else
     dl = ","
   end if
 
-  ! ================================
-  ! Write header
-  if ( present(header) ) then
-    ! define custom format
-    write (fmtHeader,100) size(header), dl
-    100 format( "(", i0 ,"(a:'", a ,"'))"  )
+  ! Write header if it contains data
+  if ( any(this%header(:) /= "") ) then
+    ! TODO: Add "" if header contains spaces and does not already have them
 
-    ! Add "" if contains spaces
-    ! do i = 1, cols
-    !   if (scan(trim(header(i)), " ")/=0) header(i)="'"//trim(header(i))//"'"
-    ! end do
-
-    write (out,fmtHeader,IOSTAT=stat) ( trim(header(i)), i=1,size(header) )
+    ! Try writing one line
+    write (out,"(a,$)",IOSTAT=stat) trim(this%header(1))
     if ( stat /= 0 ) then
       csv_write = xslibSTRING
       return
     end if
 
+    ! Write remaining headers one-by-one
+    do i = 2, size(this%header)
+      write (out,"(2a,$)") dl, trim(this%header(i))
+    end do
+
+    ! New line
+    write (out,*) ""
+
   end if
 
-  ! ================================
-  ! Write header
+  ! Write data (use buffer)
+  do i = 1, size(this%data,DIM=2)
+    write (buffer,*,IOSTAT=stat) this%data(1,i)
+    write (out,"(a,$)") trim(adjustl(buffer))
 
-  ! Define custom format
-  write (fmtData,200) size(data,DIM=1), dl
-  200 format( "(", i0 ,"(f8.4:'", a ,"'))"  )
+    ! Write remaining data one-by-one
+    do j = 2, size(this%data,DIM=1)
+      write (buffer,*,IOSTAT=stat) this%data(1,i)
+      write (out,"(2a,$)") dl, trim(adjustl(buffer))
 
-  do i = 1, size(data,DIM=2)
-      write (out,fmtData,IOSTAT=stat) data(:,i)
-      if ( stat /= 0 ) then
-        csv_write = xslib3DX
-        return
-      end if
+    end do
+
+    ! New line
+    write (out,*) ""
+
   end do
 
   ! Close file

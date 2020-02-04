@@ -37,6 +37,7 @@ program main
     if ( stat /= 0 .or. verify(arg," ") == 0 ) exit
 
     ! Run test for each file
+    write (*,*) "Reading file: '", trim(arg), "' ..."
     call file_test( arg )
 
   end do
@@ -60,6 +61,8 @@ subroutine file_test( file )
   ! Open file and set first, last, stride
   call xslibCheck( obj%open(file, first, last, stride) )
 
+  write (*,*) "Box:", obj%getBox()
+
   !$OMP PARALLEL PRIVATE( tid, i ) FIRSTPRIVATE( obj )
   !$ tid = OMP_get_thread_num()
 
@@ -70,8 +73,8 @@ subroutine file_test( file )
       call xslibCheck( obj%read_next() )
     !$OMP END CRITICAL
 
-    write(*,100) tid, i, obj%coor(:,1)
-    100 format( x, "tid: ", i0, " frame: ", i0, " coor(:,1): ", 3f12.4 )
+    write(*,100) tid, i, obj%coor(:,1), obj%box(1,1), obj%box(2,2), obj%box(3,3)
+    100 format( x, "tid: ", i0, " frame: ", i0, " coor(:,1): ", 3f12.4, " box(:): ", 3f12.4 )
 
   end do
   !$OMP END DO

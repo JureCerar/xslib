@@ -5,17 +5,19 @@ file ( GLOB "FILES" RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   xslib_vector.f90
   xslib_time.f90
   xslib_error.f90
+  xslib_xmalloc.f90
   xslib_list.f90
   xslib_fileio.f90
-  xslib_groio.f90
-  xslib_ndxio.f90
-  xslib_pdbio.f90
-  xslib_pdhio.f90
-  xslib_tplio.f90
-  xslib_xtcio.f90
   xslib_xyzio.f90
+  xslib_groio.f90
+  xslib_pdbio.f90
+  xslib_xtcio.f90
+  xslib_trrio.f90
   xslib_dcdio.f90
   xslib_cubio.f90
+  xslib_ndxio.f90
+  xslib_tplio.f90
+  xslib_pdhio.f90
   xslib_csvio.f90
   xdrfor.f90
   xdrfile.c
