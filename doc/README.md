@@ -9,7 +9,7 @@
   - [`pdb_t` type definition](#pdb_t-type-definition)
   - [`xtc_t` type definition](#xtc_t-type-definition)
   - [`trr_t` type definition](#trr_t-type-definition)
-  - [`dcd_t` ftype definition](#dcd_t-type-definition)
+  - [`dcd_t` type definition](#dcd_t-type-definition)
   - [`cub_t` type definition](#cub_t-type-definition)
   - [`file_t` type definition](#file_t-type-definition)
 - [Supporting file types: General](#supporting-file-types-general)
@@ -21,18 +21,17 @@
   - [`pdh_t` type definition](#pdh_t-type-definition)
   - [`csv_t` type definition](#csv_t-type-definition)
 
-### xslib other modules
+### xslib utility modules
 - [xslib](#xslib)
   - [`xslibInfo()`](#xslibinfo)
   - [`xslibAbout()`](#xslibabout)
 - [xslib_cstring](#xslib_cstring)
   - [`str()`](#str)
   - [`toLower()` and `toUpper()`](#tolower-and-toupper)
-  - [`stripComment`](#stripComment)
+  - [`stripComment()`](#stripcomment)
   - [`isWord()`](#isword)
   - [`replaceText()`](#replacetext)
-  - [`setColor()`](#setColor)
-  - [`getColor()`](#getColor)
+  - [`getColor()` and `setColor()`](#getcolor-and-setcolor)
   - [`strtok()`](#strtok)
   - [`cnttok()`](#cnttok)
   - [`baseName()`](#basename)
@@ -51,22 +50,22 @@
   - [`getDihedral()`](#getdihedral)
   - [`variance()`](#variance)
   - [`lerp()`](#lerp)
-  - [`findKClosest()`](#findKClosest)
-  - [`findCrossOver()`](#findCrossOver)
+  - [`findKClosest()`](#findkclosest)
+  - [`findCrossOver()`](#findcrossover)
   - [`swap()`](#swap)
 - [xslib_time](#xslib_time)
-  - [`wtime`](#wtime)
-  - [`write_wtime`](#write_wtime)
+  - [`wtime()`](#wtime)
+  - [`write_wtime()`](#write_wtime)
   - [`msleep()`](#msleep)
 - [xslib_list](#xslib_list)
-- [xslib_xmalloc](#xslib-xmalloc)
-  - [`xmalloc`](#xmalloc)  
-  - [`xcalloc`](#xcalloc)  
-  - [`xrealloc`](#xrealloc)  
+- [xslib_xmalloc](#xslib_xmalloc)
+  - [`xmalloc()`](#xmalloc)  
+  - [`xcalloc()`](#xcalloc)  
+  - [`xrealloc()`](#xrealloc)  
 - [xslib_error](#xslib_error)
   - [`error()` and `error_()`](#error-and-error_)
   - [`warning()` and `warning_()`](#warning-and-warning_)
-  - [`xslibErrMsg()`](#xslibErrMsg)
+  - [`xslibErrMsg()`](#xsliberrmsg)
   - [`assert()`](#assert)
   <!-- - [`set_env_colors()`](#set_env_colors) -->
 - [Notes](#notes)
@@ -79,7 +78,7 @@ xslib supports the use of multiple molecular coordinate files:
 - [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS coordinate file.  
 - [.pdb](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html) - Protein Data Bank which is most commonly used and widely spread molecular coordinate file.
 - [.xtc](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS compressed binary trajectory files.
-- [.trr](hhttp://manual.gromacs.org/archive/5.0.3/online/trr.html) - GROMACS binary trajectory files containing coordinates/velocities/forces .
+- [.trr](http://manual.gromacs.org/archive/5.0.3/online/trr.html) - GROMACS binary trajectory files containing coordinates/velocities/forces .
 - [.dcd](https://www.ks.uiuc.edu/Research/namd/2.9/ug/node11.html) - Single precision binary trajectory used by NAMD, CHARMM and LAMMPS.
 - [.cub](https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html) - Gaussian CUBE file format.
 
@@ -326,7 +325,7 @@ charge  = element_partial_charge
 segnm   = segment_identifier  
 
 ### `xtc_t` type definition
-For more information please read [XTC "manual"](http://manual.gromacs.org/archive/5.0.3/online/xtc.html). For any additional information take a crash course in C/C++ and start reading the original code, because the documentation is basically non-existent. And even with that I wish you best of luck (you WILL need it).
+For more information please read [XTC "manual"](http://manual.gromacs.org/archive/5.0.3/online/xtc.html). For any additional information take a crash course in C/C++ and start reading the original code, because the documentation is basically non-existent. And even with that I wish you best of luck.
 
 #### Structure
 ```Fortran
@@ -341,7 +340,7 @@ end type xtc_frame
 ```
 
 ### `trr_t` type definition
-For more information please read [TRR "manual"](hhttp://manual.gromacs.org/archive/5.0.3/online/trr.html). Same here... good luck.
+For more information please read [TRR "manual"](http://manual.gromacs.org/archive/5.0.3/online/trr.html). Same here... good luck.
 
 #### Structure
 ```Fortran
@@ -417,7 +416,7 @@ type cub_t
 end type cub_t
 ```
 
-### `file_t` class definition
+### `file_t` type definition
 > "One object to rule them all, one object to find them,  
 > one object to bring them all, and in the darkness bind them."
 
@@ -687,7 +686,7 @@ integer function write( data, header, unit, file, delimiter )
 ```
 
 ---------------------
-# xslib other modules
+# xslib utility modules
 
 ## xslib
 Master module *i.e.* it contains all other modules. Additionally it contains information about the library itself.
@@ -699,7 +698,7 @@ function xslibInfo()
   character(:), allocatable :: xslibinfo
 ```
 
-### `xslibInfo()`
+### `xslibAbout()`
 Writes more extensive xslib library information along with license info to STDOUT.  
 ```Fortran
 subroutine xslibAbout()
@@ -781,7 +780,7 @@ character(:) function setColor( string, attr, fg, bg )
   character(*), intent(in), optional  :: attr, fg, bg
 ```
 
-### `strtok`
+### `strtok()`
 Tokenize string i.e. breaks string into a series of tokens using the delimiter. Works in same way as ANSI C strtok, except instead of NULL feed char(0)
 ```Fortran
 character(:) function strtok( string, delim )
@@ -1014,7 +1013,7 @@ Return high precision time in sec.
 real(REAL64) function wtime()
 ```
 
-### `write_time()`
+### `write_wtime()`
 Transforms time in seconds to string in format: *"ddd:hh:mm:ss.sss"*. Use with `OMP_get_wtime()` or `wtime()`.  
 ```Fortran
 character(16) function write_wtime( time )
@@ -1135,7 +1134,7 @@ error = xmalloc( array, [2] )
 error = xcalloc( array2d, [2,2], ERRMSG=errmsg )
 ```
 
-### `xmalloc`
+### `xmalloc()`
 Allocates a block of memory for an array of num. elements. The content of the newly allocated block of memory is not initialized, remaining with indeterminate values.  
 ```Fortran
 integer function xmalloc( object, spec, errmsg )
@@ -1144,7 +1143,7 @@ integer function xmalloc( object, spec, errmsg )
   integer, intent(out), optional      :: errmsg
 ```
 
-### `xcalloc`
+### `xcalloc()`
 Allocates a block of memory for an array of num. elements, and initializes all its bits to zero.  
 ```Fortran
 integer function xcalloc( object, spec, errmsg )
@@ -1153,8 +1152,8 @@ integer function xcalloc( object, spec, errmsg )
   integer, intent(out), optional      :: errmsg
 ```
 
-### `xrealloc`
-hanges the size of memory block. The content of the memory block is preserved up to the lesser of the new and old sizes, even if the block is moved to a new location. If the new size is larger, the value of the newly allocated portion is indeterminate.
+### `xrealloc()`
+Changes the size of memory block. The content of the memory block is preserved up to the lesser of the new and old sizes, even if the block is moved to a new location. If the new size is larger, the value of the newly allocated portion is indeterminate.
 ```Fortran
 integer function xrealloc( object, spec, errmsg )
   type(*), allocatable, intent(inout) :: object(..)
@@ -1254,4 +1253,4 @@ subroutine assert( actual, expected, tol, file, line )
 ## Notes
 For more examples of xslib usage check [`examples`](../examples).
 
-<!-- Most of the routines in XsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*. -->
+<!-- Most of the routines in xsLib won't allow you to do stupid things and will either promptly stop you from hurting yourself by terminating the program or will politely protest with a warning (and most likely crash afterwards). If don't like being told what you can and can't do simply delete everything in `error` and `warning` subroutines located in *src/xslib_common.f90*. -->
