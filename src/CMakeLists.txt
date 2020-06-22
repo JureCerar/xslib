@@ -97,6 +97,6 @@ install ( TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION lib )
 
 # Install FORTRAN modules in include directory
 install ( DIRECTORY "${CMAKE_BINARY_DIR}/include/"
-	DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${CMAKE_PROJECT_NAME}"
 	FILES_MATCHING PATTERN "*.mod"
 )

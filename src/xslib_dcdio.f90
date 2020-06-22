@@ -21,6 +21,8 @@ module xslib_dcdio
   implicit none
   private
   public :: dcd_t, dcd_frame
+  public :: dcd_open_file, dcd_close_file, dcd_read_header, dcd_skip_header
+  public :: dcd_read_data, dcd_skip_data, dcd_write_header, dcd_write_data
 
   ! Import error definitions
   include "fileio.h"
@@ -66,19 +68,128 @@ module xslib_dcdio
 contains
 
 ! -------------------------------------------------
-! Class independant (low-level) routines
+! Class independant routines
 
-! Comment
-integer function dcd_header_read( unit, remarks, nframes, start_time, every_time, end_time, timestep, natoms )
-  use, intrinsic :: iso_fortran_env
+! Open .dcd file
+! * .dcd has some convoluted file check procedure.
+integer function dcd_open_file( unit, file, nframes, natoms, box )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, INT64
+  implicit none
+  integer, intent(out)      :: unit
+  character(*), intent(in)  :: file
+  integer, intent(out)      :: nframes, natoms
+  real, intent(out)         :: box(3,3)
+  character(*), parameter   :: magic_string = "CORD"
+  integer, parameter        :: magic_number = 84
+  integer                   :: i, stat, line1, charmm_version, has_extra_block, four_dimensions
+  integer(INT64)            :: pos
+  real                      :: ibox(3,3)
+  character(4)              :: line2
+  logical                   :: exist
+
+  ! Does file exist? And grab file size.
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    dcd_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file in native endinness
+  open ( NEWUNIT=unit, FILE=trim(file), FORM="unformatted", ACCESS="stream", STATUS="old", IOSTAT=stat )
+  if ( stat /= 0 ) then
+    dcd_open_file = xslibOPEN
+    return
+  end if
+
+  ! Read in magic number and magic string
+  read (unit,POS=1,IOSTAT=stat) line1
+  read (unit,IOSTAT=stat) line2
+  if ( stat /= 0 ) then
+    dcd_open_file = merge( xslibENDOFFILE, xslibHEADER, stat == IOSTAT_END)
+    return
+  end if
+
+  ! Ensure the magic number and string are correct, if not we'll swap the endinness
+  if ( line1 /= magic_number .or. line2 /= magic_string ) then
+    ! Try converting to the reverse endianness
+    close ( unit )
+    open ( NEWUNIT=unit, FILE=trim(file), FORM="unformatted", ACCESS="stream", STATUS="old", IOSTAT=stat, CONVERT="swap" )
+
+    ! Retry reading magic number and magic string
+    read (unit,POS=1,IOSTAT=stat) line1
+    read (unit,IOSTAT=stat) line2
+    if ( stat /= 0 ) then
+      dcd_open_file = merge( xslibENDOFFILE, xslibHEADER, stat == IOSTAT_END)
+      return
+    end if
+
+    ! We tried both native and reverse endiness and didn't have magic number or string
+    if ( line1 /= magic_number .or. line2 /= magic_string ) then
+      dcd_open_file = xslibMAGIC
+      return
+    end if
+
+  end if
+
+  ! Check if the file identifies as CHARMM (LAMMPS pretends to be CHARMM v. 24)
+  read (unit,POS=85,IOSTAT=stat) charmm_version
+  if ( stat /= 0 .or. charmm_version == 0 ) then
+    dcd_open_file = xslibINT
+    return
+  end if
+
+  ! We only support files with the extra unitcell block
+  read (unit,POS=49,IOSTAT=stat) has_extra_block
+  if ( stat /= 0 .or. has_extra_block /= 1 ) then
+    dcd_open_file = xslibINT
+    return
+  end if
+
+  ! We don't support files with four dimensions
+  read (unit,IOSTAT=stat) four_dimensions
+  if ( stat /= 0 .or. four_dimensions == 1 ) then
+    dcd_open_file = xslib3DX
+    return
+  end if
+
+  ! ---------------------------------------------------------
+  ! NOTE: File is now ready for reading header
+
+  ! Read full header
+  dcd_open_file = dcd_skip_header( unit, nframes, natoms )
+  if ( dcd_open_file /= xslibOK ) return
+
+  ! Current possiton
+  inquire ( UNIT=unit, POS=pos )
+
+  ! Check all frames for largest box
+  box(:,:) = 0.000
+  do i = 1, nframes
+    dcd_open_file = dcd_skip_data( unit, natoms, ibox )
+    if ( dcd_open_file /= xslibOK ) return
+    box(:,:) = max( box, ibox )
+
+  end do
+
+  ! Return to original position
+  read (unit,POS=pos)
+
+  ! Return success
+  dcd_open_file = xslibOK
+
+  return
+end function dcd_open_file
+
+! Read .dcd header
+! NOTE: Remarks are allocated within routine.
+integer function dcd_read_header( unit, remarks, nframes, start_time, every_time, end_time, timestep, natoms )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, INT64
   use, intrinsic :: iso_c_binding, only: C_NULL_CHAR
-  ! use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in)                     :: unit
   character(80), allocatable, intent(out) :: remarks(:)
   integer, intent(out)                    :: nframes, natoms, start_time, every_time, end_time
   real, intent(out)                       :: timestep
-  ! --------
   integer(INT64)                          :: filesize, framesize
   integer                                 :: i, nremarks, n, dummy, pos, stat
   integer(INT64)                          :: nframes2
@@ -88,44 +199,61 @@ integer function dcd_header_read( unit, remarks, nframes, start_time, every_time
   ! Check inpit unit
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    dcd_header_read = xslibOPEN
+    dcd_read_header = xslibOPEN
     return
   end if
 
-  read (unit,POS=9) nframes, start_time, every_time, end_time
-  read (unit,POS=45) timestep
+  read (unit,POS=9,IOSTAT=stat) nframes, start_time, every_time, end_time
+  if ( stat /= 0 ) then
+    dcd_read_header = merge( xslibENDOFFILE, xslibHEADER, stat == IOSTAT_END )
+    return
+  end if
+
+  read (unit,POS=45,IOSTAT=stat) timestep
+  if ( stat /= 0 ) then
+    dcd_read_header = xslibFLOAT
+    return
+  end if
 
   ! Number of remarks
-  read (unit,POS=97) nremarks
+  read (unit,POS=97,IOSTAT=stat) nremarks
+  if ( stat /= 0 ) then
+    dcd_read_header = xslibINT
+    return
+  end if
 
   ! Data allocation
   if ( allocated(remarks) ) deallocate( remarks, STAT=stat )
   allocate( remarks(nremarks), STAT=stat )
   if ( stat /= 0 ) then
-    dcd_header_read = xslibNOMEM
+    dcd_read_header = xslibNOMEM
     return
   end if
 
-  ! Read remars and trim C_NULL_CHAR
+  ! Read remarks and trim C_NULL_CHAR
   do i = 1, nremarks
-      read (unit) remarks(i)
+      read (unit,IOSTAT=stat) remarks(i)
+      if ( stat /= 0 ) then
+        dcd_read_header = xslibSTRING
+        return
+      end if
       n = index(remarks(i),C_NULL_CHAR)
       if ( n /= 0 ) remarks(i) = trim(remarks(i)(1:n-1))
   end do
 
   ! Dummy arguments (?)
-  read (unit) dummy, dummy
-  if ( dummy /= 4 ) then
+  read (unit,IOSTAT=stat) dummy, dummy
+  if ( stat /= 0 .or. dummy /= 4 ) then
     ! This DCD file format is not supported, or the file header is corrupt.
-    dcd_header_read = xslibINT
+    dcd_read_header = xslibINT
     return
   end if
 
   ! Number of atoms in each snapshot
-  read (unit) natoms, dummy
-  if (dummy .ne. 4) then
+  read (unit,IOSTAT=stat) natoms, dummy
+  if ( stat /= 0 .or. dummy /= 4 ) then
     ! "This DCD file format is not supported, or the file header is corrupt."
-    dcd_header_read = xslibNATOMS
+    dcd_read_header = xslibNATOMS
     return
   end if
 
@@ -142,35 +270,116 @@ integer function dcd_header_read( unit, remarks, nframes, start_time, every_time
   nframes2 = (filesize-pos)/framesize
   if ( nframes2 /= nframes ) then
     ! Excpected nframes got nframes2
-    ! NOTE: Technically not an  an error?
-    ! TODO: Just let it slide???
-    dcd_header_read = xslibNATOMS
+    ! NOTE: Technically not an error? Just let it slide???
+    dcd_read_header = xslibNATOMS
     return
   end if
 
   ! Return success
-  dcd_header_read = xslibOK
+  dcd_read_header = xslibOK
 
   return
-end function dcd_header_read
+end function dcd_read_header
 
-! Comment
-integer function dcd_coor_read( unit, natoms, box, coor )
-  use iso_fortran_env
-  ! use, intrinsic :: iso_fortran_env, only: IOSTAT_END
+! Skip (only read essentials) .dcd header
+integer function dcd_skip_header( unit, nframes, natoms )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, INT64
+  use, intrinsic :: iso_c_binding, only: C_NULL_CHAR
   implicit none
-  integer, intent(in)       :: unit, natoms
-  real, intent(out)         :: coor(3,natoms)
-  real, intent(out)         :: box(3,3)
-  integer                   :: dummy(6), nbytes
-  real(REAL64)              :: ibox(6)
-  logical                   :: opened
-  character(9)              :: action
+  integer, intent(in)   :: unit
+  integer, intent(out)  :: nframes, natoms
+  integer(INT64)        :: filesize, framesize
+  integer               :: i, ni, dummy, pos, stat
+  character(80)         :: remark
+  integer(INT64)        :: nframes2
+  logical               :: opened
+  character(9)          :: action
+
+  ! Check inpit unit
+  inquire( UNIT=unit, OPENED=opened, ACTION=action )
+  if ( .not. opened .or. index(action,"READ") == 0 ) then
+    dcd_skip_header = xslibOPEN
+    return
+  end if
+
+  read (unit,POS=9,IOSTAT=stat) nframes
+  if ( stat /= 0 ) then
+    dcd_skip_header = merge( xslibENDOFFILE, xslibHEADER, stat == IOSTAT_END )
+    return
+  end if
+
+  ! Number of remarks
+  read (unit,POS=97,IOSTAT=stat) ni
+  if ( stat /= 0 ) then
+    dcd_skip_header = xslibINT
+    return
+  end if
+
+  ! Skip remarks
+  do i = 1, ni
+    read (unit,IOSTAT=stat) remark
+    if ( stat /= 0 ) then
+      dcd_skip_header = xslibSTRING
+      return
+    end if
+  end do
+
+  ! Dummy arguments (?)
+  read (unit,IOSTAT=stat) dummy, dummy
+  if ( stat /= 0 .or. dummy /= 4 ) then
+    ! This DCD file format is not supported, or the file header is corrupt.
+    dcd_skip_header = xslibINT
+    return
+  end if
+
+  ! Number of atoms in each snapshot
+  read (unit,IOSTAT=stat) natoms, dummy
+  if ( stat /= 0 .or. dummy /= 4 ) then
+    ! "This DCD file format is not supported, or the file header is corrupt."
+    dcd_skip_header = xslibNATOMS
+    return
+  end if
+
+  ! Current position and file size
+  inquire( UNIT=unit, POS=pos, SIZE=filesize )
+  pos = pos-1
+
+  ! Each frame has natoms*3 (4 bytes each) = natoms*12
+  ! plus 6 box dimensions (8 bytes each) = 48
+  ! Additionally there are 32 bytes of file information in each frame
+  framesize = natoms*12 + 80
+
+  ! Header is typically 276 bytes, but inquire gives us exact size
+  nframes2 = (filesize-pos)/framesize
+  if ( nframes2 /= nframes ) then
+    ! Excpected nframes got nframes2
+    ! NOTE: Technically not an error? Just let it slide???
+    dcd_skip_header = xslibNATOMS
+    return
+  end if
+
+  ! Return success
+  dcd_skip_header = xslibOK
+
+  return
+end function dcd_skip_header
+
+! Read .dcd data
+integer function dcd_read_data( unit, natoms, box, coor )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, REAL32, REAL64
+  implicit none
+  integer, intent(in) :: unit, natoms
+  real, intent(out)   :: coor(3,natoms)
+  real, intent(out)   :: box(3,3)
+  integer             :: stat, dummy(6), nbytes
+  real(REAL64)        :: ibox(6)
+  logical             :: opened
+  character(9)        :: action
 
   ! Check if unit is assigned and opened for reading
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    dcd_coor_read = xslibOPEN
+    dcd_read_data = xslibOPEN
     return
   end if
 
@@ -178,19 +387,25 @@ integer function dcd_coor_read( unit, natoms, box, coor )
   nbytes = natoms*4
 
   ! Magic parameter?
-  read (unit) dummy(1)
-  if ( dummy(1) /= 48 ) then
+  read (unit,IOSTAT=stat) dummy(1)
+  if ( stat /= 0 .or. dummy(1) /= 48 ) then
     ! Problem reading in DCD snapshot.
-    dcd_coor_read = xslibINT
+    dcd_read_data = xslibINT
     return
   end if
 
-  ! Simulation box size: XX,gamma,YY,beta,alpha,ZZ
-  read (unit) ibox(1:6)
+  ! NOTE to self: This is a problem, but we eill ignore it ...
   ! if ( ibox(1) < 0. .or. ibox(3) < 0. .or. ibox(6) < 0. ) then
     ! Problem reading in DCD snapshot box dimensions.
-    ! NOTE to self: this is a problem, but we eill ignore it ...
   ! end if
+
+  ! Simulation box size: XX,gamma,YY,beta,alpha,ZZ
+  read (unit,IOSTAT=stat) ibox(1:6)
+  if ( stat /= 0 ) then
+    dcd_read_data = xslib3DX
+    return
+  end if
+
   ! Transform box
   box(:,:) = 0.000
   box(1,1) = real(ibox(1))
@@ -198,40 +413,40 @@ integer function dcd_coor_read( unit, natoms, box, coor )
   box(3,3) = real(ibox(6))
 
   ! Coordinates
-  ! 48, then no. of bytes for x coordinates, x coordinates (repeat for y and z coordinates)
-  read (unit) dummy(1:2), coor(1,:), dummy(3:4), coor(2,:), dummy(5:6), coor(3,:)
-  if ( dummy(1) /= 48 ) then
-    dcd_coor_read = xslib3DX
+  ! * < 48, num. of bytes for x coordinates, x coordinates, ... > (repeat for y and z coordinates)
+  read (unit,IOSTAT=stat) dummy(1:2), coor(1,:), dummy(3:4), coor(2,:), dummy(5:6), coor(3,:)
+  if ( stat /= 0 .or. dummy(1) /= 48 ) then
+    dcd_read_data = xslib3DX
     return
   end if
 
   if ( any(dummy(2:6) /= nbytes) ) then
     ! Number of bytes in DCD snapshot is incorrect for size of xyz array passed.
-    dcd_coor_read = xslib3DX
+    dcd_read_data = xslib3DX
     return
   end if
 
   ! Last number is nbytes
-  read (unit) dummy(1)
-  if ( dummy(1) /= nbytes ) then
+  read (unit,IOSTAT=stat) dummy(1)
+  if ( stat /= 0 .or. dummy(1) /= nbytes ) then
     ! Problem reading in DCD snapshot.
-    dcd_coor_read = xslib3DX
+    dcd_read_data = xslib3DX
     return
   end if
 
   ! Return success
-  dcd_coor_read = xslibOK
+  dcd_read_data = xslibOK
 
   return
-end function dcd_coor_read
+end function dcd_read_data
 
-! Comment
-integer function dcd_coor_skip( unit, natoms, box )
-  use iso_fortran_env
+! Skip .dcd data
+integer function dcd_skip_data( unit, natoms, box )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, REAL64, INT64
   implicit none
   integer, intent(in) :: unit, natoms
   real, intent(out)   :: box(3,3)
-  integer             :: dummy
+  integer             :: stat, dummy
   real(REAL64)        :: ibox(6)
   integer(INT64)      :: pos, newpos, framesize
   logical             :: opened
@@ -240,42 +455,52 @@ integer function dcd_coor_skip( unit, natoms, box )
   ! Where are we? Additionally, check if opened and ready for read.
   inquire( UNIT=unit, POS=pos, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    dcd_coor_skip = xslibOPEN
+    dcd_skip_data = xslibOPEN
     return
   end if
 
   ! Magic parameter?
-  read (unit) dummy
-  if ( dummy /= 48 ) then
-    dcd_coor_skip = xslibMAGIC
+  read (unit,IOSTAT=stat) dummy
+  if ( stat /= 0 .or. dummy /= 48 ) then
+    dcd_skip_data = merge( xslibENDOFFILE, xslibMAGIC, stat == IOSTAT_END )
     return
   end if
 
-  box(:,:) = 0.000
-
   ! Simulation box size: XX,gamma,YY,beta,alpha,ZZ
-  read (unit) ibox(1:6)
+  read (unit,IOSTAT=stat) ibox(1:6)
+  if ( stat /= 0 ) then
+    dcd_skip_data = xslib3DX
+    return
+  end if
+
+  ! Transform box
+  box(:,:) = 0.000
   box(1,1) = real(ibox(1))
   box(2,2) = real(ibox(3))
   box(3,3) = real(ibox(6))
 
-  ! Each frame has natoms*3 (4 bytes each) = natoms*12
-  ! plus 6 box dimensions (8 bytes each) = 48
+  ! Each frame has natoms*DIM*(4 bytes each) = natoms*12
+  ! plus 6 box dimensions*(8 bytes each) = 48
   ! Additionally there are 32 bytes of file information in each frame
   framesize = natoms*12 + 80
 
   ! We subtract 4 bytes so that the next read of the 4-byte integer will line things up properly for the next read
   newpos = pos + framesize - 4
-  read (unit,POS=newpos) dummy
+  read (unit,POS=newpos,IOSTAT=stat) dummy
+  if ( stat /= 0 ) then
+    dcd_skip_data = xslib3DX
+    return
+  end if
 
   ! Return success
-  dcd_coor_skip = xslibOK
+  dcd_skip_data = xslibOK
 
   return
-end function dcd_coor_skip
+end function dcd_skip_data
 
-! Comment
-integer function dcd_header_write( unit, remarks, start_time, every_time, end_time, timestep, natoms, nframes_pos )
+! Write .dcd header
+integer function dcd_write_header( unit, remarks, start_time, every_time, end_time, timestep, natoms, nframes_pos )
+  use, intrinsic :: iso_fortran_env, only: INT64 
   use, intrinsic :: iso_c_binding, only: C_NULL_CHAR
   implicit none
   integer, intent(in)           :: unit, natoms
@@ -283,19 +508,16 @@ integer function dcd_header_write( unit, remarks, start_time, every_time, end_ti
   real, intent(in)              :: timestep
   integer, intent(in)           :: start_time, every_time, end_time
   integer(INT64), intent(out)   :: nframes_pos
-  character(16)                 :: date, time
-  character(80)                 :: remarks1, remarks2
   integer                       :: i, nframes
+  logical                       :: opened
+  character(9)                  :: action
 
-  ! Remarks
-  call date_and_time(date=date,time=time)
-  remarks1 = "Created by xslib_dcdio"
-  remarks2 = "REMARK Created on "//date//" "//time
-
-  ! Terminate wit C_NULL_CHAR
-  ! do i = 1, size(remarks)
-  !   remarks(i)(80:80) = C_NULL_CHAR
-  ! end do
+  ! Check if unit is assigned and opened for writing
+  inquire( UNIT=unit, OPENED=opened, ACTION=action )
+  if ( .not. opened .or. index(action,"READWRITE") == 0 ) then
+    dcd_write_header = xslibOPEN
+    return
+  end if
 
   ! Leave empty header; it will be updated each time frame is written.
   nframes = 0
@@ -322,17 +544,17 @@ integer function dcd_header_write( unit, remarks, start_time, every_time, end_ti
   ! Has unit cell
   write (unit) 1
   do i = 1, 8
-      write (unit) 0
+    write (unit) 0
   end do
 
   ! Pretend to be CHARMM version 24
   write (unit) 24, 84, 164
 
-  ! TODO: write ALL remarks
-  ! Write custom remakrs
-  write (unit) 2
-  write (unit) remarks1
-  write (unit) remarks2
+  ! Write remakrs and terminate them with C_NULL_CHAR
+  write (unit) size(remarks)
+  do i = 1, size(remarks)
+    write (unit) remarks(i)(1:79)//C_NULL_CHAR
+  end do
 
   write (unit) 164, 4
 
@@ -340,27 +562,35 @@ integer function dcd_header_write( unit, remarks, start_time, every_time, end_ti
   write (unit) natoms
   write (unit) 4
 
-  flush( unit )
+  flush (unit)
 
   ! return success
-  dcd_header_write = xslibOK
+  dcd_write_header = xslibOK
 
   return
-end function dcd_header_write
+end function dcd_write_header
 
-! Comment
-integer function dcd_coor_write( unit, nframes_pos, natoms, box, coor )
-  use iso_fortran_env
+! Write data in .dcd format
+integer function dcd_write_data( unit, nframes_pos, natoms, box, coor )
+  use, intrinsic :: iso_fortran_env, only: INT64, REAL64
   implicit none
   integer, intent(in)         :: unit, natoms
   integer(INT64), intent(in)  :: nframes_pos
   real, intent(in)            :: coor(3,natoms)
   real, intent(in)            :: box(3,3)
-  ! -------
   real(REAL64)                :: ibox(6)
   integer(INT64)              :: current
-  integer                     :: coord_size
+  integer                     :: stat, coord_size
   integer                     :: nframes, istart, istride, iend
+  logical                     :: opened
+  character(9)                :: action
+
+  ! Check if unit is assigned and opened for writing
+  inquire( UNIT=unit, OPENED=opened, ACTION=action )
+  if ( .not. opened .or. index(action,"READWRITE") == 0 ) then
+    dcd_write_data = xslibOPEN
+    return
+  end if
 
   ! Should be 48 (6 double precision floats)
   write (unit) 48
@@ -381,7 +611,11 @@ integer function dcd_coor_write( unit, nframes_pos, natoms, box, coor )
   inquire( UNIT=unit, POS=current)
 
   ! Update header (read->update->write)
-  read (unit,POS=nframes_pos) nframes, istart, istride, iend
+  read (unit,POS=nframes_pos,IOSTAT=stat) nframes, istart, istride, iend
+  if ( stat /= 0 ) then
+    dcd_write_data = xslibHEADER
+    return
+  end if
   write (unit,POS=nframes_pos) nframes+1, istart, istride, iend+istride
 
   ! Go back to end of stream
@@ -391,11 +625,24 @@ integer function dcd_coor_write( unit, nframes_pos, natoms, box, coor )
   flush( unit )
 
   ! Return sucess
-  dcd_coor_write = xslibOK
+  dcd_write_data = xslibOK
 
   return
-end function dcd_coor_write
+end function dcd_write_data
 
+! Close .dcd file handle
+integer function dcd_close_file( unit )
+  implicit none
+  integer, intent(in) :: unit
+  integer             :: stat
+  close ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    dcd_close_file = xslibCLOSE
+  else
+    dcd_close_file = xslibOK
+  end if
+  return
+end function dcd_close_file
 
 ! -------------------------------------------------
 ! dcd_coor_read procedures
@@ -452,20 +699,19 @@ integer function dcd_frame_read( this, unit, natoms )
   class(dcd_frame)    :: this
   integer, intent(in) :: unit, natoms
 
-  ! NOTE: File UNIT check is done by low-level routines.
-
   ! Allocated data
   dcd_frame_read = this%allocate( natoms )
   if ( dcd_frame_read /= xslibOK ) return
 
   ! Read data
-  dcd_frame_read = dcd_coor_read( unit, this%natoms, this%box, this%coor )
+  dcd_frame_read = dcd_read_data( unit, this%natoms, this%box, this%coor )
 
   return
 end function dcd_frame_read
 
 ! Comment
 integer function dcd_frame_write( this, unit, nframes_pos )
+  use, intrinsic :: iso_fortran_env, only: INT64
   implicit none
   class(dcd_frame)            :: this
   integer, intent(in)         :: unit
@@ -478,7 +724,7 @@ integer function dcd_frame_write( this, unit, nframes_pos )
   end if
 
   ! Write header and coor
-  dcd_frame_write = dcd_coor_write( unit, nframes_pos, this%natoms, this%box, this%coor )
+  dcd_frame_write = dcd_write_data( unit, nframes_pos, this%natoms, this%box, this%coor )
 
   return
 end function dcd_frame_write
@@ -621,97 +867,15 @@ end subroutine dcd_assign
 ! Comment
 integer function dcd_open( this, file )
   implicit none
-  class(dcd_t)                   :: this
-  character(*), intent(in)      :: file
-  character(*), parameter       :: magic_string = "CORD"
-  integer, parameter            :: magic_number = 84
-  integer                       :: i, pos, line1, stat, charmm_version, has_extra_block, four_dimensions, filesize
-  character(4)                  :: line2
-  real                          :: box(3,3)
-  logical                       :: exist
+  class(dcd_t)              :: this
+  character(*), intent(in)  :: file
 
-  ! Does file exist? And grab file size.
-  inquire( FILE=trim(file), EXIST=exist, SIZE=filesize )
-  if ( .not. exist ) then
-    dcd_open = xslibFILENOTFOUND
-    return
-  end if
-
-  ! Open file in native endinness
-  open ( NEWUNIT=this%unit, FILE=trim(file), FORM="unformatted", ACCESS="stream", STATUS="old", IOSTAT=stat )
-  if ( stat /= 0 ) then
-    dcd_open = xslibOPEN
-    return
-  end if
-
-  ! Read in magic number and magic string
-  read (this%unit,POS=1) line1
-  read (this%unit) line2
-
-  ! Ensure the magic number and string are correct, if not we'll swap the endinness
-  if ( line1 /= magic_number .or. line2 /= magic_string ) then
-    ! Try converting to the reverse endianness
-    close( this%unit )
-    open( NEWUNIT=this%unit, FILE=trim(file), FORM="unformatted", ACCESS="stream", STATUS="old", IOSTAT=stat, CONVERT="swap" )
-
-    ! Retry reading magic number and magic string
-    read (this%unit,POS=1) line2
-    read (this%unit) line2
-
-    ! We tried both native and reverse endiness and didn't have magic number or string
-    if ( line1 /= magic_number .or. line2 /= magic_string ) then
-      dcd_open = xslibHEADER
-      return
-    end if
-
-  end if
-
-  ! Check if the file identifies as CHARMM (LAMMPS pretends to be CHARMM v. 24)
-  read (this%unit,POS=85) charmm_version
-  if ( charmm_version == 0 ) then
-    dcd_open = xslibINT
-    return
-  end if
-
-  ! We only support files with the extra unitcell block
-  read (this%unit,POS=49) has_extra_block
-  if ( has_extra_block /= 1 ) then
-    dcd_open = xslibINT
-    return
-  end if
-
-  ! We don't support files with four dimensions
-  read (this%unit) four_dimensions
-  if ( four_dimensions .eq. 1 ) then
-    dcd_open = xslib3DX
-    return
-  end if
-
-  ! ---------------------------
-
-  ! Read full header
-  dcd_open = dcd_header_read( this%unit, this%remarks, this%allframes, this%start_time, &
-  &   this%every_time, this%end_time, this%timestep, this%natoms )
+  ! Open file and check if compatible
+  dcd_open = dcd_open_file( this%unit, file, this%allframes, this%natoms, this%box )
   if ( dcd_open /= xslibOK ) return
 
-  ! Current possiton
-  inquire( UNIT=this%unit, POS=pos )
-
-  ! Check all frames for largest box
-  do i = 1, this%allframes
-    dcd_open =  dcd_coor_skip( this%unit, this%natoms, box )
-    this%box(:,:) = merge( this%box, box, all(this%box > box) )
-
-  end do
-
-  ! Return to original position
-  read (this%unit,POS=pos)
-
-  ! All frames remaining
+  ! All frames are remaining
   this%remaining = this%allframes
-
-  ! Return success
-  dcd_open = xslibOK
 
   return
 end function dcd_open
@@ -719,7 +883,7 @@ end function dcd_open
 ! Comment
 integer function dcd_read( this, file, first, last, stride )
   implicit none
-  class(dcd_t)                   :: this
+  class(dcd_t)                  :: this
   character(*), intent(in)      :: file
   integer, intent(in), optional :: first, last, stride
   integer                       :: i, nfirst, nlast, nstride
@@ -812,7 +976,7 @@ integer function dcd_skip_next( this, nframes )
 
   ! Skip selected number of frames
   do i = 1, min( merge( nframes, 1, present(nframes) ), this%remaining )
-    dcd_skip_next = dcd_coor_skip( this%unit, this%natoms, box )
+    dcd_skip_next = dcd_skip_data( this%unit, this%natoms, box )
     if ( dcd_skip_next /= xslibOK ) return
 
     ! One less frame remaining
@@ -834,6 +998,7 @@ integer function dcd_write( this, file )
   integer                  :: i, stat
 
   ! Open a new file.
+  ! NOTE: Action MUST be readwrite.
   open( NEWUNIT=this%unit, FILE=trim(file), FORM="unformatted", ACCESS="stream", ACTION="readwrite", IOSTAT=stat )
   if ( stat /= 0 ) then
     dcd_write = xslibFILENOTFOUND
@@ -847,8 +1012,7 @@ integer function dcd_write( this, file )
   end if
 
   ! Write header
-  ! dcd_header_write( unit, remarks, start_time, every_time, end_time, timestep, natoms, nframes_pos )
-  dcd_write = dcd_header_write( this%unit, this%remarks, this%start_time, this%every_time, &
+  dcd_write = dcd_write_header( this%unit, this%remarks, this%start_time, this%every_time, &
   &   this%end_time, this%timestep, this%natoms, this%nframes_pos )
   if ( dcd_write /= xslibOK ) return
 
@@ -856,8 +1020,7 @@ integer function dcd_write( this, file )
   do i = 1, this%nframes
     dcd_write = this%frame(i)%write( this%unit, this%nframes_pos )
     if ( dcd_write /= xslibOK ) return
-
-  end do ! for n
+  end do ! for i
 
   ! Close unit
   dcd_write = this%close()

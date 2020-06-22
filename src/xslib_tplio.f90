@@ -34,7 +34,7 @@ module xslib_tplio
   type, private :: tpl_mol
     integer               :: natoms = 0, nmol = 0
     integer, pointer      :: id(:) => null()
-    character(3), pointer :: name(:) => null()
+    character(6), pointer :: name(:) => null()
     real, pointer         :: pcharge(:) => null()
   end type tpl_mol
 
@@ -44,7 +44,7 @@ module xslib_tplio
     type(tpl_mol), allocatable  :: type(:)  ! Type of molecule
     integer                     :: natoms = 0
     integer, pointer            :: id(:) => null()
-    character(3), pointer       :: name(:) => null()
+    character(6), pointer       :: name(:) => null()
     real, pointer               :: pcharge(:) => null()
   contains
     procedure :: allocate => tpl_allocate
@@ -56,7 +56,7 @@ module xslib_tplio
 contains
 
 ! Allocate tpl memory and connect pointers.
-! * ntypes is defined by size(natoms) and natoms of each type by its value.
+! * "ntypes" is defined as size(natoms) and "type(i)%natoms" as value of natoms(i).
 ! * tpl%allocate( [8,4] ) => 2 molecules; 8 and 4 atoms each, respectively.
 integer function tpl_allocate( this, natoms )
   implicit none
@@ -142,19 +142,23 @@ integer function tpl_read( this, file )
   stat = 0
   do while ( stat == 0 )
     read (unit,"(a)",IOSTAT=stat) buffer
-    if ( stat == IOSTAT_END ) exit
+    if ( stat /= 0 ) exit
+
+    ! Process line: remove comment and transform to upper case
+    buffer = processLine( buffer )
 
     ! Check for molecule directive
-    buffer = processLine( buffer )
     if ( index(buffer,"MOLECULE") /= 0 ) then
+      ! One more type is present
       this%ntypes = this%ntypes+1
+
       ! Read number of atoms
       read (buffer,*,IOSTAT=stat) keyword, n
-      if ( stat /= 0) then
+      if ( stat /= 0 ) then
         tpl_read = xslibINT
         return
-
       end if
+
       this%natoms = this%natoms+n
 
     end if
@@ -163,8 +167,10 @@ integer function tpl_read( this, file )
   ! Rewind file
   rewind( unit, IOSTAT=stat )
 
-  ! Allocate overall data
-  if ( associated(this%name) ) deallocate( this%name, this%pcharge, this%id, STAT=stat )
+  ! Allocate overall data (1st level)
+  if ( associated(this%name) ) deallocate( this%name, STAT=stat )
+  if ( associated(this%pcharge) ) deallocate( this%pcharge, STAT=stat )
+  if ( associated(this%id) ) deallocate( this%id, STAT=stat )
   allocate ( this%name(this%natoms), this%pcharge(this%natoms), this%id(this%natoms), STAT=stat )
   if ( stat /= 0 ) then
     tpl_read = xslibNOMEM
@@ -176,7 +182,7 @@ integer function tpl_read( this, file )
   this%pcharge(:) = 0.000
   this%id(:)      = 0
 
-  ! Allocate data each "molecule"
+  ! Allocate data for each "molecule" (2nd level)
   if ( allocated(this%type) ) deallocate( this%type, STAT=stat )
   allocate( this%type(this%ntypes), STAT=stat )
   if ( stat /= 0 ) then
@@ -186,42 +192,44 @@ integer function tpl_read( this, file )
 
   ! Actual read loop
   n = 1 ! Index of current molecule.
-  do while ( stat == 0 )
-    ! Read and process line
+  do while ( .true. )
+    ! Read buffer
     read (unit,"(a)",IOSTAT=stat) buffer
-    if ( stat == IOSTAT_END ) exit
+    if ( stat /= 0 ) exit
+
+    ! Process line
     buffer = processLine( buffer )
     if ( verify(buffer, " ") == 0 ) cycle
 
     ! Check first word
     read (buffer,*) keyword
-
     select case ( keyword )
-    ! LEGACY: Box side (optional)
-    case( "SIDE" )
+    case ( "SIDE" )
+      ! LEGACY: Box side (optional)
       read (buffer,*,IOSTAT=int) keyword, this%box(1:3)
       if ( this%box(2) == 0. ) this%box(2) = this%box(1)
       if ( this%box(3) == 0. ) this%box(3) = this%box(1)
 
-    ! LEGACY: Number of molecules (optional)
-    case( "MOLTYPE" )
+    case ( "MOLTYPE" )
+      ! LEGACY: Number of molecules (optional)
       ! Completly ignore
       ! read (buffer,*,IOSTAT=int) keyword, i
       ! if ( n /= this%ntypes )
 
-    ! Each molecule definition
-    case( "MOLECULE" )
+    case ( "MOLECULE" )
+      ! Each molecule definition
+
       ! Read num of atoms in molecule and number of molecules in system
       read (buffer,*,IOSTAT=stat) keyword, this%type(n)%natoms, this%type(n)%nmol
 
-      ! Pointer offset in overall data.
+      ! Calc. pointer offset in overall data.
       offset = sum(this%type(:n-1)%natoms)+1
       if ( offset+this%type(n)%natoms-1 > this%natoms ) then
         tpl_read = xslibNATOMS
         return
       end if
 
-      ! Associate molecule pointers to overall data
+      ! Associate "molecule" pointers to "overall" data ( Link 2nd and 1st levels )
       this%type(n)%name => this%name(offset:offset+this%type(n)%natoms-1)
       this%type(n)%pcharge => this%pcharge(offset:offset+this%type(n)%natoms-1)
       this%type(n)%id => this%id(offset:offset+this%type(n)%natoms-1)
@@ -230,7 +238,12 @@ integer function tpl_read( this, file )
       i = 1 ! Index of current atom
       do while ( i <= this%type(n)%natoms )
         ! Read line
-        read (unit,"(a)") buffer
+        read (unit,"(a)",IOSTAT=stat) buffer
+        if ( stat /= 0 ) then
+          tpl_read = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+          return
+        end if
+
         buffer = processLine( buffer )
         if ( verify(buffer, " ") /= 0 ) then
           ! Read name, partial charge (optional), and ID (optional)
@@ -342,7 +355,7 @@ integer function tpl_write( this, file, unit )
 
     end if
 
-    300 format( a3: 2x, f8.4: 2x, i0 )
+    300 format( a6: 2x, f8.4: 2x, i0 )
 
   end do ! for n
 
@@ -399,7 +412,7 @@ integer function tpl_makeNdx( this, ndx )
     index = minval( this%id(:), MASK=( this%id(:) > index ) )
     if ( index == huge(index) ) exit
 
-    ! Generate name
+    ! Generate title
     write (name,"(a,x,i0)") "Group", index
     ndx%group(n)%title = trim(name)
 

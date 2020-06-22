@@ -6,7 +6,7 @@ add_dependencies( check ${CMAKE_PROJECT_NAME}_static )
 include_directories ( "${CMAKE_BINARY_DIR}/include" )
 
 # Test list
-set ( TESTS simple cstring vector error xmalloc fileio master list )
+set ( TESTS about cstring vector error xmalloc ioutil fileio list )
 
 # Compile tests as part of 'check'.
 foreach ( "TEST" ${TESTS} )
@@ -20,7 +20,7 @@ endforeach ()
 
 # -----------------------------------------------------------
 # Simple test to see if library runs correctly
-add_test ( NAME "simple" COMMAND simple )
+add_test ( NAME "simple" COMMAND about )
 
 # Error test expects failure.
 add_test ( NAME "error" COMMAND error )
@@ -32,16 +32,16 @@ add_test ( NAME "vector" COMMAND vector )
 add_test ( NAME "xmalloc" COMMAND xmalloc )
 
 # Test each I/O library individually
-add_test ( NAME "xyzio" COMMAND fileio "files/conf.xyz" )
-add_test ( NAME "groio" COMMAND fileio "files/conf.gro" )
-add_test ( NAME "pdbio" COMMAND fileio "files/conf.pdb" )
-add_test ( NAME "xtcio" COMMAND fileio "files/conf.xtc" )
-add_test ( NAME "trrio" COMMAND fileio "files/conf.trr" )
-add_test ( NAME "dcdio" COMMAND fileio "files/conf.dcd" )
-add_test ( NAME "cubio" COMMAND fileio "files/grid.cub" )
+add_test ( NAME "xyzio" COMMAND ioutil "files/conf.xyz" )
+add_test ( NAME "groio" COMMAND ioutil "files/conf.gro" )
+add_test ( NAME "pdbio" COMMAND ioutil "files/conf.pdb" )
+add_test ( NAME "xtcio" COMMAND ioutil "files/conf.xtc" )
+add_test ( NAME "trrio" COMMAND ioutil "files/conf.trr" )
+add_test ( NAME "dcdio" COMMAND ioutil "files/conf.dcd" )
+add_test ( NAME "cubio" COMMAND ioutil "files/grid.cub" )
 
 # Test each file with file_t and OpenMP.
-add_test ( NAME "master" COMMAND master
+add_test ( NAME "master" COMMAND fileio
   "files/conf.xyz"
   "files/conf.gro"
   "files/conf.pdb"
@@ -51,12 +51,12 @@ add_test ( NAME "master" COMMAND master
 )
 
 # Test support files I/O
-add_test ( NAME "ndxio" COMMAND fileio "files/index.ndx" )
-add_test ( NAME "tplio" COMMAND fileio "files/temp.tpl" )
+add_test ( NAME "ndxio" COMMAND ioutil "files/index.ndx" )
+add_test ( NAME "tplio" COMMAND ioutil "files/temp.tpl" )
 
 # Test data files I/O
-add_test ( NAME "pdhio" COMMAND fileio "files/data.pdh" )
-add_test ( NAME "csvio" COMMAND fileio "files/data.csv" )
+add_test ( NAME "pdhio" COMMAND ioutil "files/data.pdh" )
+add_test ( NAME "csvio" COMMAND ioutil "files/data.csv" )
 
 # Linked list test
 add_test ( NAME "list" COMMAND list )

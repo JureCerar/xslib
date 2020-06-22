@@ -30,17 +30,16 @@ program main
   complex            :: compl = (1.,1.)
   complex(REAL64)    :: compl8 = (1.0d0,1.0d0)
   real               :: array(3) = [1.,2.,3.]
-  character(128)     :: token, string = "Hello World!"
+  character(128)     :: token
 
   ! str() on scalar
   write (*,*) str(int), " ", str(int,"(i0.5)")
   write (*,*) str(int8), " ", str(int8,"(i0.5)")
   write (*,*) str(float), " ", str(float,"(f8.4)")
   write (*,*) str(float8), " ", str(float8,"(f8.4)")
-  write (*,*) str(bool)
-  write (*,*) str(compl), " ", str(compl,"(f8.4)")
-  write (*,*) str(compl8), " ", str(compl8,"(f8.4)")
-  write (*,*) str(string)
+  write (*,*) str(bool), " ", str(bool,"(a1)")
+  write (*,*) str(compl), " ", str(compl,"(2(f8.4))")
+  write (*,*) str(compl8), " ", str(compl8,"(2(f8.4))")
 
   ! str() on array
   write (*,*) str(array(:))
@@ -52,9 +51,9 @@ program main
   write (*,*) toLower( "Hello World!" )
   write (*,*) toUpper( "Hello World!" )
 
-  ! Check id it's word
-  write (*,*) "abc", isWord( "abc" )
-  write (*,*) "123", isWord( "123" )
+  ! Check if it is a number
+  write (*,*) "abc", isNumber( "abc" )
+  write (*,*) "123", isNumber( "123" )
 
   ! Replace text
   write (*,*) "Hello World!"

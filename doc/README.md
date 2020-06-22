@@ -27,14 +27,16 @@
   - [`xslibAbout()`](#xslibabout)
 - [xslib_cstring](#xslib_cstring)
   - [`str()`](#str)
+  - [`smerge()`](#smerge)
   - [`toLower()` and `toUpper()`](#tolower-and-toupper)
   - [`stripComment()`](#stripcomment)
   - [`isWord()`](#isword)
+  - [`isNumber()`](#isnumber)
   - [`replaceText()`](#replacetext)
   - [`getColor()` and `setColor()`](#getcolor-and-setcolor)
   - [`strtok()`](#strtok)
   - [`cnttok()`](#cnttok)
-  - [`baseName()`](#basename)
+  - [`basename()`](#basename)
   - [`pathname()`](#pathname)
   - [`extension()`](#extension)
   - [`backup()`](#backup)
@@ -66,7 +68,7 @@
   - [`error()` and `error_()`](#error-and-error_)
   - [`warning()` and `warning_()`](#warning-and-warning_)
   - [`xslibErrMsg()`](#xsliberrmsg)
-  - [`assert()`](#assert)
+  - [`assert()` and `assert_()`](#assert-and-assert_)
   <!-- - [`set_env_colors()`](#set_env_colors) -->
 - [Notes](#notes)
 
@@ -74,7 +76,7 @@
 # xslib file I/O modules
 ## Molecular file types: General
 xslib supports the use of multiple molecular coordinate files:  
-- [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *"name,x,y,z"* file that gets the job done in most cases.
+- [.xyz](https://en.wikipedia.org/wiki/XYZ_file_format) - Simple *name,x,y,z* file that gets the job done in most cases.
 - [.gro](http://manual.gromacs.org/archive/5.0.3/online/gro.html) - GROMACS coordinate file.  
 - [.pdb](https://www.rcsb.org/pdb/static.do?p=file_formats/pdb/index.html) - Protein Data Bank which is most commonly used and widely spread molecular coordinate file.
 - [.xtc](http://manual.gromacs.org/archive/5.0.3/online/xtc.html) - GROMACS compressed binary trajectory files.
@@ -208,6 +210,15 @@ error = trr%allocate(natoms,nframes) ! Default is only coor
 ! or
 error = trr%frame(1)%allocate(natoms,"xvf")
 ```
+
+**NOTE:** In `cub_t` type you can allocate grid or grid/atoms by:
+```Fortran
+! Allocate only grid of size: NX x NY x NZ
+error = cub%allocate( nx, ny, nz )
+! or allocate grid and natoms.
+error = cub%allocate( nx, ny, nz, natoms )
+```
+
 
 The stored data can be written to STDOUT, FILE, or file UNIT by:
 ```Fortran
@@ -375,6 +386,10 @@ end type dcd_t
 ### `cub_t` type definition
 For more information please read [CUBE manual](http://paulbourke.net/dataformats/cube/).
 **NOTE:** CUBE file is different from other file formats as data is not presented as coordinates but rather as voxel grid.
+
+**IMPORTANT**  
+Note loop order in CUBE format (it is 'inverted') *i.e.* `cube%grid(z,y,x)`.  
+
 
 #### Example
 ```
@@ -722,6 +737,15 @@ function str( array, fmt, delim ) result( string )
   character(:), allocatable :: string
 ```
 
+### `smerge()`
+Merge two arbitrarily long strings based on logical mask.  
+```Fortran
+character(:) function smerge( tsource, fsource, mask )
+  allocatable               :: smerge
+  character(*), intent(in)  :: tsource, fsource
+  logical, intent(in)       :: mask
+```
+
 ### `toLower()` and `toUpper()`
 Returns string to all lower or all upper case, respectively.  
 Example: "This IS foo BAR." &rarr; "this is foo bar." / "THIS IS FOO BAR."
@@ -749,6 +773,13 @@ character(:) function stripComment( string, cmt )
 Check if string contains any ASCII letters.
 ```Fortran
 logical function isWord( string )
+  character(*), intent(in)  :: string
+```
+
+### `isNumber()`
+Check if string is number that can be interpreted.
+```Fortran
+logical function isNumber( string )
   character(*), intent(in)  :: string
 ```
 
@@ -1221,7 +1252,7 @@ character(:) function xslibErrMsg( errnum )
 15 - Wrong number of atoms.  
 16 - Unknown error.  
 
-### `assert()`
+### `assert() and assert_()`
 If any of the argument expressions is false, a message is written to the STDERR and abort is called, terminating the program execution.  
 Example: "Assertion failed at [i,j]!"
 ```Fortran
@@ -1233,18 +1264,6 @@ Example: "main.f90:10: Assertion failed at [i,j]!"
 ```Fortran
 subroutine assert( expression, file, line )
   logical, intent(in)       :: expression(..)
-  character(*), intent(in)  :: file
-  integer, intent(in)       :: line
-```
-or using with reals (dp = REAL32 or REAL64), where TOL is expected tolerance (default is 1.0e-3):
-```Fortran
-subroutine assert( actual, expected, tol )
-  real(dp), intent(in)  :: actual(..), expected(..), tol
-```
-or extended abort message:  
-```Fortran
-subroutine assert( actual, expected, tol, file, line )
-  real(dp), intent(in)      :: actual(..), expected(..), tol
   character(*), intent(in)  :: file
   integer, intent(in)       :: line
 ```

@@ -21,23 +21,29 @@ module xslib_cubio
   private
   public :: cub_t, cub_atom
 
+  ! NOTE: Grid data has 'inverted' notation: grid(z,y,x)
+
+  ! TODO: Implement ANGSTROM/BOHR units
+  ! > If the sign of the number of voxels in a dimension is positive then the units are Bohr, if negative then Angstroms.
+  ! Note to self: Who's fucking idea was this ???
+
   ! Import error definitions
   include "fileio.h"
 
   type cub_atom
-    integer :: z = 0 ! Atomic number
-    real    :: pcharge = 0.000 ! Partial charge
-    real    :: coor(3) = 0.000 ! Coordinates
+    integer :: z = 0            ! Atomic number
+    real    :: pcharge = 0.000  ! Partial charge
+    real    :: coor(3) = 0.000  ! Coordinates
   end type cub_atom
 
   type cub_t
-    character(256)              :: comment(2) = ""
-    integer                     :: natoms = 0
-    type(cub_atom), allocatable :: atom(:)
-    real                        :: origin(3) = 0.000
-    real                        :: voxel(3,3) = 0.000
-    integer                     :: nx = 0, ny = 0, nz = 0
-    real, allocatable           :: grid(:,:,:)
+    character(256)              :: comment(2) = ""        ! Comments
+    integer                     :: natoms = 0             ! Num. of atoms
+    type(cub_atom), allocatable :: atom(:)                ! Atom definition(s)
+    real                        :: origin(3) = 0.000      ! Origin of coordinates
+    real                        :: voxel(3,3) = 0.000     ! Voxel size
+    integer                     :: nx = 0, ny = 0, nz = 0 ! Grid size
+    real, allocatable           :: grid(:,:,:)            ! GRID(Z,Y,X)
   contains
     procedure :: assign => cube_assign
     generic   :: assignment(=) => assign
@@ -133,8 +139,14 @@ integer function cube_data_read( unit, nx, ny, nz, grid )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in) :: unit, nx, ny, nz
-  real, intent(out)   :: grid(nz,ny,nx)
+  real, intent(out)   :: grid(:,:,:)
   integer             :: stat
+
+  ! Check memory size
+  if ( size(grid) /= abs(nx*ny*nz) ) then
+    cube_data_read = xslibNOMEM
+    return
+  end if
 
   ! Read data as tensor
   read (unit,*,IOSTAT=stat) grid(:,:,:)
@@ -169,8 +181,6 @@ integer function cube_header_write( unit, comment, natoms, origin, nx, ny, nz, v
   write (unit,"(a)") trim(comment(1))
   write (unit,"(a)") trim(comment(2))
 
-  100 format( i5, 3(f12.6) )
-
   ! Number of atoms and origin
   write (unit,100) natoms, origin(:)
 
@@ -178,6 +188,8 @@ integer function cube_header_write( unit, comment, natoms, origin, nx, ny, nz, v
   write (unit,100) nx, voxel(:,1)
   write (unit,100) ny, voxel(:,2)
   write (unit,100) nz, voxel(:,3)
+
+  100 format( i5, 3(f12.6) )
 
   ! Return success
   cube_header_write = xslibOK
@@ -205,23 +217,29 @@ end function cube_atoms_write
 integer function cube_data_write( unit, nx, ny, nz, grid )
   implicit none
   integer, intent(in) :: unit, nx, ny, nz
-  real, intent(in)    :: grid(nz,ny,nx)
-  integer             :: i, j, k
+  real, intent(in)    :: grid(:,:,:)
+  integer             :: ix, iy, iz
+
+  ! Check size
+  if ( size(grid) /= abs(nx*ny*nz) ) then
+    cube_data_write = xslibNOMEM
+    return
+  end if
 
   ! Read data as tensor
-  do i = 1, nx
-    do j = 1, ny
-      do k = 1, nz
-        write (unit,100) grid(k,j,i)
-        if ( mod(k,6) == 0 ) write (unit,*) ! New line
+  do ix = 1, abs(nx)
+    do iy = 1, abs(ny)
+      do iz = 1, abs(nz)
+        write (unit,100) grid(iz,iy,ix)
+        100 format( 1pe13.5, $ ) ! No new line
+
+        if ( mod(iz,6) == 0 ) write (unit,*) ! New line
 
       end do ! for k
       write (unit,*) ! New line
 
     end do ! for j
   end do ! for i
-
-  100 format( 1pe13.5, $ ) ! No new line
 
   ! Return sucess
   cube_data_write = xslibOK
@@ -396,5 +414,25 @@ integer function cube_write( this, file, unit )
 
   return
 end function cube_write
+
+! -------------------------------------------------
+! Utility
+
+! ! Convert Bohr to angstroms and back
+! ! Bohr =  5.29177210903(80)E−11 m
+! ! Angs =  1.000E-10 m
+! function angs2bohr( angs ) result( bohr )
+!   implicit none
+!   real :: angs, bohr
+!   bohr = angs * 1.8897259886
+!   return
+! end function angs2bohr
+!
+! function bohr2angs( bohr ) result( angs )
+!   implicit none
+!   real :: bohr, angs
+!   angs = bohr * 0.529177249
+!   return
+! end function bohr2angs
 
 end module xslib_cubio

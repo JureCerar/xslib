@@ -189,9 +189,9 @@ module xdrfor
     ! * Returns number of characters read, including end-of-string.
     integer(C_INT) function xdrfile_read_string( ptr, maxlen, xfp ) bind( C, NAME="xdrfile_read_string" )
       import
-      character(C_CHAR), intent(out)  :: ptr(*)  ! Pointer to memory where data should be written.
-      integer(C_INT), intent(in)      :: maxlen       ! Maximum length of string.
-      type(xdrfile), intent(in)       :: xfp          ! Pointer to an abstract XDRFILE datatype.
+      character(C_CHAR), intent(out)    :: ptr(*)  ! Pointer to memory where data should be written.
+      integer(C_INT), value, intent(in) :: maxlen       ! Maximum length of string.
+      type(xdrfile), intent(in)         :: xfp          ! Pointer to an abstract XDRFILE datatype.
     end function xdrfile_read_string
 
     ! Write string type (array of characters) variable

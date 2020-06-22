@@ -19,13 +19,13 @@
 ! NOTE: This is a fortran implementation of original GROMACS's code.
 ! https://github.com/gromacs/gromacs --> ttrio.cpp
 
-
 module xslib_trrio
   use, intrinsic :: iso_fortran_env, only: REAL64
   use xdrfor
   implicit none
   private
-  public :: trr_t, trr_frame
+  public :: trr_t, trr_frame, trnheader
+  public :: trr_open_file, trr_close_file, trr_header, trr_data, trr_coor, trr_skip
 
   ! Import error definitions
   include "fileio.h"
@@ -33,7 +33,6 @@ module xslib_trrio
   ! Magic constant
   integer, parameter :: MAGIC = 1993
 
-  ! All data in trnheader is hidden from user.
   type trnheader
     integer       :: ir_size = 0, e_size = 0, vir_size = 0, pres_size = 0 ! Backward compatibility
     integer       :: top_size = 0, sym_size = 0, nre = 0 ! Backward compatibility
@@ -84,13 +83,14 @@ module xslib_trrio
 contains
 
 ! -------------------------------------------------
+! NOTE: xrdfile read is same as write. He he he.
 
 ! Calculates size of data from read header values.
 integer function nFloatSize( sh, nflsize )
   use, intrinsic :: iso_c_binding, only: c_sizeof
   use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
   implicit none
-  type(trnheader), intent(inout) :: sh
+  type(trnheader), intent(inout)  :: sh
   integer, intent(out)            :: nflsize
   integer, parameter              :: DIM = 3
 
@@ -112,8 +112,6 @@ integer function nFloatSize( sh, nflsize )
   end if
 
   ! Is calculated size correct?
-  ! * sizeof(float) = REAL32
-  ! * sizeof(double) = REAL64
   if ( nflsize /= c_sizeof(0.0_REAL32) .and. nflsize /= c_sizeof(0.0_REAL64) ) then
     nFloatSize = xslibHEADER
     return
@@ -124,6 +122,60 @@ integer function nFloatSize( sh, nflsize )
 
   return
 end function nFloatSize
+
+! Open and check .trr file.
+integer function trr_open_file( xd, file, nframes, natoms, box )
+  use, intrinsic :: iso_fortran_env, only: INT64
+  use, intrinsic :: iso_c_binding, only: c_f_pointer, C_NULL_CHAR
+  implicit none
+  type(xdrfile), pointer, intent(out) :: xd
+  character(*), intent(in)            :: file
+  integer, intent(out)                :: nframes, natoms
+  real, intent(out)                   :: box(3,3)
+  type(trnheader)                     :: sh
+  real                                :: ibox(3,3)
+  logical                             :: exist
+
+  ! Check if file exists
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    trr_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file
+  call c_f_pointer( xdrfile_open( trim(file)//C_NULL_CHAR, "r" ), xd )
+  if ( .not. associated(xd) ) then
+    trr_open_file = xslibOPEN
+    return
+  end if
+
+  ! Count and check all frames
+  nframes = 0
+  box(:,:) = 0.000
+  natoms = 0
+  do while( .true. )
+    ! Count number of atoms in file
+    trr_open_file = trr_header( xd, sh, .true. )
+    if ( trr_open_file == xslibENDOFFILE ) exit
+    if ( trr_open_file /= xslibOK ) return
+
+    ! Skip the rest of the frame
+    trr_open_file = trr_skip( xd, sh, ibox )
+    if ( trr_open_file /= xslibOK ) return
+
+    ! Update data
+    nframes = nframes+1
+    box(:,:) = max( box, ibox )
+    natoms = max( natoms, sh%natoms )
+
+  end do ! while
+
+  ! Rewind file
+  trr_open_file = xdr_seek( xd, 0_INT64, 0 )
+
+  return
+end function trr_open_file
 
 ! Read/write trr header.
 integer function trr_header( xd, sh, bRead )
@@ -149,7 +201,6 @@ integer function trr_header( xd, sh, bRead )
     trr_header = xslibENDOFFILE
     return
   else if ( imagic /= MAGIC ) then
-    print *, imagic
     trr_header = xslibMAGIC
     return
   end if
@@ -320,7 +371,7 @@ integer function trr_data( xd, sh, box, x, v, f, bRead )
     ! *  double precision variables are still stored in single precision.
 
     ! NOTE: Use double pressicion placeholders for data transformations:
-    ! * If read mode allocate data memory
+    ! * If in "read mode", allocate data memory
     ! * else copy data to placeholder (float -> double)
     ! * Use xdrfile read/write with placeholder
     ! * Copy data from placeholder (double -> float)
@@ -532,6 +583,138 @@ integer function trr_data( xd, sh, box, x, v, f, bRead )
   return
 end function trr_data
 
+! Read only .trr coordinates.
+! NOTE: Memory allocation is done OUTSIDE routine (for compatibility).
+integer function trr_coor( xd, sh, box, x )
+  use, intrinsic :: iso_c_binding, only: c_sizeof
+  use, intrinsic :: iso_fortran_env, only: REAL32, REAL64, INT64
+  implicit none
+  type(xdrfile), pointer, intent(in)  :: xd
+  type(trnheader), intent(in)         :: sh
+  real, intent(out)                   :: box(3,3), x(3,sh%natoms)
+  integer                             :: stat
+  integer, parameter                  :: DIM = 3
+  real(REAL64), allocatable           :: plcholder(:,:)
+  real                                :: float, pvf(DIM,DIM)
+  real(REAL64)                        :: double, pvd(DIM,DIM)
+  integer(INT64)                      :: framebytes
+  enum, bind(C)
+    enumerator :: SEEK_SET, SEEK_CUR, SEEK_END
+  end enum
+
+  ! Check xd pointer
+  if ( .not. associated(xd) ) then
+    trr_coor = xslibOPEN
+    return
+  end if
+
+  if ( sh%bDouble == 1 ) then
+
+    ! NOTE: All .trr data types are single precission; if trajectory is
+    ! * double precision variables are still stored in single precision.
+
+    ! Box size double
+    if ( sh%box_size /= 0 ) then
+      if ( xdrfile_read_double( pvd, size(pvd), xd ) /= DIM*DIM ) then
+        trr_coor = xslibDOUBLE
+        return
+      end if
+      box(:,:) = real(pvd,REAL32)
+    end if
+
+    ! Dummy read (legacy parameter?)
+    if ( sh%vir_size /= 0 ) then
+      if ( xdrfile_read_double( pvd, size(pvd), xd ) /= DIM*DIM ) then
+        trr_coor = xslibDOUBLE
+        return
+      end if
+    end if
+
+    ! Dummy read (legacy parameter?)
+    if ( sh%pres_size /= 0 ) then
+      if ( xdrfile_read_double( pvd, size(pvd), xd ) /= DIM*DIM ) then
+        trr_coor = xslibDOUBLE
+        return
+      end if
+    end if
+
+    ! Coordinates
+    if ( sh%x_size /= 0 ) then
+      ! Allocate placeholder
+      allocate( plcholder(DIM,sh%natoms), STAT=stat )
+      if ( stat /= 0 ) then
+        trr_coor = xslibNOMEM
+        return
+      end if
+      ! Read data
+      if ( xdrfile_read_double( plcholder, size(plcholder), xd ) /= sh%natoms*DIM ) then
+        trr_coor = xslib3DX
+        return
+      end if
+      ! Copy from placeholder
+      x(:,:) = real(plcholder,REAL32)
+      ! Deallocate placeholder
+      deallocate( plcholder )
+    end if
+
+    ! Skip velocities and forces
+    framebytes = 0
+    if ( sh%v_size /= 0 ) framebytes = framebytes+sh%natoms*DIM*c_sizeof(double)
+    if ( sh%f_size /= 0 ) framebytes = framebytes+sh%natoms*DIM*c_sizeof(double)
+    trr_coor = xdr_seek( xd, framebytes, SEEK_CUR )
+    if ( trr_coor /= xslibOK ) return
+
+  else ! float
+
+    ! NOTE: No need for placeholder here, as .trr data are KIND=float.
+
+    ! Box size
+    if ( sh%box_size /= 0 ) then
+      if ( xdrfile_read_float( box, size(box), xd ) /= DIM*DIM ) then
+        trr_coor = xslibFLOAT
+        return
+      end if
+    end if
+
+    ! Dummy read (legacy parameter?)
+    if ( sh%vir_size /= 0 ) then
+      if ( xdrfile_read_float( pvf, size(pvf), xd ) /= DIM*DIM ) then
+        trr_coor = xslibFLOAT
+        return
+      end if
+    end if
+
+    ! Dummy read (legacy parameter?)
+    if ( sh%pres_size /= 0 ) then
+      if ( xdrfile_read_float( pvf, size(pvf), xd ) /= DIM*DIM ) then
+        trr_coor = xslibFLOAT
+        return
+      end if
+    end if
+
+    ! Coordinates
+    if ( sh%x_size /= 0 ) then
+      if ( xdrfile_read_float( x, size(x), xd ) /= sh%natoms*DIM ) then
+        trr_coor = xslib3DX
+        return
+      end if
+    end if
+
+    ! Skip velocities and forces
+    framebytes = 0
+    if ( sh%v_size /= 0 ) framebytes = framebytes+sh%natoms*DIM*c_sizeof(float)
+    if ( sh%f_size /= 0 ) framebytes = framebytes+sh%natoms*DIM*c_sizeof(float)
+    trr_coor = xdr_seek( xd, framebytes, SEEK_CUR )
+    if ( trr_coor /= xslibOK ) return
+
+  end if
+
+  ! Return sucess
+  trr_coor = xslibOK
+
+  return
+end function trr_coor
+
 ! Skip trr data.
 integer function trr_skip( xd, sh, box )
   use, intrinsic :: iso_c_binding, only: c_sizeof
@@ -567,11 +750,11 @@ integer function trr_skip( xd, sh, box )
 
     ! Calculate storage size:
     framebytes = 0
-    if ( sh%vir_size /= 0 ) framebytes = framebytes + DIM*DIM*sizeof(double)
-    if ( sh%pres_size /= 0 ) framebytes = framebytes + DIM*DIM*sizeof(double)
-    if ( sh%x_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(double)
-    if ( sh%v_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(double)
-    if ( sh%f_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(double)
+    if ( sh%vir_size /= 0 ) framebytes = framebytes + DIM*DIM*c_sizeof(double)
+    if ( sh%pres_size /= 0 ) framebytes = framebytes + DIM*DIM*c_sizeof(double)
+    if ( sh%x_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(double)
+    if ( sh%v_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(double)
+    if ( sh%f_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(double)
 
     ! Skip size
     trr_skip = xdr_seek( xd, framebytes, SEEK_CUR )
@@ -589,11 +772,11 @@ integer function trr_skip( xd, sh, box )
 
     ! Calculate storage size:
     framebytes = 0
-    if ( sh%vir_size /= 0 ) framebytes = framebytes + DIM*DIM*sizeof(float)
-    if ( sh%pres_size /= 0 ) framebytes = framebytes + DIM*DIM*sizeof(float)
-    if ( sh%x_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(float)
-    if ( sh%v_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(float)
-    if ( sh%f_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*sizeof(float)
+    if ( sh%vir_size /= 0 ) framebytes = framebytes + DIM*DIM*c_sizeof(float)
+    if ( sh%pres_size /= 0 ) framebytes = framebytes + DIM*DIM*c_sizeof(float)
+    if ( sh%x_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(float)
+    if ( sh%v_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(float)
+    if ( sh%f_size /= 0 ) framebytes = framebytes + sh%natoms*DIM*c_sizeof(float)
 
     ! Skip size
     trr_skip = xdr_seek( xd, framebytes, SEEK_CUR )
@@ -606,6 +789,14 @@ integer function trr_skip( xd, sh, box )
 
   return
 end function trr_skip
+
+! Close .trr file handle
+integer function trr_close_file( xd )
+  implicit none
+  type(xdrfile), pointer, intent(in)  :: xd
+  trr_close_file = xdrfile_close( xd )
+  return
+end function trr_close_file
 
 ! -------------------------------------------------
 
@@ -910,65 +1101,16 @@ end subroutine trr_assign
 
 ! Comment
 integer function trr_open( this, file )
-  use, intrinsic :: iso_fortran_env, only: INT64
-  use, intrinsic :: iso_c_binding, only: c_f_pointer, C_NULL_CHAR
   implicit none
   class(trr_t)              :: this
   character(*), intent(in)  :: file
-  type(trnheader)           :: sh
-  real                      :: box(3,3)
-  logical                   :: exist
-
-  ! Check if file exists
-  inquire( FILE=trim(file), EXIST=exist )
-  if ( .not. exist ) then
-    trr_open = xslibFILENOTFOUND
-    return
-  end if
 
   ! Open file
-  call c_f_pointer( xdrfile_open( trim(file)//C_NULL_CHAR, "r" ), this%xd )
-  if ( .not. associated(this%xd) ) then
-    trr_open = xslibOPEN
-    return
-  end if
-
-  ! Initialize
-  trr_open = xslibOK
-  this%allframes = 0
-  this%natoms = 0
-
-  ! Count number of frames
-  do while( trr_open == xslibOK )
-    ! Read header
-    trr_open = trr_header( this%xd, sh, .true. )
-    if ( trr_open == xslibENDOFFILE ) exit ! ok
-    if ( trr_open /= xslibOK ) return ! error
-
-    ! Skip data
-    trr_open = trr_skip( this%xd, sh, box )
-    if ( trr_open /= xslibOK ) return
-
-    ! Another frame was read/skiped
-    this%allframes = this%allframes+1
-
-    ! Save number of atoms
-    this%natoms = max( this%natoms, sh%natoms )
-
-    ! Save biggest box
-    this%box(:,:) = merge( this%box, box, all(this%box>=box) )
-
-  end do
-
-  ! Rewind to beginig
-  trr_open = xdr_seek( this%xd, 0_INT64, 0 )
-  if ( trr_open /= xslibOK ) return
+  trr_open = trr_open_file( this%xd, file, this%allframes, this%natoms, this%box )
+  if ( trr_open /= 0 ) return
 
   ! All frames are remaining
   this%remaining = this%allframes
-
-  ! Return success
-  trr_open = xslibOK
 
   return
 end function trr_open
@@ -1175,9 +1317,7 @@ end function trr_dump
 integer function trr_close( this )
   implicit none
   class(trr_t) :: this
-
-  trr_close = xdrfile_close( this%xd )
-
+  trr_close = trr_close_file( this%xd )
   return
 end function trr_close
 

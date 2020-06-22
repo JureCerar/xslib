@@ -33,6 +33,8 @@ module xslib_xmalloc
   ! xrealloc - Changes the size of memory block. The content of the memory block is preserved up to the
   ! * lesser of the new and old sizes, even if the block is moved to a new location. If the new size is larger,
   ! * the value of the newly allocated portion is indeterminate.
+  ! * If the new size you specify is the same as the old size, xrealloc is guaranteed
+  ! * to change nothing and return the same address that you gave.
 
   interface xmalloc
     procedure :: xmalloc_int, xmalloc_long, xmalloc_float, xmalloc_double
@@ -346,20 +348,26 @@ integer function xrealloc_int( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_int = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1)), STAT=xrealloc_int, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1)), STAT=xrealloc_int, ERRMSG=errmsg )
       if ( xrealloc_int /= 0 ) return
-      nx = min( spec(1), size(object,1) )
+      nx = min( spec(1), size(object,DIM=1) )
       temp(1:nx) = object(1:nx)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1)), STAT=xrealloc_int, ERRMSG=errmsg )
+      xrealloc_int = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
+
 
   return
 end function xrealloc_int
@@ -375,18 +383,23 @@ integer function xrealloc_int_2d( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_int_2d = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1),spec(2)), STAT=xrealloc_int_2d, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1),spec(2)), STAT=xrealloc_int_2d, ERRMSG=errmsg )
       if ( xrealloc_int_2d /= 0 ) return
-      nx = min( spec(1), size(object,1) )
-      ny = min( spec(2), size(object,2) )
+      nx = min( spec(1), size(object,DIM=1) )
+      ny = min( spec(2), size(object,DIM=2) )
       temp(1:nx,1:ny) = object(1:nx,1:ny)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1),spec(2)), STAT=xrealloc_int_2d, ERRMSG=errmsg )
+      xrealloc_int_2d = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -406,17 +419,22 @@ integer function xrealloc_long( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_long = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1)), STAT=xrealloc_long, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1)), STAT=xrealloc_long, ERRMSG=errmsg )
       if ( xrealloc_long /= 0 ) return
-      nx = min( spec(1), size(object,1) )
+      nx = min( spec(1), size(object,DIM=1) )
       temp(1:nx) = object(1:nx)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1)), STAT=xrealloc_long, ERRMSG=errmsg )
+      xrealloc_long = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -437,17 +455,23 @@ integer function xrealloc_long_2d( object, spec, errmsg )
     xrealloc_long_2d = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
 
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1),spec(2)), STAT=xrealloc_long_2d, ERRMSG=errmsg )
+
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1),spec(2)), STAT=xrealloc_long_2d, ERRMSG=errmsg )
       if ( xrealloc_long_2d /= 0 ) return
-      nx = min( spec(1), size(object,1) )
-      ny = min( spec(2), size(object,2) )
+      nx = min( spec(1), size(object,DIM=1) )
+      ny = min( spec(2), size(object,DIM=2) )
       temp(1:nx,1:ny) = object(1:nx,1:ny)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1),spec(2)), STAT=xrealloc_long_2d, ERRMSG=errmsg )
+      xrealloc_long_2d = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -466,17 +490,22 @@ integer function xrealloc_float( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_float = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1)), STAT=xrealloc_float, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1)), STAT=xrealloc_float, ERRMSG=errmsg )
       if ( xrealloc_float /= 0 ) return
-      nx = min( spec(1), size(object,1) )
+      nx = min( spec(1), size(object,DIM=1) )
       temp(1:nx) = object(1:nx)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1)), STAT=xrealloc_float, ERRMSG=errmsg )
+      xrealloc_float = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -495,18 +524,23 @@ integer function xrealloc_float_2d( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_float_2d = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1),spec(2)), STAT=xrealloc_float_2d, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1),spec(2)), STAT=xrealloc_float_2d, ERRMSG=errmsg )
       if ( xrealloc_float_2d /= 0 ) return
-      nx = min( spec(1), size(object,1) )
-      ny = min( spec(2), size(object,2) )
+      nx = min( spec(1), size(object,DIM=1) )
+      ny = min( spec(2), size(object,DIM=2) )
       temp(1:nx,1:ny) = object(1:nx,1:ny)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1),spec(2)), STAT=xrealloc_float_2d, ERRMSG=errmsg )
+      xrealloc_float_2d = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -526,17 +560,22 @@ integer function xrealloc_double( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_double = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1)), STAT=xrealloc_double, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1)), STAT=xrealloc_double, ERRMSG=errmsg )
       if ( xrealloc_double /= 0 ) return
-      nx = min( spec(1), size(object,1) )
+      nx = min( spec(1), size(object,DIM=1) )
       temp(1:nx) = object(1:nx)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1)), STAT=xrealloc_double, ERRMSG=errmsg )
+      xrealloc_double = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if
@@ -556,18 +595,23 @@ integer function xrealloc_double_2d( object, spec, errmsg )
   if ( rank(object) /= size(spec) ) then
     xrealloc_double_2d = -1
     if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1),spec(2)), STAT=xrealloc_double_2d, ERRMSG=errmsg )
 
   else
-    if ( allocated(object) ) then
+    if ( any(shape(object)/=spec(:)) ) then
       allocate( temp(spec(1),spec(2)), STAT=xrealloc_double_2d, ERRMSG=errmsg )
       if ( xrealloc_double_2d /= 0 ) return
-      nx = min( spec(1), size(object,1) )
-      ny = min( spec(2), size(object,2) )
+      nx = min( spec(1), size(object,DIM=1) )
+      ny = min( spec(2), size(object,DIM=2) )
       temp(1:nx,1:ny) = object(1:nx,1:ny)
       call move_alloc(temp,object)
 
     else
-      allocate( object(spec(1),spec(2)), STAT=xrealloc_double_2d, ERRMSG=errmsg )
+      xrealloc_double_2d = 0
+      if ( present(errmsg) ) errmsg = ""
 
     end if
   end if

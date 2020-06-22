@@ -1,7 +1,43 @@
 # Changelog
 
 #### To-do (someday):
-- [ ] There is always something to do... 
+- There is always something to do...
+
+#### v3.0.0 - TBA
+- [ ] Improved documentation and split it in sections.
+- [ ] Added read modes "xvf" to `trr_t`, `gro_t` and `dcd_t`.
+- [ ] Better and more flexible implementation of `file_t` (can now handle frames).
+- [ ] Added frame indexes (ToC) can now read out of order.
+- [ ] Code cleanup
+
+#### v2.4.0 - 22.06.2020
+- Changed CMake flags.
+- Internal procedures were renamed to be more consistent.
+- Added `xslib_plot` object for gnuplot interface.
+- Added custom string merge - `smerge`.
+- Bug fix in `gro_t` title output.
+- Improved `ftoa`, `f8toa` to handle leading "0".
+- Fixed bug in `xrealloc`.
+- More clean include module output.
+
+#### v2.3.0 - 15.04.2020
+- Each file type now has type independent functions (if you are feeling adventurous).
+- Added frame check to `dcd_t` when counting frames.
+- Corrected c_sifeof and fixed print in `trr_t`.
+- Added file dump to `file_t`.
+- Improved `file_t` class.
+- Added beter implementation of `ctoa`.
+- Fixed getColor not being public?
+- Added dummy initialize to backup & progress.
+- Added `isnumber`, `isspace`, `isnum`, and `ischar`
+- Added xslib_cpuInfo; NOTE: It is not part of xslib.
+- Assertion -- only logical input (REAL comparison is defined by user)
+- Removed `file_t%open( ..., first, last, stride )` -- should be user defined.
+
+#### v2.2.1 - 24.03.2020
+- Added `obj%frame%copy` utility for `gro_t`, `pdb_t`, and `xyz_t`.
+- Improved documentation.
+- Bug fixes in `cub_t` and added documentation.
 
 #### v2.2.0 - 04.02.2020
 - Fixed documentation typos.  

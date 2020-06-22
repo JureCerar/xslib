@@ -20,13 +20,15 @@ module xslib_xyzio
   implicit none
   private
   public :: xyz_t, xyz_frame
+  public :: xyz_open_file, xyz_close_file, xyz_read_header, xyz_read_data
+  public :: xyz_read_coor, xyz_skip_data, xyz_write_data
 
   ! Import error definitions
   include "fileio.h"
 
   type xyz_frame
     integer                   :: natoms = 0
-    character(:), allocatable :: comment
+    character(128)            :: comment = ""
     character(6), allocatable :: name(:)
     real, allocatable         :: coor(:,:)
     real                      :: box(3,3) = 0.000
@@ -34,6 +36,7 @@ module xslib_xyzio
     procedure :: allocate => xyz_frame_allocate
     procedure :: assign => xyz_frame_assign
     generic   :: assignment(=) => assign
+    procedure :: copy => xyz_frame_copy
     procedure :: write => xyz_frame_write
     procedure :: read => xyz_frame_read
   end type xyz_frame
@@ -62,58 +65,121 @@ module xslib_xyzio
 contains
 
 ! -------------------------------------------------
-! Class independant (low-level) routines
+! Class independant routines
 
-! Comment
-integer function xyz_header( unit, natoms, comment )
+! Open and check .xyz file
+integer function xyz_open_file( unit, file, nframes, natoms, box )
+  implicit none
+  integer, intent(out)      :: unit
+  character(*), intent(in)  :: file
+  integer, intent(out)      :: nframes, natoms
+  real, intent(out)         :: box(3,3)
+  real                      :: ibox(3,3)
+  integer                   :: inatoms, stat
+  character(128)            :: comment
+  logical                   :: exist
+
+  ! Check if file exists
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    xyz_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file
+  open ( NEWUNIT=unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
+  if ( stat /= 0 ) then
+    xyz_open_file = xslibOPEN
+    return
+  end if
+
+  ! Count and check all frames
+  nframes = 0
+  box(:,:) = 0.000
+  natoms = 0
+  do while( .true. )
+    ! Read header
+    xyz_open_file = xyz_read_header( unit, inatoms, comment, ibox )
+    if ( xyz_open_file == xslibENDOFFILE ) exit
+    if ( xyz_open_file /= xslibOK ) return
+
+    ! Skip the rest of the frame
+    xyz_open_file = xyz_skip_data( unit, inatoms )
+    if ( xyz_open_file /= xslibOK ) return
+
+    ! Update data
+    nframes = nframes+1
+    box(:,:) = max( box, ibox )
+    natoms = max( natoms, inatoms )
+
+  end do ! while
+
+  ! Rewind file
+  rewind ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    xyz_open_file = xslibOPEN
+    return
+  end if
+
+  ! Return sucess
+  xyz_open_file = xslibOK
+
+  return
+end function xyz_open_file
+
+! Read .xyz header
+integer function xyz_read_header( unit, natoms, comment, box )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
-  integer, intent(in)                     :: unit
-  integer, intent(out)                    :: natoms
-  character(:), allocatable, intent(out)  :: comment
-  character(128)                          :: buffer
-  integer                                 :: stat
-  logical                                 :: opened
+  integer, intent(in)       :: unit
+  integer, intent(out)      :: natoms
+  character(*), intent(out) :: comment
+  real, intent(out)         :: box(3,3)
+  integer                   :: pos, stat
+  logical                   :: opened
 
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened )
   if ( .not. opened ) then
-    xyz_header = xslibOPEN
+    xyz_read_header = xslibOPEN
     return
   end if
 
   ! Read number of atoms
   read (unit,*,IOSTAT=stat) natoms
   if ( stat /= 0 ) then
-    xyz_header = merge( xslibENDOFFILE, xslibINT, stat == IOSTAT_END )
+    xyz_read_header = merge( xslibENDOFFILE, xslibINT, stat == IOSTAT_END )
     return
   end if
 
   ! Read title
-  read (unit,"(a)",IOSTAT=stat) buffer
+  read (unit,"(a)",IOSTAT=stat) comment
   if ( stat /= 0 ) then
-    xyz_header =  merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    xyz_read_header =  merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
     return
   end if
-  comment = trim(buffer)
 
-  ! TODO: Try to extract box information from comment.
+  ! Try to extract box information from comment.
   ! * <comment> box= 0.000 0.000 0.000
+  box(:,:) = 0.000
+  pos = index( comment, "box=" )
+  if ( pos > 0 ) then
+    read (comment(pos+4:),*,IOSTAT=stat) box(1,1), box(2,2), box(3,3)
+  end if
 
   ! Return success
-  xyz_header = xslibOK
+  xyz_read_header = xslibOK
 
   return
-end function xyz_header
+end function xyz_read_header
 
-! Comment
-integer function xyz_coor( unit, natoms, box, name, coor )
+! Read .xyz data
+integer function xyz_read_data( unit, natoms, name, coor )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in)       :: unit, natoms
   real, intent(out)         :: coor(3,natoms)
   character(6), intent(out) :: name(natoms)
-  real, intent(out)         :: box(3,3)
   integer                   :: i, nx, stat
   character(128)            :: buffer
   logical                   :: opened
@@ -121,21 +187,21 @@ integer function xyz_coor( unit, natoms, box, name, coor )
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened )
   if ( .not. opened ) then
-    xyz_coor = xslibOPEN
+    xyz_read_data = xslibOPEN
     return
   end if
 
   ! Read line and return before evaluated line.
   read (unit,"(a)",IOSTAT=stat) buffer
   if ( stat == IOSTAT_END ) then
-    xyz_coor = xslibENDOFFILE
+    xyz_read_data = xslibENDOFFILE
     return
   end if
 
   ! Count number of tokens (function defined below)
   nx = cnttok( buffer, " " )
   if ( nx < 3 ) then
-    xyz_coor = xslib3DX
+    xyz_read_data = xslibHEADER
     return
   end if
 
@@ -148,7 +214,7 @@ integer function xyz_coor( unit, natoms, box, name, coor )
     do i = 1, natoms
       read (unit,*,IOSTAT=stat) name(i), coor(:,i)
       if ( stat /= 0 ) then
-        xyz_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+        xyz_read_data = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
         return
       end if
 
@@ -158,7 +224,7 @@ integer function xyz_coor( unit, natoms, box, name, coor )
     do i = 1, natoms
       read (unit,*,IOSTAT=stat) coor(:,i)
       if ( stat /= 0 ) then
-          xyz_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+          xyz_read_data = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
         return
       end if
 
@@ -168,21 +234,78 @@ integer function xyz_coor( unit, natoms, box, name, coor )
 
   end if
 
-  ! NOTE: XYZ file does not contain any box size data. Return dummy data.
-  box(:,:) = 0.000
-
   ! Return success
-  xyz_coor = xslibOK
+  xyz_read_data = xslibOK
 
   return
-end function xyz_coor
+end function xyz_read_data
 
-! Comment
-integer function xyz_coor_skip( unit, natoms, box )
+! Read only .xyz coordinates
+integer function xyz_read_coor( unit, natoms, coor )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in) :: unit, natoms
-  real, intent(out)   :: box(3,3)
+  real, intent(out)   :: coor(3,natoms)
+  integer             :: i, nx, stat
+  character(128)      :: buffer
+  logical             :: opened
+
+  ! Check if unit is assigned
+  inquire( UNIT=unit, OPENED=opened )
+  if ( .not. opened ) then
+    xyz_read_coor = xslibOPEN
+    return
+  end if
+
+  ! Read line and return before evaluated line.
+  read (unit,"(a)",IOSTAT=stat) buffer
+  if ( stat == IOSTAT_END ) then
+    xyz_read_coor = xslibENDOFFILE
+    return
+  end if
+
+  ! Count number of tokens (function defined below)
+  nx = cnttok( buffer, " " )
+  if ( nx < 3 ) then
+    xyz_read_coor = xslibHEADER
+    return
+  end if
+
+  ! Rewind before procesed line.
+  backspace( unit, IOSTAT=stat )
+
+  ! Read data according to number of argument on the line.
+  if ( nx > 3 ) then
+    ! Read name and coordinates
+    do i = 1, natoms
+      read (unit,*,IOSTAT=stat) buffer, coor(:,i)
+      if ( stat /= 0 ) then
+        xyz_read_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+        return
+      end if
+    end do ! for i
+  else
+    ! Read only coordinates
+    do i = 1, natoms
+      read (unit,*,IOSTAT=stat) coor(:,i)
+      if ( stat /= 0 ) then
+          xyz_read_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+        return
+      end if
+    end do ! for i
+  end if
+
+  ! Return success
+  xyz_read_coor = xslibOK
+
+  return
+end function xyz_read_coor
+
+! Skip .xyz data.
+integer function xyz_skip_data( unit, natoms )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END
+  implicit none
+  integer, intent(in) :: unit, natoms
   integer             :: i, stat
   logical             :: opened
   character(9)        :: action
@@ -190,30 +313,27 @@ integer function xyz_coor_skip( unit, natoms, box )
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    xyz_coor_skip = xslibOPEN
+    xyz_skip_data = xslibOPEN
     return
   end if
 
-  ! Skip all atoms. +1 is for comment
+  ! Skip all atoms
   do i = 1, natoms
-    read (unit,*,IOSTAT=stat) ! dummy
+    read (unit,*,IOSTAT=stat) ! Dummy read
     if ( stat /= 0 ) then
-      xyz_coor_skip = xslibENDOFFILE
+      xyz_skip_data = xslibENDOFFILE
       return
     end if
   end do
 
-  ! NOTE: XYZ file does not contain any box size data. Return dummy data.
-  box(:,:) = 0.000
-
   ! Return success
-  xyz_coor_skip = xslibOK
+  xyz_skip_data = xslibOK
 
   return
-end function xyz_coor_skip
+end function xyz_skip_data
 
-! Comment
-integer function xyz_output( unit, natoms, comment, box, name, coor )
+! Output data (header included) in .xyz format.
+integer function xyz_write_data( unit, natoms, comment, box, name, coor )
   implicit none
   integer, intent(in)       :: unit, natoms
   character(*), intent(in)  :: comment
@@ -227,7 +347,7 @@ integer function xyz_output( unit, natoms, comment, box, name, coor )
   ! Check file unit
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"WRITE") == 0 ) then
-    xyz_output = xslibOPEN
+    xyz_write_data = xslibOPEN
     return
   end if
 
@@ -238,20 +358,33 @@ integer function xyz_output( unit, natoms, comment, box, name, coor )
   if ( index(comment,"box=") /= 0 ) then
     write (unit,"(a)") trim(comment)
   else
-    write (unit,"(a, ' box= ', 3(f10.5,x))") trim(comment), box(1,1), box(2,2), box(3,3)
+    write (unit,"(a, '; box= ', 3(f10.5,x))") trim(comment), box(1,1), box(2,2), box(3,3)
   end if
 
   ! Write all atoms and names
   do i = 1, natoms
     write (unit,*) trim(name(i)), coor(:,i)
-
   end do ! for i
 
   ! Return success
-  xyz_output = xslibOK
+  xyz_write_data = xslibOK
 
   return
-end function xyz_output
+end function xyz_write_data
+
+! Close .xyz file handle.
+integer function xyz_close_file( unit )
+  implicit none
+  integer, intent(in) :: unit
+  integer             :: stat
+  close ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    xyz_close_file = xslibCLOSE
+  else
+    xyz_close_file = xslibOK
+  end if
+  return
+end function xyz_close_file
 
 ! -------------------------------------------------
 ! xyz_frame procedures
@@ -283,12 +416,9 @@ subroutine xyz_frame_assign( this, other )
 
   ! Copy header
   this%box(:,:) = other%box
-  if ( allocated(other%comment) ) then
-     this%comment = other%comment
-  end if
+  this%comment = other%comment
 
   ! Copy data
-  ! TODO: Check all parameters
   if ( allocated(other%coor) ) then
     ! natoms is set by allocation.
     stat = this%allocate( other%natoms )
@@ -307,10 +437,8 @@ integer function xyz_frame_read( this, unit )
   class(xyz_frame)    :: this
   integer, intent(in) :: unit
 
-  ! NOTE: File UNIT check is done by low-level routines.
-
   ! Read Header
-  xyz_frame_read = xyz_header( unit, this%natoms, this%comment )
+  xyz_frame_read = xyz_read_header( unit, this%natoms, this%comment, this%box )
   if ( xyz_frame_read /= xslibOK ) return
 
   ! Allocated data
@@ -318,7 +446,7 @@ integer function xyz_frame_read( this, unit )
   if ( xyz_frame_read /= xslibOK ) return
 
   ! Read data
-  xyz_frame_read = xyz_coor( unit, this%natoms, this%box, this%name, this%coor  )
+  xyz_frame_read = xyz_read_data( unit, this%natoms, this%name, this%coor  )
   if ( xyz_frame_read /= xslibOK ) return
 
   return
@@ -337,7 +465,7 @@ integer function xyz_frame_write( this, unit )
   end if
 
   ! Write header and coor
-  xyz_frame_write = xyz_output( unit, this%natoms, this%comment, this%box, this%name, this%coor )
+  xyz_frame_write = xyz_write_data( unit, this%natoms, this%comment, this%box, this%name, this%coor )
 
   return
 end function xyz_frame_write
@@ -423,66 +551,40 @@ subroutine xyz_assign( this, other )
 end subroutine xyz_assign
 
 ! Comment
+integer function xyz_frame_copy( this, obj, dest, src, num )
+  implicit none
+  class(xyz_frame)            :: this
+  type(xyz_frame), intent(in) :: obj
+  integer, intent(in)         :: dest, src, num
+
+  ! Size check
+  if ( (src+num-1) > obj%natoms .or. (dest+num-1) > this%natoms ) then
+    xyz_frame_copy = xslibNOMEM
+    return
+  end if
+
+  ! Copy data
+  this%name(dest:dest+num-1)   = obj%name(src:src+num-1)
+  this%coor(:,dest:dest+num-1) = obj%coor(:,src:src+num-1)
+
+  ! Return sucess
+  xyz_frame_copy = xslibOK
+
+  return
+end function xyz_frame_copy
+
+! Comment
 integer function xyz_open( this, file )
   implicit none
   class(xyz_t)              :: this
   character(*), intent(in)  :: file
-  logical                   :: exist
-  integer                   :: natoms, stat
-  real                      :: box(3,3)
-  character(:), allocatable :: comment
 
-  ! Check if file exists
-  inquire( FILE=trim(file), EXIST=exist )
-  if ( .not. exist ) then
-    xyz_open = xslibFILENOTFOUND
-    return
-  end if
-
-  ! Open and check file
-  open( NEWUNIT=this%unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
-  if ( stat /= 0 ) then
-    xyz_open = xslibOPEN
-    return
-  end if
-
-  ! Read XYZ header. Only save natoms.
-  xyz_open = xyz_header( this%unit, this%natoms, comment )
+  ! Open file
+  xyz_open = xyz_open_file( this%unit, file, this%allframes, this%natoms, this%box )
   if ( xyz_open /= xslibOK ) return
-
-  ! Read the rest of the frame. Save only box.
-  xyz_open = xyz_coor_skip( this%unit, this%natoms, this%box )
-  if ( xyz_open /= xslibOK ) return
-
-  ! Count the rest of the frames.
-  this%allframes = 1 ! One frame was already read.
-  do while( xyz_open == xslibOK )
-    ! Read hedaer; Stop if end-of-file
-    xyz_open = xyz_header( this%unit, natoms, comment )
-    if ( xyz_open == xslibENDOFFILE ) exit
-    if ( xyz_open /= xslibOK ) return
-
-    ! Read the rest of the frame
-    xyz_open = xyz_coor_skip( this%unit, natoms, box )
-    if ( xyz_open /= xslibOK ) return
-
-    ! Copy higher number of atoms & box
-    this%natoms = merge( this%natoms, natoms, this%natoms > natoms )
-    this%box = merge( this%box, box, all(this%box >= box) )
-
-    ! Another frame was read
-    this%allframes = this%allframes+1
-
-  end do
-
-  ! Back to begining
-  rewind( this%unit, IOSTAT=stat )
 
   ! All frames remain
   this%remaining = this%allframes
-
-  ! Return success
-  xyz_open = xslibOK
 
   return
 end function xyz_open
@@ -580,15 +682,15 @@ integer function xyz_skip_next( this, nframes )
   integer, intent(in), optional :: nframes
   integer                       :: natoms, i
   real                          :: box(3,3)
-  character(:), allocatable     :: comment
+  character(128)                :: comment
 
   do i = 1, min( merge( nframes, 1, present(nframes) ), this%remaining )
     ! Read header
-    xyz_skip_next = xyz_header( this%unit, natoms, comment )
+    xyz_skip_next = xyz_read_header( this%unit, natoms, comment, box )
     if ( xyz_skip_next /= xslibOK ) return
 
     ! Skip coordinates
-    xyz_skip_next = xyz_coor_skip( this%unit, natoms, box )
+    xyz_skip_next = xyz_skip_data( this%unit, natoms)
     if ( xyz_skip_next /= xslibOK ) return
 
     ! One frame less to read
@@ -663,17 +765,7 @@ end function xyz_write
 integer function xyz_close( this )
   implicit none
   class(xyz_t)  :: this
-  integer       :: stat
-
-  close( this%unit, IOSTAT=stat )
-  if ( stat /= 0 ) then
-    xyz_close = xslibCLOSE
-    return
-  end if
-
-  ! Return success
-  xyz_close = xslibOK
-
+  xyz_close = xyz_close_file( this%unit )
   return
 end function xyz_close
 
@@ -799,6 +891,5 @@ integer function cnttok( string, delim )
 
   return
 end function cnttok
-
 
 end module xslib_xyzio

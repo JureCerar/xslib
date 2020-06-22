@@ -20,23 +20,26 @@ module xslib_groio
   implicit none
   private
   public :: gro_t, gro_frame
+  public :: gro_open_file, gro_close_file, gro_read_header, gro_read_data
+  public :: gro_read_coor, gro_skip_data, gro_write_data
 
   ! Import error definitions
   include "fileio.h"
 
   ! .GRO file format
   type gro_frame
-    character(:), allocatable  :: title
-    real                       :: time = 0.0
-    integer                    :: natoms = 0
-    integer, allocatable       :: resn(:), atomn(:)
-    character(6), allocatable  :: resnm(:), atomnm(:)
-    real, allocatable          :: coor(:,:), vel(:,:)
-    real                       :: box(3,3) = 0.0
+    character(128)            :: title = ""
+    real                      :: time = 0.000
+    integer                   :: natoms = 0
+    integer, allocatable      :: resn(:), atomn(:)
+    character(6), allocatable :: resnm(:), atomnm(:)
+    real, allocatable         :: coor(:,:), vel(:,:)
+    real                      :: box(3,3) = 0.000
   contains
     procedure :: allocate => gro_frame_allocate
     procedure :: assign => gro_frame_assign
     generic   :: assignment(=) => assign
+    procedure :: copy => gro_frame_copy
     procedure :: read => gro_frame_read
     procedure :: write => gro_frame_write
   end type gro_frame
@@ -68,32 +71,91 @@ contains
 ! -------------------------------------------------
 ! Class independat routines
 
-integer function gro_header( unit, natoms, title, time )
+! Open and check .gro file.
+integer function gro_open_file( unit, file, nframes, natoms, box )
+  implicit none
+  integer, intent(out)      :: unit
+  character(*), intent(in)  :: file
+  integer, intent(out)      :: nframes, natoms
+  real, intent(out)         :: box(3,3)
+  real                      :: ibox(3,3), time
+  integer                   :: inatoms, stat
+  character(128)            :: title
+  logical                   :: exist
+
+  ! Check if file exists
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    gro_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file
+  open ( NEWUNIT=unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
+  if ( stat /= 0 ) then
+    gro_open_file = xslibOPEN
+    return
+  end if
+
+  ! Count and check all frames
+  nframes = 0
+  box(:,:) = 0.000
+  natoms = 0
+  do while( .true. )
+    ! Read header
+    gro_open_file = gro_read_header( unit, inatoms, title, time )
+    if ( gro_open_file == xslibENDOFFILE ) exit
+    if ( gro_open_file /= xslibOK ) return
+
+    ! Skip the rest of the frame
+    gro_open_file = gro_skip_data( unit, inatoms, ibox )
+    if ( gro_open_file /= xslibOK ) return
+
+    ! Update data
+    nframes = nframes+1
+    box(:,:) = max( box, ibox )
+    natoms = max( natoms, inatoms )
+
+  end do ! while
+
+  ! Rewind file
+  rewind ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    gro_open_file = xslibOPEN
+    return
+  end if
+
+  ! Return sucess
+  gro_open_file = xslibOK
+
+  return
+end function gro_open_file
+
+! Read .gro header
+integer function gro_read_header( unit, natoms, title, time )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
-  integer, intent(in)                     :: unit
-  integer, intent(out)                    :: natoms
-  character(:), allocatable, intent(out)  :: title
-  real, intent(out)                       :: time
-  character(128)                          :: buffer
-  integer                                 :: i, stat
-  logical                                 :: opened
-  character(9)                            :: action
+  integer, intent(in)       :: unit
+  integer, intent(out)      :: natoms
+  character(*), intent(out) :: title
+  real, intent(out)         :: time
+  integer                   :: i, stat
+  logical                   :: opened
+  character(9)              :: action
 
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    gro_header = xslibOPEN
+    gro_read_header = xslibOPEN
     return
   end if
 
   ! Read title
-  read (unit,"(a)",IOSTAT=stat) buffer
+  read (unit,"(a)",IOSTAT=stat) title
   if ( stat /= 0 ) then
-    gro_header = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    gro_read_header = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
     return
   end if
-  title = trim(buffer)
 
   ! Try to extract time from comment
   time = 0.000
@@ -103,78 +165,133 @@ integer function gro_header( unit, natoms, title, time )
   ! Read number of atoms
   read (unit,*,IOSTAT=stat) natoms
   if ( stat /= 0 ) then
-    gro_header = merge( xslibENDOFFILE, xslibINT, stat == IOSTAT_END )
+    gro_read_header = merge( xslibENDOFFILE, xslibINT, stat == IOSTAT_END )
     return
   end if
 
   ! Return success
-  gro_header = xslibOK
+  gro_read_header = xslibOK
 
   return
-end function gro_header
+end function gro_read_header
 
-integer function gro_coor( unit, natoms, resn, resnm, atomn, atomnm, box, coor, vel )
+! Read all .gro data
+integer function gro_read_data( unit, natoms, resn, resnm, atomn, atomnm, box, coor, vel )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
-  integer, intent(in)           :: unit, natoms
-  real, intent(out)             :: coor(3,natoms), vel(3,natoms), box(3,3)
-  character(6), intent(out)     :: resnm(natoms), atomnm(natoms)
-  integer, intent(out)          :: resn(natoms), atomn(natoms)
-  character(128)                :: buffer
-  integer                       :: i, stat
-  logical                       :: opened
-  character(9)                  :: action
+  integer, intent(in)       :: unit, natoms
+  real, intent(out)         :: coor(3,natoms), vel(3,natoms), box(3,3)
+  character(6), intent(out) :: resnm(natoms), atomnm(natoms)
+  integer, intent(out)      :: resn(natoms), atomn(natoms)
+  character(128)            :: buffer
+  integer                   :: i, stat
+  logical                   :: opened
+  character(9)              :: action
 
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .and. index(action,"READ") == 0 ) then
-    gro_coor = xslibOPEN
+    gro_read_data = xslibOPEN
     return
   end if
 
-  ! Initialize (velocity is optional)
+  ! Initialize as they are optional in format.
   vel(:,:) = 0.000
 
   ! Read data
   do i = 1, natoms
     read (unit,100,IOSTAT=stat) resn(i), resnm(i), atomnm(i), coor(:,i), vel(:,i)
+    100 format( i5, 2a5, 5x, 3f8.3: 3f8.4 )
     if ( stat /= 0 ) then
-      gro_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+      gro_read_data = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
       return
     end if
 
     ! NOTE: renumber all atoms
     atomn(i) = i
 
-    100 format( i5, 2a5, 5x, 3f8.3: 3f8.4 )
-
   end do
 
-  ! Read line with simulation box side
+  ! Store line with simulation box side to buffer.
   read (unit,"(a)",IOSTAT=stat) buffer
   if ( stat /= 0 ) then
-    gro_coor = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    gro_read_data = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
     return
   end if
 
+  ! Try to reading triclinic box dimensions from buffer.
   box(:,:) = 0.000
   read (buffer,*,IOSTAT=stat) box(:,:)
   if ( stat /= 0 ) then
-    ! Try reading cubic box dimmensions
+    ! Try reading cubic box dimensions from buffer.
     read (buffer,*,IOSTAT=stat) box(1,1), box(2,2), box(3,3)
     if ( stat /= 0 ) then
-      gro_coor = xslib3DX
+      gro_read_data = xslib3DX
       return
     end if
   end if
 
   ! Return success
-  gro_coor = xslibOK
+  gro_read_data = xslibOK
 
   return
-end function gro_coor
+end function gro_read_data
 
-integer function gro_coor_skip( unit, natoms, box )
+! Read only .gro coordinates
+integer function gro_read_coor( unit, natoms, box, coor )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END
+  implicit none
+  integer, intent(in) :: unit, natoms
+  real, intent(out)   :: box(3,3), coor(3,natoms)
+  character(128)      :: buffer
+  integer             :: i, stat
+  logical             :: opened
+  character(9)        :: action
+
+  ! Check if unit is assigned
+  inquire( UNIT=unit, OPENED=opened, ACTION=action )
+  if ( .not. opened .and. index(action,"READ") == 0 ) then
+    gro_read_coor = xslibOPEN
+    return
+  end if
+
+  ! Read coor
+  do i = 1, natoms
+    read (unit,100,IOSTAT=stat) coor(:,i)
+    100 format( 20x, 3f8.3 )
+    if ( stat /= 0 ) then
+      gro_read_coor = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+      return
+    end if
+  end do ! for i
+
+  ! Store line with simulation box side to buffer.
+  read (unit,"(a)",IOSTAT=stat) buffer
+  if ( stat /= 0 ) then
+    gro_read_coor = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    return
+  end if
+
+  ! Try to reading triclinic box dimensions from buffer.
+  box(:,:) = 0.000
+  read (buffer,*,IOSTAT=stat) box(:,:)
+  if ( stat /= 0 ) then
+    ! Try reading cubic box dimensions from buffer.
+    read (buffer,*,IOSTAT=stat) box(1,1), box(2,2), box(3,3)
+    if ( stat /= 0 ) then
+      gro_read_coor = xslib3DX
+      return
+    end if
+  end if
+
+  ! Return success
+  gro_read_coor = xslibOK
+
+  return
+end function gro_read_coor
+
+! Skip .gro data
+integer function gro_skip_data( unit, natoms, box )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in)           :: unit, natoms
@@ -187,45 +304,47 @@ integer function gro_coor_skip( unit, natoms, box )
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .and. index(action,"READ") == 0 ) then
-    gro_coor_skip = xslibOPEN
+    gro_skip_data = xslibOPEN
     return
   end if
 
-  ! Skip data data
+  ! Skip atom data
   do i = 1, natoms
     read (unit,*,IOSTAT=stat)
     if ( stat /= 0 ) then
-      gro_coor_skip = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+      gro_skip_data = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
       return
     end if
 
   end do
 
-  ! Read line with simulation box side
+  ! Store line with simulation box side to buffer.
   read (unit,"(a)",IOSTAT=stat) buffer
   if ( stat /= 0 ) then
-    gro_coor_skip = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    gro_skip_data = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
     return
   end if
 
+  ! Try to reading triclinic box dimensions from buffer.
   box(:,:) = 0.000
   read (buffer,*,IOSTAT=stat) box(:,:)
   if ( stat /= 0 ) then
-    ! Try reading cubic box dimmensions
+    ! Try reading cubic box dimensions from buffer.
     read (buffer,*,IOSTAT=stat) box(1,1), box(2,2), box(3,3)
     if ( stat /= 0 ) then
-      gro_coor_skip = xslib3DX
+      gro_skip_data = xslib3DX
       return
     end if
   end if
 
   ! Return success
-  gro_coor_skip = xslibOK
+  gro_skip_data = xslibOK
 
   return
-end function gro_coor_skip
+end function gro_skip_data
 
-integer function gro_output( unit, natoms, title, time, resn, resnm, atomn, atomnm, box, coor, vel )
+! Write data (header included) in .gro format
+integer function gro_write_data( unit, natoms, title, time, resn, resnm, atomn, atomnm, box, coor, vel )
   implicit none
   integer, intent(in)       :: unit, natoms
   character(*), intent(in)  :: title
@@ -241,15 +360,15 @@ integer function gro_output( unit, natoms, title, time, resn, resnm, atomn, atom
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .and. index(action,"WRITE") == 0 ) then
-    gro_output = xslibOPEN
+    gro_write_data = xslibOPEN
     return
   end if
 
   ! Check if title contains time
   if ( index(title,"t=") == 0 ) then
-    write (unit,"(a,' t= ',f10.5)") title, time
+    write (unit,"(a,' t= ',f10.5)") trim(title), time
   else
-    write (unit,"(a)") title
+    write (unit,"(a)") trim(title)
   end if
 
   ! Write number of atoms
@@ -258,12 +377,12 @@ integer function gro_output( unit, natoms, title, time, resn, resnm, atomn, atom
   ! Write all atoms and names
   if ( any(vel(:,:) /= 0.000) ) then
     do i = 1, natoms
-      write (unit,100) mod(resn(i),nmax), adjustl(resnm(i)), adjustr(trim(atomnm(i))), mod(i,nmax), coor(:,i), vel(:,i)
+      write (unit,100) mod(resn(i),nmax), adjustl(resnm(i)), adjustr(trim(atomnm(i))), mod(atomn(i),nmax), coor(:,i), vel(:,i)
 
     end do ! for i
   else
     do i = 1, natoms
-      write (unit,100) mod(resn(i),nmax), adjustl(resnm(i)), adjustr(trim(atomnm(i))), mod(i,nmax), coor(:,i)
+      write (unit,100) mod(resn(i),nmax), adjustl(resnm(i)), adjustr(trim(atomnm(i))), mod(atomn(i),nmax), coor(:,i)
 
     end do ! for i
   end if
@@ -279,10 +398,24 @@ integer function gro_output( unit, natoms, title, time, resn, resnm, atomn, atom
   200 format( 9(x,f9.5) )
 
   ! Return success
-  gro_output = xslibOK
+  gro_write_data = xslibOK
 
   return
-end function gro_output
+end function gro_write_data
+
+! Close .gro file handle.
+integer function gro_close_file( unit )
+  implicit none
+  integer, intent(in) :: unit
+  integer             :: stat
+  close ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    gro_close_file = xslibCLOSE
+  else
+    gro_close_file = xslibOK
+  end if
+  return
+end function gro_close_file
 
 ! -------------------------------------------------
 
@@ -338,6 +471,32 @@ subroutine gro_frame_assign( this, other )
   return
 end subroutine gro_frame_assign
 
+integer function gro_frame_copy( this, obj, dest, src, num )
+  implicit none
+  class(gro_frame)            :: this
+  type(gro_frame), intent(in) :: obj
+  integer, intent(in)         :: dest, src, num
+
+  ! Bound check
+  if ( (dest+num-1) > obj%natoms .or. (src+num-1) > this%natoms ) then
+    gro_frame_copy = xslibNOMEM
+    return
+  end if
+
+  ! Copy specified data
+  this%resn(dest:dest+num-1)   = obj%resn(src:src+num-1)
+  this%resnm(dest:dest+num-1)  = obj%resnm(src:src+num-1)
+  this%atomn(dest:dest+num-1)  = obj%atomn(src:src+num-1)
+  this%atomnm(dest:dest+num-1) = obj%atomnm(src:src+num-1)
+  this%coor(:,dest:dest+num-1) = obj%coor(:,src:src+num-1)
+  this%vel(:,dest:dest+num-1)  = obj%vel(:,src:src+num-1)
+
+  ! Return sucess
+  gro_frame_copy = xslibOK
+
+  return
+end function gro_frame_copy
+
 ! Comment
 integer function gro_frame_read( this, unit )
   implicit none
@@ -345,7 +504,7 @@ integer function gro_frame_read( this, unit )
   integer, intent(in) :: unit
 
   ! Read header
-  gro_frame_read = gro_header( unit, this%natoms, this%title, this%time )
+  gro_frame_read = gro_read_header( unit, this%natoms, this%title, this%time )
   if ( gro_frame_read /= xslibOK ) return
 
   ! Allocate data
@@ -353,7 +512,7 @@ integer function gro_frame_read( this, unit )
   if ( gro_frame_read /= xslibOK ) return
 
   ! Read data
-  gro_frame_read = gro_coor( unit, this%natoms, this%resn, this%resnm, this%atomn, this%atomnm, this%box, this%coor, this%vel )
+  gro_frame_read = gro_read_data( unit, this%natoms, this%resn, this%resnm, this%atomn, this%atomnm, this%box, this%coor, this%vel )
   if ( gro_frame_read /= xslibOK ) return
 
   return
@@ -371,7 +530,7 @@ integer function gro_frame_write( this, unit )
     return
   end if
 
-  gro_frame_write =  gro_output( unit, this%natoms, this%title, this%time, this%resn, this%resnm,  &
+  gro_frame_write =  gro_write_data( unit, this%natoms, this%title, this%time, this%resn, this%resnm,  &
   &   this%atomn, this%atomnm, this%box, this%coor, this%vel )
 
   return
@@ -464,62 +623,13 @@ integer function gro_open( this, file )
   implicit none
   class(gro_t)              :: this
   character(*), intent(in)  :: file
-  logical                   :: exist
-  integer                   :: natoms, stat
-  real                      :: box(3,3), time
-  character(:), allocatable :: title
 
-  ! Check if file exists
-  inquire( FILE=trim(file), EXIST=exist )
-  if ( .not. exist ) then
-    gro_open = xslibFILENOTFOUND
-    return
-  end if
-
-  ! Open and check file
-  open( NEWUNIT=this%unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
-  if ( stat /= 0 ) then
-    gro_open = xslibOPEN
-    return
-  end if
-
-  ! Read GRO header. Save only natoms.
-  gro_open = gro_header( this%unit, this%natoms, title, time )
+  ! Open file
+  gro_open = gro_open_file( this%unit, file, this%allframes, this%natoms, this%box )
   if ( gro_open /= xslibOK ) return
-
-  ! Read the rest of the frame. Save only box.
-  gro_open = gro_coor_skip( this%unit, this%natoms, this%box )
-  if ( gro_open /= xslibOK ) return
-
-  ! Count the rest of the frames.
-  this%allframes = 1 ! One frame already read.
-  do while( gro_open == xslibOK )
-    ! Read hedaer; if EOF is encountered stop.
-    gro_open = gro_header( this%unit, natoms, title, time )
-    if ( gro_open == xslibENDOFFILE ) exit
-    if ( gro_open /= xslibOK ) return
-
-    ! Skip the rest of the frame
-    gro_open = gro_coor_skip( this%unit, natoms, box )
-    if ( gro_open /= xslibOK ) return
-
-    ! Save largest box and natoms
-    this%natoms = merge( this%natoms, natoms, this%natoms > natoms )
-    this%box(:,:) = merge( this%box, box, all(this%box >= box) )
-
-    ! Another frame was read
-    this%allframes = this%allframes+1
-
-  end do
 
   ! All frames remain
   this%remaining = this%allframes
-
-  ! Back to begining
-  rewind( this%unit, IOSTAT=stat )
-
-  ! Return success
-  gro_open = xslibOK
 
   return
 end function gro_open
@@ -616,15 +726,15 @@ integer function gro_skip_next( this, nframes )
   integer, intent(in), optional :: nframes
   integer                       :: natoms, i
   real                          :: box(3,3), time
-  character(:), allocatable     :: title
+  character(128)                :: title
 
   do i = 1, min( merge( nframes, 1, present(nframes) ), this%remaining )
     ! Read header
-    gro_skip_next = gro_header( this%unit, natoms, title, time )
+    gro_skip_next = gro_read_header( this%unit, natoms, title, time )
     if ( gro_skip_next /= xslibOK ) return
 
     ! Skip coordinates
-    gro_skip_next = gro_coor_skip( this%unit, natoms, box )
+    gro_skip_next = gro_skip_data( this%unit, natoms, box )
     if ( gro_skip_next /= xslibOK ) return
 
     ! One less frame remaining
@@ -692,17 +802,7 @@ end function gro_write
 integer function gro_close( this )
   implicit none
   class(gro_t)  :: this
-  integer       :: stat
-
-  close( this%unit, IOSTAT=stat )
-  if ( stat /= 0 ) then
-    gro_close = xslibCLOSE
-    return
-  end if
-
-  ! Return success
-  gro_close = xslibOK
-
+  gro_close = gro_close_file( this%unit )
   return
 end function gro_close
 

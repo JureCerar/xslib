@@ -20,6 +20,8 @@ module xslib_pdbio
   implicit none
   private
   public :: pdb_t, pdb_frame
+  public :: pdb_open_file, pdb_close_file, pdb_count, pdb_read_data
+  public :: pdb_read_coor, pdb_skip_data, pdb_write_data
 
   ! Import error definitions
   include "fileio.h"
@@ -50,6 +52,7 @@ module xslib_pdbio
     procedure :: allocate => pdb_frame_allocate
     procedure :: assign => pdb_frame_assign
     generic   :: assignment(=) => assign
+    procedure :: copy => pdb_frame_copy
     procedure :: read => pdb_frame_read
     procedure :: write => pdb_frame_write
   end type pdb_frame
@@ -80,7 +83,66 @@ contains
 ! -------------------------------------------------
 ! Class independat routines
 
-! Count occurance of ATOM and HETATOM keywods in frame.
+! Open and check .pdb file.
+integer function pdb_open_file( unit, file, nframes, natoms, box )
+  implicit none
+  integer, intent(out)      :: unit
+  character(*), intent(in)  :: file
+  integer, intent(out)      :: nframes, natoms
+  real, intent(out)         :: box(3,3)
+  real                      :: ibox(3,3)
+  integer                   :: inatoms, stat
+  logical                   :: exist
+
+  ! Check if file exists
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    pdb_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file
+  open ( NEWUNIT=unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
+  if ( stat /= 0 ) then
+    pdb_open_file = xslibOPEN
+    return
+  end if
+
+  ! Count and check all frames
+  nframes = 0
+  box(:,:) = 0.000
+  natoms = 0
+  do while( .true. )
+    ! Count number of atoms in file
+    pdb_open_file = pdb_count( unit, inatoms )
+    if ( pdb_open_file == xslibENDOFFILE ) exit
+    if ( pdb_open_file /= xslibOK ) return
+
+    ! Skip the rest of the frame
+    pdb_open_file = pdb_skip_data( unit, ibox )
+    if ( pdb_open_file /= xslibOK ) return
+
+    ! Update data
+    nframes = nframes+1
+    box(:,:) = max( box, ibox )
+    natoms = max( natoms, inatoms )
+
+  end do ! while
+
+  ! Rewind file
+  rewind ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    pdb_open_file = xslibOPEN
+    return
+  end if
+
+  ! Return sucess
+  pdb_open_file = xslibOK
+
+  return
+end function pdb_open_file
+
+! Count occurance of "ATOM" and "HETATOM" keywods in frame.
 integer function pdb_count( unit, natoms )
   use iso_fortran_env, only: INT64, IOSTAT_END
   implicit none
@@ -102,10 +164,8 @@ integer function pdb_count( unit, natoms )
   ! Get current file position
   offset = ftell( unit )
 
-  ! Initialize
-  natoms = 0
-
   ! Count occurance of keywords "ATOM" and "HETATM"
+  natoms = 0
   do while ( .true. )
     read (unit,"(a)",IOSTAT=stat) keyword
     if ( stat == IOSTAT_END ) then
@@ -132,8 +192,8 @@ integer function pdb_count( unit, natoms )
   return
 end function pdb_count
 
-! Comment
-integer function pdb_coor( unit, natoms, type, atomn, atomnm, altloc, resnm, ch, &
+! Read .pdb data
+integer function pdb_read_data( unit, natoms, type, atomn, atomnm, altloc, resnm, ch, &
 & resn, resic, occup, bfac, segnm, elem, charge, box, coor )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
@@ -154,34 +214,29 @@ integer function pdb_coor( unit, natoms, type, atomn, atomnm, altloc, resnm, ch,
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    pdb_coor = xslibOPEN
+    pdb_read_data = xslibOPEN
     return
   end if
 
   ! Initialize
   box(:,:) = 0.000
 
-  ! Current atom index
-  i = 1
-
   ! Read all lines with "ATOM" or "HETATOM" keywords
-  stat = 0
-  do while( stat == 0 )
+  i = 1 ! Current atom index
+  do while( .true. )
     ! Read buffer line
     read (unit,"(a)",IOSTAT=stat) buffer
-    if ( stat == IOSTAT_END ) then
-      pdb_coor = xslibENDOFFILE
+    if ( stat /= 0 ) then
+      pdb_read_data = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
       return
     end if
 
-    ! Read keywords
-    keyword = buffer(1:6)
-
     ! Process keyword
+    keyword = buffer(1:6)
     if ( index(keyword,"ATOM") == 1 .or. index(keyword,"HETATM") == 1 ) then
       ! Check if index is below limit
       if ( i > natoms ) then
-        pdb_coor = xslibNATOMS
+        pdb_read_data = xslibNATOMS
         return
       end if
 
@@ -190,7 +245,7 @@ integer function pdb_coor( unit, natoms, type, atomn, atomnm, altloc, resnm, ch,
       &   resic(i), coor(:,i), occup(i), bfac(i), segnm(i), elem(i), charge(i)
       100 format( a6, i5, x, a4, a1, a3, x, a1, i4, a1, 3x, 3f8.3, 2f6.2, 6x, a4, a2, a2 )
       if ( stat /= 0 ) then
-        pdb_coor = xslib3DX
+        pdb_read_data = xslib3DX
         return
       end if
 
@@ -200,9 +255,9 @@ integer function pdb_coor( unit, natoms, type, atomn, atomnm, altloc, resnm, ch,
     else if ( index(keyword,"CRYST1") == 1 ) then
       ! TODO: I am too lazy to implement any other box definition options.
       ! * Just use cubic box. Please.
-      read (buffer,"(6x,3f9.3)",IOSTAT=stat ) box(1,1), box(2,2), box(3,3)
+      read (buffer,"(6x,3f9.3)",IOSTAT=stat) box(1,1), box(2,2), box(3,3)
       if ( stat /= 0 ) then
-        pdb_coor = xslibFLOAT
+        pdb_read_data = xslibFLOAT
         return
       end if
 
@@ -214,13 +269,87 @@ integer function pdb_coor( unit, natoms, type, atomn, atomnm, altloc, resnm, ch,
   end do ! while
 
   ! Return success
-  pdb_coor = xslibOK
+  pdb_read_data = xslibOK
 
   return
-end function pdb_coor
+end function pdb_read_data
 
-! Comment
-integer function pdb_skip( unit, box )
+! Read only .pdb coordinates.
+integer function pdb_read_coor( unit, natoms, box, coor )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END
+  implicit none
+  integer, intent(in)       :: unit
+  integer, intent(in)       :: natoms
+  real, intent(out)         :: coor(3,natoms), box(3,3)
+  integer                   :: i, stat
+  logical                   :: opened
+  character(128)            :: buffer
+  character(6)              :: keyword
+  character(9)              :: action
+
+  ! Check if unit is assigned
+  inquire( UNIT=unit, OPENED=opened, ACTION=action )
+  if ( .not. opened .or. index(action,"READ") == 0 ) then
+    pdb_read_coor = xslibOPEN
+    return
+  end if
+
+  ! Initialize
+  box(:,:) = 0.000
+
+  ! Read all lines with "ATOM" or "HETATOM" keywords
+  i = 1 ! Current atom index
+  do while( .true. )
+    ! Read buffer line
+    read (unit,"(a)",IOSTAT=stat) buffer
+    if ( stat /= 0 ) then
+      pdb_read_coor = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+      return
+    end if
+
+    ! Process keyword
+    keyword = buffer(1:6)
+    if ( index(keyword,"ATOM") == 1 .or. index(keyword,"HETATM") == 1 ) then
+      ! Check if index is below limit
+      if ( i > natoms ) then
+        pdb_read_coor = xslibNATOMS
+        return
+      end if
+
+      ! Read only coor
+      read (buffer,"(30x,3f8.3)",IOSTAT=stat) coor(:,i)
+      if ( stat /= 0 ) then
+        pdb_read_coor = xslib3DX
+        return
+      end if
+
+      ! Increment iterator
+      i = i+1
+
+    else if ( index(keyword,"CRYST1") == 1 ) then
+      ! TODO: I am too lazy to implement any other box definition options.
+      ! * Just use cubic box. Please.
+      read (buffer,"(6x,3f9.3)",IOSTAT=stat) box(1,1), box(2,2), box(3,3)
+      if ( stat /= 0 ) then
+        pdb_read_coor = xslibFLOAT
+        return
+      end if
+
+    ! If "END" OR "ENDMDL" is found in record exit
+    else if ( index(keyword,"END") == 1 ) then
+      exit
+
+    end if
+  end do ! while
+
+  ! Return success
+  pdb_read_coor = xslibOK
+
+  return
+end function pdb_read_coor
+
+! Skip .pdb data.
+integer function pdb_skip_data( unit, box )
   use, intrinsic :: iso_fortran_env, only: IOSTAT_END
   implicit none
   integer, intent(in)       :: unit
@@ -234,7 +363,7 @@ integer function pdb_skip( unit, box )
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"READ") == 0 ) then
-    pdb_skip = xslibOPEN
+    pdb_skip_data = xslibOPEN
     return
   end if
 
@@ -246,21 +375,19 @@ integer function pdb_skip( unit, box )
   do while( stat == 0 )
     ! Read buffer line
     read (unit,"(a)",IOSTAT=stat) buffer
-    if ( stat == IOSTAT_END ) then
-      pdb_skip = xslibENDOFFILE
+    if ( stat /= 0 ) then
+      pdb_skip_data = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
       return
     end if
 
-    ! Read keywords
-    keyword = buffer(1:6)
-
     ! Process keyword
+    keyword = buffer(1:6)
     if ( index(keyword,"CRYST1") == 1 ) then
       ! TODO: I am too lazy to implement any other box definition options.
       ! * Just use cubic box. Please.
       read (buffer,"(6x,3f9.3)",IOSTAT=stat ) box(1,1), box(2,2), box(3,3)
       if ( stat /= 0 ) then
-        pdb_skip = xslibFLOAT
+        pdb_skip_data = xslibFLOAT
         return
       end if
 
@@ -272,13 +399,13 @@ integer function pdb_skip( unit, box )
   end do ! while
 
   ! Return success
-  pdb_skip = xslibOK
+  pdb_skip_data = xslibOK
 
   return
-end function pdb_skip
+end function pdb_skip_data
 
-! Comment
-integer function pdb_output( unit, natoms, type, atomn, atomnm, altloc, resnm, ch, &
+! Write data in .pdb format.
+integer function pdb_write_data( unit, natoms, type, atomn, atomnm, altloc, resnm, ch, &
 & resn, resic, occup, bfac, segnm, elem, charge, box, coor )
   implicit none
   integer, intent(in)       :: unit
@@ -294,7 +421,7 @@ integer function pdb_output( unit, natoms, type, atomn, atomnm, altloc, resnm, c
   ! Check if unit is assigned
   inquire( UNIT=unit, OPENED=opened, ACTION=action )
   if ( .not. opened .or. index(action,"WRITE") == 0 ) then
-    pdb_output = xslibOPEN
+    pdb_write_data = xslibOPEN
     return
   end if
 
@@ -313,7 +440,6 @@ integer function pdb_output( unit, natoms, type, atomn, atomnm, altloc, resnm, c
     write (unit,200) type(i), atomn(i), atomnm(i), altloc(i), resnm(i), ch(i),  &
     &   resn(i), resic(i), coor(:,i), occup(i), bfac(i), segnm(i), elem(i), charge(i)
     200 format( a6, i5, x, a4, a1, a3, x, a1, i4, a1, 3x, 3f8.3, 2f6.2, 6x, a4, a2, a2 )
-
   end do
 
   ! End of entry
@@ -321,10 +447,24 @@ integer function pdb_output( unit, natoms, type, atomn, atomnm, altloc, resnm, c
   write (unit,"(a)") "ENDMDL"
 
   ! Return sucess
-  pdb_output = xslibOK
+  pdb_write_data = xslibOK
 
   return
-end function pdb_output
+end function pdb_write_data
+
+! Close .pdb file handle.
+integer function pdb_close_file( unit )
+  implicit none
+  integer, intent(in) :: unit
+  integer             :: stat
+  close ( unit, IOSTAT=stat )
+  if ( stat /= 0 ) then
+    pdb_close_file = xslibCLOSE
+  else
+    pdb_close_file = xslibOK
+  end if
+  return
+end function pdb_close_file
 
 ! -------------------------------------------------
 
@@ -391,6 +531,41 @@ subroutine pdb_frame_assign( this, other )
 end subroutine pdb_frame_assign
 
 ! Comment
+integer function pdb_frame_copy( this, obj, dest, src, num )
+  implicit none
+  class(pdb_frame)            :: this
+  type(pdb_frame), intent(in) :: obj
+  integer, intent(in)         :: dest, src, num
+
+  ! Size check
+  if ( (src+num-1) > obj%natoms .or. (dest+num-1) > this%natoms ) then
+    pdb_frame_copy = xslibNOMEM
+    return
+  end if
+
+  ! Copy data
+  this%type(dest:dest+num-1)   = obj%type(src:src+num-1)
+  this%atomnm(dest:dest+num-1) = obj%atomnm(src:src+num-1)
+  this%altloc(dest:dest+num-1) = obj%altloc(src:src+num-1)
+  this%resnm(dest:dest+num-1)  = obj%resnm(src:src+num-1)
+  this%ch(dest:dest+num-1)     = obj%ch(src:src+num-1)
+  this%resic(dest:dest+num-1)  = obj%resic(src:src+num-1)
+  this%segnm(dest:dest+num-1)  = obj%segnm(src:src+num-1)
+  this%elem(dest:dest+num-1)   = obj%elem(src:src+num-1)
+  this%charge(dest:dest+num-1) = obj%charge(src:src+num-1)
+  this%atomn(dest:dest+num-1)  = obj%atomn(src:src+num-1)
+  this%resn(dest:dest+num-1)   = obj%resn(src:src+num-1)
+  this%occup(dest:dest+num-1)  = obj%occup(src:src+num-1)
+  this%bfac(dest:dest+num-1)   = obj%bfac(src:src+num-1)
+  this%coor(:,dest:dest+num-1) = obj%coor(:,src:src+num-1)
+
+  ! Return sucess
+  pdb_frame_copy = xslibOK
+
+  return
+end function pdb_frame_copy
+
+! Comment
 integer function pdb_frame_read( this, unit )
   implicit none
   class(pdb_frame)    :: this
@@ -405,7 +580,7 @@ integer function pdb_frame_read( this, unit )
   if ( pdb_frame_read /= xslibOK ) return
 
   ! Read frame
-  pdb_frame_read = pdb_coor( unit, this%natoms, this%type, this%atomn, this%atomnm, this%altloc, this%resnm, &
+  pdb_frame_read = pdb_read_data( unit, this%natoms, this%type, this%atomn, this%atomnm, this%altloc, this%resnm, &
   &   this%ch, this%resn, this%resic, this%occup, this%bfac, this%segnm, this%elem, this%charge, this%box, this%coor )
   if ( pdb_frame_read /= xslibOK ) return
 
@@ -434,7 +609,7 @@ integer function pdb_frame_write( this, unit, serial )
   write (unit,"(a6,i5)") "MODEL ", mod(s,100000)
 
   ! Write data
-  pdb_frame_write = pdb_output( unit, this%natoms, this%type, this%atomn, this%atomnm, this%altloc, this%resnm,  &
+  pdb_frame_write = pdb_write_data( unit, this%natoms, this%type, this%atomn, this%atomnm, this%altloc, this%resnm,  &
   &   this%ch, this%resn, this%resic, this%occup, this%bfac, this%segnm, this%elem, this%charge, this%box, this%coor )
 
   return
@@ -526,59 +701,13 @@ integer function pdb_open( this, file )
   implicit none
   class(pdb_t)              :: this
   character(*), intent(in)  :: file
-  integer                   :: natoms, stat
-  logical                   :: exist
-  real                      :: box(3,3)
 
-  ! Check if file exists
-  inquire( FILE=trim(file), EXIST=exist )
-  if ( .not. exist ) then
-    pdb_open = xslibFILENOTFOUND
-    return
-  end if
-
-  ! Open and check file
-  open( NEWUNIT=this%unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
-  if ( stat /= 0 ) then
-    pdb_open = xslibOPEN
-  end if
-
-  ! Count number of atoms in one frame.
-  pdb_open = pdb_count( this%unit, this%natoms )
+  ! Open file
+  pdb_open = pdb_open_file( this%unit, file, this%allframes, this%natoms, this%box )
   if ( pdb_open /= xslibOK ) return
-
-  ! Read frame. Save only box.
-  pdb_open = pdb_skip( this%unit, this%box )
-  if ( pdb_open /= xslibOK ) return
-
-  ! Count the rest of the frames
-  this%allframes = 1 ! One frame was already read.
-  do while ( pdb_open == xslibOK )
-    ! Count number of atoms.
-    pdb_open = pdb_count( this%unit, natoms )
-    if ( pdb_open == xslibENDOFFILE ) exit
-    if ( pdb_open /= xslibOK ) return
-
-    pdb_open = pdb_skip( this%unit, box )
-    if ( pdb_open /= xslibOK ) return
-
-    ! Save largest box and atoms.
-    this%natoms = merge( this%natoms, natoms, this%natoms > natoms )
-    this%box(:,:) = merge( this%box, box, all(this%box >= box) )
-
-    ! Another frame was read
-    this%allframes = this%allframes+1
-
-  end do
-
-  ! Rewind the file
-  rewind( this%unit, IOSTAT=stat )
 
   ! All frames are left
   this%remaining = this%allframes
-
-  ! Return success
-  pdb_open = xslibOK
 
   return
 end function pdb_open
@@ -677,7 +806,7 @@ integer function pdb_skip_next( this, nframes )
 
   ! Skip secified number of frames.
   do i = 1, min( merge( nframes, 1, present(nframes) ), this%remaining )
-    pdb_skip_next = pdb_skip( this%unit, box )
+    pdb_skip_next = pdb_skip_data( this%unit, box )
     if ( pdb_skip_next /= xslibOK ) return
 
     ! One less frame to read
@@ -745,17 +874,7 @@ end function pdb_write
 integer function pdb_close( this )
   implicit none
   class(pdb_t)  :: this
-  integer       :: stat
-
-  close( this%unit, IOSTAT=stat )
-  if ( stat /= 0 ) then
-    pdb_close = xslibCLOSE
-    return
-  end if
-
-  ! Return success
-  pdb_close = xslibOK
-
+  pdb_close = pdb_close_file( this%unit )
   return
 end function pdb_close
 

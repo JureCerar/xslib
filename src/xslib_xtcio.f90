@@ -21,6 +21,7 @@ module xslib_xtcio
   implicit none
   private
   public :: xtc_t, xtc_frame
+  public :: xtc_open_file, xtc_close_file, xtc_header, xtc_data, xtc_skip
 
   ! Import error definitions
   include "fileio.h"
@@ -64,14 +65,66 @@ module xslib_xtcio
     procedure :: getBox => xtc_getCubicBox
   end type xtc_t
 
-
 contains
 
 ! -------------------------------------------------
-
 ! NOTE: xrdfile read is same as write. He he he.
 
-! Read xtc file header
+! Open and check .xtc file.
+integer function xtc_open_file( xd, file, nframes, natoms, box )
+  use, intrinsic :: iso_fortran_env, only: INT64
+  use, intrinsic :: iso_c_binding, only: c_f_pointer, C_NULL_CHAR
+  implicit none
+  type(xdrfile), pointer, intent(out) :: xd
+  character(*), intent(in)            :: file
+  integer, intent(out)                :: nframes, natoms
+  real, intent(out)                   :: box(3,3)
+  real                                :: ibox(3,3), time
+  integer                             :: inatoms, step
+  logical                             :: exist
+
+  ! Check if file exists
+  inquire( FILE=trim(file), EXIST=exist )
+  if ( .not. exist ) then
+    xtc_open_file = xslibFILENOTFOUND
+    return
+  end if
+
+  ! Open file
+  call c_f_pointer( xdrfile_open( trim(file)//C_NULL_CHAR, "r" ), xd )
+  if ( .not. associated(xd) ) then
+    xtc_open_file = xslibOPEN
+    return
+  end if
+
+  ! Count and check all frames
+  nframes = 0
+  box(:,:) = 0.000
+  natoms = 0
+  do while( .true. )
+    ! Count number of atoms in file
+    xtc_open_file = xtc_header( xd, inatoms, step, time )
+    if ( xtc_open_file == xslibENDOFFILE ) exit
+    if ( xtc_open_file /= xslibOK ) return
+
+    ! Skip the rest of the frame
+    xtc_open_file = xtc_skip( xd, inatoms, ibox )
+    if ( xtc_open_file /= xslibOK ) return
+
+    ! Update data
+    nframes = nframes+1
+    box(:,:) = max( box, ibox )
+    natoms = max( natoms, inatoms )
+
+  end do ! while
+
+  ! Rewind file
+  xtc_open_file = xdr_seek( xd, 0_INT64, 0 )
+
+  return
+end function xtc_open_file
+
+! Read/write .xtc header
 integer function xtc_header( xd, natoms, step, time )
   implicit none
   type(xdrfile), pointer, intent(in)  :: xd
@@ -120,8 +173,8 @@ integer function xtc_header( xd, natoms, step, time )
   return
 end function xtc_header
 
-! Read xtc file coordinates
-integer function xtc_coor( xd, natoms, box, x, prec, bRead )
+! Read/write .xtc data
+integer function xtc_data( xd, natoms, box, x, prec, bRead )
   implicit none
   type(xdrfile), intent(in), pointer  :: xd
   logical, intent(in)                 :: bRead
@@ -132,35 +185,36 @@ integer function xtc_coor( xd, natoms, box, x, prec, bRead )
 
   ! Check pointer association
   if ( .not. associated(xd) ) then
-    xtc_coor = xslibOPEN
+    xtc_data = xslibOPEN
     return
   end if
 
   ! Box dimmension
   if ( xdrfile_read_float( box, size(box), xd ) /= size(box) ) then
-    xtc_coor = exdr3DX
+    xtc_data = exdr3DX
     return
   end if
 
   ! Read coordinates
   if ( bRead ) then
     if ( xdrfile_decompress_coord_float( x, natoms, prec, xd ) /= natoms ) then
-      xtc_coor = exdr3DX
+      xtc_data = exdr3DX
       return
     end if
   else
     if ( xdrfile_compress_coord_float( x, natoms, prec, xd ) /= natoms ) then
-      xtc_coor = exdr3DX
+      xtc_data = exdr3DX
       return
     end if
   end if
 
   ! Return success
-  xtc_coor = xslibOK
+  xtc_data = xslibOK
 
   return
-end function xtc_coor
+end function xtc_data
 
+! Skip .xtc data
 integer function xtc_skip( xd, natoms, box )
   use iso_fortran_env, only: INT64
   use iso_c_binding
@@ -228,6 +282,14 @@ integer function xtc_skip( xd, natoms, box )
   return
 end function xtc_skip
 
+! Close .xtc file handle
+integer function xtc_close_file( xd )
+  implicit none
+  type(xdrfile), pointer, intent(in)  :: xd
+  xtc_close_file = xdrfile_close( xd )
+  return
+end function xtc_close_file
+
 ! -------------------------------------------------
 
 ! Comment
@@ -292,7 +354,7 @@ integer function xtc_frame_read( this, xd )
   if ( xtc_frame_read /= xslibOK ) return
 
   ! Read the rest of the frame.
-  xtc_frame_read = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, .true. )
+  xtc_frame_read = xtc_data( xd, this%natoms, this%box, this%coor, this%prec, .true. )
   if ( xtc_frame_read /= xslibOK ) return
 
   return
@@ -315,7 +377,7 @@ integer function xtc_frame_write( this, xd )
   if ( xtc_frame_write /= xslibOK ) return
 
   ! Write data.
-  xtc_frame_write = xtc_coor( xd, this%natoms, this%box, this%coor, this%prec, .false. )
+  xtc_frame_write = xtc_data( xd, this%natoms, this%box, this%coor, this%prec, .false. )
   if ( xtc_frame_write /= xslibOK ) return
 
   return
@@ -367,7 +429,6 @@ integer function xtc_frame_dump( this, unit )
 
   return
 end function xtc_frame_dump
-
 
 ! -------------------------------------------------
 
@@ -456,85 +517,18 @@ subroutine xtc_assign( this, other )
   return
 end subroutine xtc_assign
 
-! Open xtc file
+! Open .xtc file
 integer function xtc_open( this, file )
-  use, intrinsic :: iso_fortran_env, only: INT64
-  use, intrinsic :: iso_c_binding, only: C_NULL_CHAR, c_f_pointer
   implicit none
   class(xtc_t)              :: this
   character(*), intent(in)  :: file
-  integer                   :: step, natoms
-  real                      :: time, box(3,3)
-  logical                   :: exist
 
-  ! Check if file exists
-  inquire( FILE=trim(file), EXIST=exist )
-  if ( .not. exist ) then
-    xtc_open = xslibFILENOTFOUND
-    return
-  end if
-
-  ! OLD WAY:
-  ! type(C_PTR) :: xdc
-  ! ! Open xtc file
-  ! xdc = xdrfile_open( trim(file)//C_NULL_CHAR, "r" )
-  ! if ( .NOT. c_associated(xdc) ) then
-  !   xtc_open = xslibOPEN
-  !   return
-  ! end if
-  ! ! Transform to fortran pointer
-  ! call c_f_pointer( xdc, this%xd )
-
-  ! Open xtc file
-  call c_f_pointer( xdrfile_open( trim(file)//C_NULL_CHAR, "r" ), this%xd )
-  if ( .not. associated(this%xd) ) then
-    xtc_open = xslibOPEN
-    return
-  end if
-
-  ! Read xtc header. Save only natoms.
-  xtc_open = xtc_header( this%xd, this%natoms, step, time )
-  if ( xtc_open /= xslibOK ) return
-
-  ! Skip frame.
-  xtc_open = xtc_skip( this%xd, this%natoms, this%box )
-  if ( xtc_open /= xslibOK ) return
-
-  ! Count the rest of the frames. Read until EOF.
-  this%allframes = 1 ! One frame was already read.
-  do while( xtc_open == xslibOK )
-    ! Read header
-    xtc_open = xtc_header( this%xd, natoms, step, time )
-    if ( xtc_open == xslibENDOFFILE ) exit ! ok
-    if ( xtc_open /= xslibOK ) return ! error
-
-    ! Check number of atoms
-    if ( this%natoms /= natoms ) then
-      xtc_open = xslibNATOMS
-      return
-    end if
-
-    ! Skip coor
-    xtc_open = xtc_skip( this%xd, natoms, box )
-    if ( xtc_open /= xslibOK ) return
-
-    ! Save biggest box
-    this%box(:,:) = merge( this%box, box, all(this%box>box) )
-
-    ! Another frame was read
-    this%allframes = this%allframes+1
-
-  end do
-
-  ! Rewind to beginig
-  xtc_open = xdr_seek( this%xd, 0_INT64, 0 )
-  if ( xtc_open /= xslibOK ) return
+  ! Open file
+  xtc_open = xtc_open_file( this%xd, file, this%allframes, this%natoms, this%box )
+  if ( xtc_open /= 0 ) return
 
   ! All frames are remaining
   this%remaining = this%allframes
-
-  ! Return success
-  xtc_open = xslibOK
 
   return
 end function xtc_open
@@ -753,9 +747,7 @@ end function xtc_dump
 integer function xtc_close( this )
   implicit none
   class(xtc_t)  :: this
-
-  xtc_close = xdrfile_close( this%xd )
-
+  xtc_close = xtc_close_file( this%xd )
   return
 end function xtc_close
 

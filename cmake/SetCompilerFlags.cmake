@@ -9,13 +9,13 @@ endif ()
 ## FORTRAN Compiler
 if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU" )
   set ( CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -march=native" )
-  set ( CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -fexcess-precision=fast -funroll-loops -finline-functions" )
-  set ( CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -Og -Wall -fcheck=all -fbacktrace" )
+  set ( CMAKE_Fortran_FLAGS_RELEASE "-O3 -ffast-math -flto -fexcess-precision=fast -funroll-loops" )
+  set ( CMAKE_Fortran_FLAGS_DEBUG "-g -Og -Wall -fcheck=all -fbacktrace" )
 endif ()
 
 ## C Compiler
 if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" )
   set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native" )
-  set ( CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fexcess-precision=fast -funroll-loops -finline-functions" )
-  set ( CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og -Wall" )
+  set ( CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -flto -fexcess-precision=fast -funroll-loops" )
+  set ( CMAKE_C_FLAGS_DEBUG "-g -Og -Wall" )
 endif ()

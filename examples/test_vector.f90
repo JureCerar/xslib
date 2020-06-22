@@ -34,36 +34,36 @@ program main
   a(:) = [ 1., 0., 0. ]
   b(:) = [ 0., 1., 0. ]
   c(:) = [ 0., 0., 1. ]
-  call assert( cross(a,b), c, TOL=delta )
+  call assert( cross(a,b)-c <= delta )
   write (*,*) "Cross:", cross( a, b )
 
   ! Rotate around z-axis by 90 deg
   a(:) = [ 1., 0., 0. ]
   b(:) = [ 0., 0., 1. ] ! z-axis
   c(:) = [ 0., 1., 0. ]
-  call assert( rotate(a,b,pi/2.), c, TOL=delta )
+  call assert( rotate(a,b,pi/2.)-c <= delta )
   write (*,*) "Rotate:", rotate( a, b, pi/2. )
-  call assert( rotate(a,"z",pi/2.), c, TOL=delta )
+  call assert( rotate(a,"z",pi/2.)-c <= delta )
   write (*,*) "Rotate:", rotate( a, "z", pi/2. )
 
   ! Minimum image
   a(:) = [ 0.25,  0.75, -0.75 ]
   b(:) = [ 0.25, -0.25,  0.25 ]
   c(:) = [ 1.00,  1.00,  1.00 ] ! box
-  call assert( minImg(a,c), b, TOL=delta )
+  call assert( all( minImg(a,c)-b <= delta ) )
   write (*,*) "minImg:", minImg(a,c)
 
   ! Vector distance
   a(:) = [ 0.0,  0.0,  0.0 ]
   b(:) = [ 1.0,  1.0,  1.0 ]
-  call assert( getDistance(a,b), sqrt(3.), TOL=delta )
+  call assert( getDistance(a,b)-sqrt(3.) <= delta )
   write (*,*) "getDistance:", getDistance(a,b)
 
   ! Vector angle
   a(:) = [ 1., 0., 0. ]
   b(:) = [ 0., 0., 0. ]
   c(:) = [ 0., 0., 1. ]
-  call assert( getAngle(a,b,c), pi/2., TOL=delta )
+  call assert( getAngle(a,b,c)-(pi/2.) <= delta )
   write (*,*) "getAngle:", getAngle(a,b,c)
 
   ! Vector dihedral angle
@@ -71,23 +71,23 @@ program main
   b(:) = [ 0., 0., 0. ]
   c(:) = [ 0., 0., 1. ]
   d(:) = [ 1., 0., 1. ]
-  call assert( getDihedral(a,b,c,d), pi/2., TOL=delta )
+  call assert( getDihedral(a,b,c,d)-(pi/2.) <= delta )
   write (*,*) "getDihedral:", getDihedral(a,b,c,d)
 
   ! Transform to spherical coordinate systems
   a(:) = [ 1., 1., 1. ]
   b(:) = [ 1.7320508075689, 0.95531661812451, 0.78539816339745 ]
-  call assert( crt2sph(a), b, TOL=delta )
+  call assert( crt2sph(a)-b <= delta )
   write (*,*) "crt2sph:", crt2sph(a)
-  call assert( sph2crt(b), a, TOL=delta )
+  call assert( sph2crt(b)-a <= delta )
   write (*,*) "sph2crt:", sph2crt(b)
 
   ! Transform to cylindrical coordinate systems
   a(:) = [ 1., 1., 1. ]
   b(:) = [ 1.4142135623731, 0.78539816339745, 1.0 ]
-  call assert( crt2cyl(a), b, TOL=delta )
+  call assert( crt2cyl(a)-b <= delta )
   write (*,*) "crt2cyl:", crt2cyl(a)
-  call assert( cyl2crt(b), a, TOL=delta )
+  call assert( cyl2crt(b)-a <= delta )
   write (*,*) "cyl2crt:", cyl2crt(b)
 
   ! Linear interpolation (exact)

@@ -23,23 +23,25 @@ contains
 
 ! Return precise time in sec.
 real(REAL64) function wtime()
-  use, intrinsic :: iso_fortran_env, only: REAL64
+  use, intrinsic :: iso_fortran_env, only: REAL64, INT64
   implicit none
-  integer(REAL64) :: count, count_rate
+  integer(INT64) :: count, count_rate
   call system_clock( count, count_rate )
   wtime = count/real(count_rate,KIND=REAL64)
   return
 end function wtime
 
 ! Transforms time in sec to string in format "ddd hh:mm:ss.sss".
-! * use with OMP_get_wtime() or wtime()
+! * Use with either OMP_get_wtime() or wtime()
+! * Example: 151501.992 = "001 18:05:01.992"
 character(16) function write_wtime( time )
   use, intrinsic :: iso_fortran_env, only: REAL64
   implicit none
   real(REAL64), intent(in) :: time   ! seconds
   real(REAL64)             :: rtime  ! remaining time
   integer                  :: day, hour, min, sec, msec
-  ! Example: 1d 18h 5m 1s 992ms = 151501.992
+
+  ! It's the final countdown...
   rtime = time
   day = int( rtime / (24*3600) )
   rtime = mod(rtime, 24.*3600)
@@ -50,9 +52,11 @@ character(16) function write_wtime( time )
   sec = int( rtime )
   rtime = mod(rtime, 1.)
   msec = int( rtime*1000 )
-  ! "ddd hh:mm:ss.sss".
+
+  ! Format "ddd hh:mm:ss.sss".
   write (write_wtime,100) day, hour, min, sec, msec
   100 format( i3, x, i2.2, 2(':',i2.2), '.', i3.3 )
+
   return
 end function write_wtime
 

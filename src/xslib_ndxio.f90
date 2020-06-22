@@ -25,9 +25,10 @@ module xslib_ndxio
   include "fileio.h"
 
   type ndx_group
-    character(:), allocatable :: title
-    integer                   :: natoms
-    integer, allocatable      :: loc(:)
+    character(128)        :: title = "" ! Title of the group
+    real                  :: val = 0.00 ! Reserved value (not part of ndx)
+    integer               :: natoms = 0 ! Size of index group
+    integer, allocatable  :: loc(:)     ! Index location
   contains
     procedure :: allocate => ndx_group_allocate
     procedure :: assign => ndx_group_assign
@@ -51,25 +52,24 @@ module xslib_ndxio
 
 contains
 
+! -------------------------------------------------
+
 ! Allocate ndx group
 integer function ndx_group_allocate( this, natoms )
   implicit none
   class(ndx_group)    :: this
   integer, intent(in) :: natoms
-  integer             :: stat
+
   ! Set number of atoms
   this%natoms = natoms
 
   ! Allocate data
-  if ( allocated(this%loc) ) deallocate( this%loc, STAT=stat )
-  allocate( this%loc(this%natoms), STAT=stat )
-  if ( stat /= 0 ) then
+  if ( allocated(this%loc) ) deallocate( this%loc, STAT=ndx_group_allocate )
+  allocate( this%loc(this%natoms), STAT=ndx_group_allocate )
+  if ( ndx_group_allocate /= 0 ) then
     ndx_group_allocate = xslibNOMEM
     return
   end if
-
-  ! Return success
-  ndx_group_allocate = xslibOK
 
   return
 end function ndx_group_allocate
@@ -83,6 +83,7 @@ subroutine ndx_group_assign( this, other )
 
   ! Copy header
   this%title = other%title
+  this%val = other%val
 
   ! Copy data
   this%natoms = other%natoms
@@ -102,7 +103,7 @@ integer function ndx_group_read( this, unit )
   implicit none
   class(ndx_group)    :: this
   integer, intent(in) :: unit
-  integer             :: i, offset, stat
+  integer             :: ni, nj, stat
   character(128)      :: buffer
   character(9)        :: action
   logical             :: opened
@@ -114,9 +115,21 @@ integer function ndx_group_read( this, unit )
     return
   end if
 
-  ! Read title
+  ! Read buffer
   read (unit,"(a)",IOSTAT=stat) buffer
-  this%title = trim(buffer(index(buffer,"[")+2:index(buffer,"]")-2))
+  if ( stat /= 0 ) then
+    ndx_group_read = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
+    return
+  end if
+
+  ! Parse title from buffer
+  ni = index(buffer,"[")
+  nj = index(buffer,"]")
+  if ( ni == 0 .or. nj == 0 ) then
+    ndx_group_read = xslibSTRING
+  end if
+  this%title = buffer(ni+1:nj-1)
+  this%title = trim(adjustl(this%title))
 
   ! Count number of indeces.
   this%natoms = indexCount( unit )
@@ -132,28 +145,11 @@ integer function ndx_group_read( this, unit )
   if ( ndx_group_read /= xslibOK ) return
 
   ! Read data
-  offset = 1 ! Offset in this%loc array
-  stat = 0
-  do while ( stat == 0 )
-    read (unit,"(a)",IOSTAT=stat) buffer
-
-    ! Exit condition
-    if ( stat == IOSTAT_END ) exit
-
-    ! Ops ... start of next group. Go back.
-    if ( index( buffer, "[" ) /= 0 ) then
-      backspace( unit, IOSTAT=stat )
-      exit
-    end if
-
-    ! Count number of tokens on the line.
-    i = cnttok( buffer, " " )
-    if ( i > 0 ) then
-      read (buffer,*,IOSTAT=stat) this%loc(offset:offset+i-1)
-      offset = offset+i
-    end if
-
-  end do ! while
+  read (unit,*,IOSTAT=stat) this%loc(:)
+  if ( stat /= 0 ) then
+    ndx_group_read = merge( xslibENDOFFILE, xslib3DX, stat == IOSTAT_END )
+    return
+  end if
 
   ! Return success
   ndx_group_read = xslibOK
@@ -167,7 +163,7 @@ integer function ndx_group_write( this, unit )
   implicit none
   class(ndx_group)    :: this
   integer, intent(in) :: unit
-  integer             :: i, cols
+  integer             :: stat
   character(9)        :: action
   logical             :: opened
 
@@ -185,22 +181,21 @@ integer function ndx_group_write( this, unit )
   end if
 
   ! Title
-  write (unit,100) trim(this%title)
-  100 format( "[ ", a, " ]" )
+  write (unit,100,IOSTAT=stat) trim(this%title)
+  100 format( "[", x, a, x, "]" )
+  if ( stat /= 0 ) then
+    ndx_group_write = xslibSTRING
+    return
+  end if
 
-  ! Default number of cols & corresponding format.
-  cols = 15
-  200 format( 15(x,i0) )
-
-  ! Write rows and columns
-  do i = 1, this%natoms, cols
-    if ( i+cols > this%natoms ) then
-      write (unit,200) this%loc(i:)
-    else
-      write (unit,200) this%loc(i:i+cols-1)
-    end if
-
-  end do ! for i
+  ! Write data
+  ! * Default num. of cols is 15
+  write (unit,200,IOSTAT=stat) this%loc(:)
+  200 format( 15( x, i0 ) )
+  if ( stat /= 0 ) then
+    ndx_group_write = xslib3DX
+    return
+  end if
 
   ! Return success
   ndx_group_write = xslibOK
@@ -216,14 +211,14 @@ integer function ndx_allocate( this, ngroups )
   implicit none
   class(ndx_t)        :: this
   integer, intent(in) :: ngroups
-  integer             :: stat
+
   ! Set number of atoms
   this%ngroups = ngroups
 
   ! Allocate data
-  if ( allocated(this%group) ) deallocate( this%group, STAT=stat )
-  allocate( this%group(this%ngroups), STAT=stat )
-  if ( stat /= 0 ) then
+  if ( allocated(this%group) ) deallocate( this%group, STAT=ndx_allocate )
+  allocate( this%group(this%ngroups), STAT=ndx_allocate )
+  if ( ndx_allocate /= 0 ) then
     ndx_allocate = xslibNOMEM
     return
   end if
@@ -239,14 +234,15 @@ integer function ndx_allocate_all( this, natoms )
   implicit none
   class(ndx_t)        :: this
   integer, intent(in) :: natoms(:)
-  integer             :: i, stat
+  integer             :: i
+
   ! Set number of atoms
   this%ngroups = size(natoms)
 
   ! Allocate data
-  if ( allocated(this%group) ) deallocate( this%group, STAT=stat )
-  allocate( this%group(this%ngroups), STAT=stat )
-  if ( stat /= 0 ) then
+  if ( allocated(this%group) ) deallocate( this%group, STAT=ndx_allocate_all )
+  allocate( this%group(this%ngroups), STAT=ndx_allocate_all )
+  if ( ndx_allocate_all /= 0 ) then
     ndx_allocate_all = xslibNOMEM
     return
   end if
@@ -288,7 +284,7 @@ integer function ndx_read( this, file )
   class(ndx_t)             :: this
   character(*), intent(in) :: file
   integer                  :: n, unit, stat
-  character(256)           :: buffer
+  character(8)             :: buffer
 
   ! Open file
   open( NEWUNIT=unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
@@ -303,10 +299,8 @@ integer function ndx_read( this, file )
     ndx_read = merge( xslibENDOFFILE, xslibSTRING, stat == IOSTAT_END )
     return
   end if
-
-  ! Phrase buffer
-  if (index( buffer(1:3),"[") == 0) then
-    ndx_read = xslibHEADER ! not an index file
+  if ( index(buffer(:),"[") == 0 ) then
+    ndx_read = xslibHEADER ! Not an index file
     return
   end if
 
@@ -314,7 +308,7 @@ integer function ndx_read( this, file )
   this%ngroups = 1 ! One was already found.
   do while( stat == 0 )
     read (unit,"(a)",IOSTAT=stat) buffer
-    if ( stat == IOSTAT_END ) exit
+    if ( stat /= 0 ) exit
     if ( index(buffer,"[") /= 0 ) this%ngroups = this%ngroups+1
 
   end do
@@ -366,11 +360,10 @@ integer function ndx_write( this, file, unit )
       return
     end if
 
-  else if ( present(file) ) then
+  else if ( present(unit) ) then
     out = unit
 
   else
-    ! Output to stdout
     out = OUTPUT_UNIT
 
   end if
@@ -439,12 +432,12 @@ integer function indexCount( unit )
   implicit none
   integer, intent(in) :: unit
   integer             :: i, nlines, stat
-  character(256)      :: buffer
+  character(128)      :: buffer
 
   ! Count number of atoms in group
   indexCount = 0
   nlines = 1
-  do
+  do while ( .true. )
     read (unit,"(a)",IOSTAT=stat) buffer
     if ( stat == IOSTAT_END ) exit
 
@@ -459,9 +452,6 @@ integer function indexCount( unit )
 
   end do ! while
 
-  ! NOTE to self:
-  ! * For some fucking reason fseek and ftell do not work.
-
   ! Rewind by number of lines
   do i = 1, nlines
     backspace( unit )
@@ -470,32 +460,38 @@ integer function indexCount( unit )
   return
 end function indexCount
 
-! NOT WORKING ???
-! integer function indexCount( unit )
-!   use, intrinsic :: iso_fortran_env, only: IOSTAT_END, INT64
-!   implicit none
-!   integer, intent(in) :: unit
-!   integer             :: i, stat
-!   character(128)      :: buffer
-!   integer(INT64)      :: offset
-!   ! Current position
-!   offset = ftell( unit )
-!
-!   ! Count number of atoms in group
-!   indexCount = 0
-!   do while ( .true. )
-!     read (unit,"(a)",IOSTAT=stat) buffer
-!     if ( stat == IOSTAT_END ) exit
-!     ! Ops ... start of next group. Go back.
-!     if ( index(buffer,"[") /= 0) exit
-!     indexCount = indexCount+cnttok( buffer, " " )
-!   end do ! while
-!
-!   ! Return to starting position
-!   call fseek( unit, offset, 0 )
-!
-!   return
-! end function indexCount
+! Count number of indeces (atoms) in one index group
+! NOTE to self: For some fucking reason fseek and ftell do not work.
+integer function indexCount_( unit )
+  use, intrinsic :: iso_fortran_env, only: IOSTAT_END, INT64
+  implicit none
+  integer, intent(in) :: unit
+  integer             :: stat
+  character(128)      :: buffer
+  integer, parameter  :: SEEK_SET=0, SEEK_CUR=1, SEEK_END=2
+  integer(INT64)      :: offset
+
+  ! Current position
+  ! read (unit,*)
+  offset = ftell( unit )
+
+  ! Count number of atoms in group
+  indexCount_ = 0
+  do while ( .true. )
+    read (unit,"(a)",IOSTAT=stat) buffer
+    if ( stat /= 0 ) exit
+
+    ! Ops ... start of next group. Go back.
+    if ( index(buffer,"[") /= 0) exit
+    indexCount_ = indexCount_+cnttok( buffer, " " )
+
+  end do ! while
+
+  ! Return to starting position
+  call fseek( unit, offset, SEEK_SET )
+
+  return
+end function indexCount_
 
 ! Breaks string str into a series of tokens using the delimiter delim.
 character(:) function strtok( string, delim )

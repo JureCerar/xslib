@@ -20,95 +20,40 @@ module xslib_error
   use, intrinsic :: iso_fortran_env, only: ERROR_UNIT
   implicit none
   ! private
-  ! public :: error, error_, warning, warning_, xslibErrMsg, assert
+  ! public :: error, error_, warning, warning_, assert, assert_, xslibErrMsg
 
   ! Import error definitions
   include "fileio.h"
 
   ! Default error/warning colors (<ecc>[xx;xx;xxxm)
-  character(12), private :: errorColor = char(27)//"[1;91m" ! = bold, light_red
-  character(12), private :: warningColor = char(27)//"[1;95m" ! = bold, light_magenta
-  character(12), private :: noColor = char(27)//"[m" ! = color reset
+  character(*), parameter, private :: errorColor = char(27)//"[1;91m" ! = bold, light_red
+  character(*), parameter, private :: warningColor = char(27)//"[1;95m" ! = bold, light_magenta
+  character(*), parameter, private :: noColor = char(27)//"[m" ! = color reset
+
+  ! Keywords for error and warning
+  character(*), parameter, private :: errorKeyword   = "[ERROR]:"
+  character(*), parameter, private :: warningKeyword = "[WARNING]:"
 
   ! If any of the argument expression is false, a message is written to the STDERR
   ! * and abort is called, terminating the program execution.
   interface assert
     procedure :: assert, assert_1d, assert_2d
-    procedure :: assert_ext, assert_1d_ext, assert_2d_ext ! extended for __FILE__ and __LINE__
-    procedure :: assert_float, assert_float_1d, assert_float_2d ! Some basic support for floats
-    procedure :: assert_double, assert_double_1d, assert_double_2d ! Some basic support for doubles
   end interface assert
 
+  ! Extended assertion for __FILE__ and __LINE__
+  interface assert_
+    procedure :: assert_, assert_1d_, assert_2d_
+  end interface assert_
+
 contains
-
-! Get error/warning color from environment variable "GCC_COLORS"
-function get_env_colors( keyword )
-  implicit none
-  character(:), allocatable :: get_env_colors
-  character(*), intent(in)  :: keyword
-  character(512)            :: buffer
-  integer                   :: stat, pos, end
-
-  ! Example:
-  ! * GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-
-  ! Get environment variable
-  call get_environment_variable( "GCC_COLORS", buffer, STATUS=stat )
-  if ( stat > 0 ) then
-    ! No ENV variable set or cant get it. Return default
-    select case( keyword )
-    case( "error" )
-      get_env_colors = errorColor
-    case( "warning" )
-      get_env_colors = warningColor
-    case default
-      get_env_colors = char(27)//"[1;91m" ! bold
-    end select
-
-  else
-    ! Find keyword
-    pos = index(buffer,keyword)
-    if ( pos /= 0 ) then
-      ! Modify position to account for '<keyword>='
-      pos = pos+len_trim(keyword)+1
-      ! Find end of string
-      end = index( buffer(pos:), ":" )
-      end = merge( end-1, len_trim(buffer), end /= 0 )
-      ! Get string and add color escape sequance
-      get_env_colors = char(27)//"["//trim(buffer(pos:pos+end-1))//"m"
-
-    else
-      ! Retrun default
-      select case( keyword )
-      case( "error" )
-        get_env_colors = errorColor
-      case( "warning" )
-        get_env_colors = warningColor
-      case default
-        get_env_colors = char(27)//"[1;91m" ! bold
-      end select
-
-    end if
-  end if
-
-  return
-end function get_env_colors
-
-! Set error/warning colors from environment variable "GCC_COLORS"
-! NOTE: experimental.
-subroutine set_error_colors()
-  implicit none
-  errorColor = get_env_colors( "error" )
-  warningColor = get_env_colors( "warning" )
-  return
-end subroutine set_error_colors
 
 ! Write error message to errout and terminate the program
 ! * ERROR: <message>
 subroutine error( message )
   implicit none
   character(*), intent(in) :: message
-  write (ERROR_UNIT,*) trim(errorColor)//"ERROR: "//trim(noColor)//trim(message)
+  write (ERROR_UNIT,100) trim(errorColor)//trim(errorKeyword)//trim(noColor), trim(message)
+  100 format( 2(x,a) )
   call exit( 1 )
 end subroutine error
 
@@ -119,8 +64,8 @@ subroutine error_( message, file, line )
   implicit none
   character(*), intent(in)  :: message, file
   integer, intent(in)       :: line
-  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(errorColor)//" ERROR: "//trim(noColor)//trim(message)
-  100 format( x,a,i0,a )
+  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(errorColor)//trim(errorKeyword)//trim(noColor), trim(message)
+  100 format( x,a,i0,a,x,a )
   call exit( 1 )
 end subroutine error_
 
@@ -129,7 +74,8 @@ end subroutine error_
 subroutine warning( message )
   implicit none
   character(*), intent(in) :: message
-  write (ERROR_UNIT,*) trim(warningColor)//"WARNING: "//trim(nocolor)//trim(message)
+  write (ERROR_UNIT,100) trim(warningColor)//trim(warningKeyword)//trim(noColor), trim(message)
+  100 format( 2(x,a) )
   return
 end subroutine warning
 
@@ -140,8 +86,8 @@ subroutine warning_( message, file, line )
   implicit none
   character(*), intent(in) :: message, file
   integer, intent(in)      :: line
-  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(warningColor)//" WARNING: "//trim(noColor)//trim(message)
-  100 format( x,a,i0,a )
+  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(warningColor)//trim(warningKeyword)//trim(noColor), trim(message)
+  100 format( x,a,i0,a,x,a )
   return
 end subroutine warning_
 
@@ -248,7 +194,7 @@ subroutine assert_2d( expression )
 end subroutine assert_2d
 
 ! Extended abort message
-subroutine assert_ext( expression, file, line )
+subroutine assert_( expression, file, line )
   implicit none
   logical, intent(in)       :: expression
   character(*), intent(in)  :: file
@@ -262,10 +208,10 @@ subroutine assert_ext( expression, file, line )
   end if
 
   return
-end subroutine assert_ext
+end subroutine assert_
 
 ! Comment
-subroutine assert_1d_ext( expression, file, line )
+subroutine assert_1d_( expression, file, line )
   implicit none
   logical, intent(in)      :: expression(:)
   character(*), intent(in) :: file
@@ -282,10 +228,10 @@ subroutine assert_1d_ext( expression, file, line )
   end do
 
   return
-end subroutine assert_1d_ext
+end subroutine assert_1d_
 
 ! Comment
-subroutine assert_2d_ext( expression, file, line )
+subroutine assert_2d_( expression, file, line )
   implicit none
   logical, intent(in)       :: expression(:,:)
   character(*), intent(in)  :: file
@@ -304,108 +250,6 @@ subroutine assert_2d_ext( expression, file, line )
   end do ! for i
 
   return
-end subroutine assert_2d_ext
-
-! Basic support for floats and doubles
-subroutine assert_float( actual, expected, tol, file, line )
-  implicit none
-  real, intent(in)                    :: actual, expected
-  real, intent(in), optional          :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real                                :: delta
-
-  delta = merge( tol, 1.0e-3, present(tol) )
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_float
-
-! Comment
-subroutine assert_float_1d( actual, expected, tol, file, line )
-  implicit none
-  real, intent(in)                    :: actual(:), expected(:)
-  real, intent(in), optional          :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real                                :: delta
-
-  ! if ( size(actual) /= size(expected) ) then
-  !   write (ERROR_UNIT,*) "Assertion failed: different size!"
-  !   call exit( 1 )
-  ! end if
-
-  delta = merge( tol, 1.0e-3, present(tol) )
-  if ( size(actual) /= size(expected) ) call assert(.false.,file,line)
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_float_1d
-
-! Comment
-subroutine assert_float_2d( actual, expected, tol, file, line )
-  implicit none
-  real, intent(in)                    :: actual(:,:), expected(:,:)
-  real, intent(in), optional          :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real                                :: delta
-
-  delta = merge( tol, 1.0e-3, present(tol) )
-  if ( size(actual) /= size(expected) ) call assert(.false.,file,line)
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_float_2d
-
-! Comment
-subroutine assert_double( actual, expected, tol, file, line )
-  use, intrinsic :: iso_fortran_env, only: REAL64
-  implicit none
-  real(REAL64), intent(in)            :: actual, expected
-  real(REAL64), intent(in), optional  :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real(REAL64)                        :: delta
-
-  delta = merge( tol, 1.0d-3, present(tol) )
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_double
-
-! Comment
-subroutine assert_double_1d( actual, expected, tol, file, line )
-  use, intrinsic :: iso_fortran_env, only: REAL64
-  implicit none
-  real(REAL64), intent(in)            :: actual(:), expected(:)
-  real(REAL64), intent(in), optional  :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real(REAL64)                        :: delta
-
-  delta = merge( tol, 1.0d-3, present(tol) )
-  if ( size(actual) /= size(expected) ) call assert(.false.,file,line)
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_double_1d
-
-! Comment
-subroutine assert_double_2d( actual, expected, tol, file, line )
-  use, intrinsic :: iso_fortran_env, only: REAL64
-  implicit none
-  real(REAL64), intent(in)            :: actual(:,:), expected(:,:)
-  real(REAL64), intent(in), optional  :: tol
-  character(*), intent(in), optional  :: file
-  integer, intent(in), optional       :: line
-  real(REAL64)                        :: delta
-
-  delta = merge( tol, 1.0d-3, present(tol) )
-  if ( size(actual) /= size(expected) ) call assert(.false.,file,line)
-  call assert( abs(actual-expected) < delta, file, line )
-
-  return
-end subroutine assert_double_2d
+end subroutine assert_2d_
 
 end module xslib_error

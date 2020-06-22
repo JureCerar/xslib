@@ -19,8 +19,8 @@
 module xslib_cstring
   implicit none
   private
-  public :: str, toLower, toUpper, stripComment, isWord, replaceText, setColor, &
-  &   strtok, cnttok, basename, pathname, extension, backup, progressbar
+  public :: str, smerge, toLower, toUpper, stripComment, isNumber, replaceText, &
+  &   setColor, getColor, strtok, cnttok, basename, pathname, extension, backup, progressbar
 
   interface str
     procedure :: strx, stra
@@ -33,7 +33,7 @@ contains
 
 ! Trnasforms scalar of any kind to character.
 character(:) function strx( x, fmt )
-  use iso_fortran_env, only: REAL64, INT64
+  use, intrinsic :: iso_fortran_env, only: REAL64, INT64
   implicit none
   allocatable             :: strx
   class(*), intent(in)    :: x
@@ -55,7 +55,7 @@ character(:) function strx( x, fmt )
   type is ( logical )
     strx = btoa( x )
   type is ( character(*) )
-    strx = atoa( x )
+    strx = trim(adjustl( x ))
   class default
     ! Can't have everything
     strx = "???"
@@ -69,18 +69,15 @@ character(:) function stra( array, fmt, delim )
   allocatable                         :: stra
   class(*), intent(in)                :: array(:)
   character(*), intent(in), optional  :: fmt, delim
-  integer                              :: i
-  select type( array )
-  class default
-    stra = str(array(1),FMT=fmt)
-    do i = 2, size(array)
-      if ( present(delim) ) then
-        stra = stra//trim(delim)//str(array(i),FMT=fmt)
-      else
-        stra = stra//" "//str(array(i),FMT=fmt)
-      end if
-    end do
-  end select
+  integer                             :: i
+  stra = str(array(1),FMT=fmt)
+  do i = 2, size(array)
+    if ( present(delim) ) then
+      stra = stra//delim//str(array(i),FMT=fmt)
+    else
+      stra = stra//" "//str(array(i),FMT=fmt)
+    end if
+  end do
   return
 end function stra
 
@@ -158,20 +155,13 @@ character(:) function ctoa( imag, fmt )
   allocatable                         :: ctoa
   complex, intent(in)                 :: imag
   character(*), intent(in), optional  :: fmt
-  ! Real part
+  character(64)                       :: tmp
   if ( present(fmt) ) then
-    ctoa = ftoa( real(imag), FMT=fmt )
+    write (tmp,fmt) imag
   else
-    ctoa = ftoa( real(imag) )
+    write (tmp,*) imag
   end if
-  ! Sign
-  if ( aimag(imag) >= 0.0 ) ctoa = ctoa//"+"
-  ! Imaginary part
-  if ( present(fmt) ) then
-    ctoa = ctoa//ftoa( real(imag), FMT=fmt )//"i"
-  else
-    ctoa = ctoa//ftoa( real(imag) )//"i"
-  end if
+  ctoa = trim(adjustl(tmp))
   return
 end function ctoa
 
@@ -182,55 +172,63 @@ character(:) function c8toa( imag, fmt )
   allocatable                         :: c8toa
   complex(REAL64), intent(in)         :: imag
   character(*), intent(in), optional  :: fmt
-  ! Real part
+  character(64)                       :: tmp
   if ( present(fmt) ) then
-    c8toa = f8toa( real(imag), FMT=fmt )
+    write (tmp,fmt) imag
   else
-    c8toa = f8toa( real(imag) )
+    write (tmp,*) imag
   end if
-  ! Sign
-  if ( aimag(imag) >= 0.0 ) c8toa = c8toa//"+"
-  ! Imaginary part
-  if ( present(fmt) ) then
-    c8toa = c8toa//f8toa( real(imag), FMT=fmt )//"i"
-  else
-    c8toa = c8toa//f8toa( real(imag) )//"i"
-  end if
+  c8toa = trim(adjustl(tmp))
   return
 end function c8toa
 
-! Boolean (logical) to character; FMT is ignored.
-character function btoa( bool, fmt )
+! Boolean (logical) to character; "fmt" format (optional).
+character(:) function btoa( bool, fmt )
   implicit none
+  allocatable                         :: btoa
   logical, intent(in)                 :: bool
   character(*), intent(in), optional  :: fmt
-  btoa = merge("T","F",bool)
+  character(64)                       :: tmp
+  if ( present(fmt) ) then
+    write (tmp,fmt) bool
+  else
+    write (tmp,*) bool
+  endif
+  btoa = trim(tmp)
   return
 end function btoa
 
-! Character to character; FMT is ignored.
-character(:) function atoa( char, fmt )
-  allocatable                         :: atoa
-  character(*), intent(in)            :: char
-  character(*), intent(in), optional  :: fmt
-  atoa = trim(adjustl( char ))
-  return
-end function atoa
-
 ! -------------------------------------------------
 ! String manipulation
+
+! Merge two stings of arbitrary length based on logical mask
+character(:) function smerge( tsource, fsource, mask )
+  implicit none
+  allocatable               :: smerge
+  character(*), intent(in)  :: tsource, fsource
+  logical, intent(in)       :: mask
+  if ( mask ) then
+    smerge = tsource
+  else
+    smerge = fsource
+  end if
+  return
+end function smerge
 
 ! Return string in all lower case.
 character(:) function toLower( string )
   implicit none
   allocatable               :: toLower
   character(*), intent(in)  :: string
-  integer, parameter        :: offset=ichar("a")-ichar("A") ! ASCII offset
+  integer, parameter        :: offset = ichar("a") - ichar("A") ! ASCII offset
   integer                   :: i
   toLower = trim(string)
-  do i = 1, len(toLower)
-    ! Shift character by offset
-    if (toLower(i:i)>="A" .and. toLower(i:i)<= "Z") toLower(i:i) = char(ichar(toLower(i:i))+offset)
+  do i = 1, len_trim(toLower)
+    select case ( toLower(i:i) )
+    case ( "A" : "Z" )
+      ! Shift character by offset
+      toLower(i:i) = char(ichar(toLower(i:i))+offset)
+    end select
   end do
   return
 end function toLower
@@ -240,12 +238,15 @@ character(:) function toUpper( string )
   implicit none
   allocatable               :: toUpper
   character(*), intent(in)  :: string
-  integer, parameter        :: offset=ichar("a")-ichar("A") ! ASCII offset
+  integer, parameter        :: offset = ichar("a") - ichar("A") ! ASCII offset
   integer                   :: i
   toUpper = trim(string)
-  do i = 1, len(toUpper)
-    ! Shift character by offset
-    if (toUpper(i:i)>="a" .and. toUpper(i:i)<= "z") toUpper(i:i) = char(ichar(toUpper(i:i))-offset)
+  do i = 1, len_trim(toUpper)
+    select case ( toUpper(i:i) )
+    case ( "a" : "z" )
+      ! Shift character by offset
+      toUpper(i:i) = char(ichar(toUpper(i:i))-offset)
+    end select
   end do
   return
 end function toUpper
@@ -271,34 +272,57 @@ character(:) function stripComment( string, cmt )
   return
 end function stripComment
 
-! Check if string contains any ASCII letters.
-logical function isWord( string )
+! Check if character is ASCII character.
+logical function isChar( char )
   implicit none
-  character(*), intent(in)  :: string
-  isWord = ( scan(trim(string), "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz") /= 0 )
+  character, intent(in) :: char
+  isChar = ichar(char) > ichar('A') .and. ichar(char) < ichar('z')
   return
-end function isWord
+end function isChar
+
+! Check if character is ASCII number.
+logical function isNum( char )
+  implicit none
+  character, intent(in) :: char
+  isNum = ichar(char) > ichar('0') .and. ichar(char) < ichar('9')
+  return
+end function isNum
+
+! Check if character is space.
+logical function isSpace( char )
+  implicit none
+  character, intent(in) :: char
+  isSpace = ( char == ' ' )
+  return
+end function isSpace
+
+! Check if sting is number.
+logical function isNumber( string )
+  implicit none
+  character(*), intent(in) :: string
+  real                     :: float
+  integer                  :: stat
+  read (string,*,IOSTAT=stat) float
+  isNumber = ( stat == 0 )
+  return
+end function isNumber
 
 ! Replace <old> with <new> within <string>.
 character(:) function replaceText( string, old, new )
+  implicit none
   allocatable               :: replacetext
   character(*), intent(in)  :: string, old, new
-  integer                   :: pos, cur
-
-  ! Initialize
-  replaceText = string
-  cur = 1
-  do
-    pos = index( replacetext(cur:), old )
-    if (pos == 0) exit
-    replacetext = replacetext(:(cur-1+pos)-1) // new // string((cur-1+pos)+len(old):)
-    cur = cur+pos-1
-
+  integer                   :: current, next
+  replaceText = trim(string)
+  current = 1
+  do while ( .true. )
+    next = index(replaceText(current:),old)-1
+    if ( next == -1 ) exit
+    replacetext = replacetext( : current+next-1 ) // new // replacetext( current+next+len(old) : )
+    current = current+len(new)
   end do
-
   return
 end function replaceText
-
 
 ! Add some colors in your life & set terminal color. ATTR=attribute, FG=foreground, BG=background
 ! * Attributes: bold, dim, underline, blink, reverse and  hidden
@@ -431,11 +455,10 @@ character(:) function setColor( string, attr, fg, bg )
   character(*), intent(in)            :: string
   character(*), intent(in), optional  :: attr, fg, bg
 
-  setColor = getColor(ATTR=attr,FG=fg,BG=bg)//string//char(27)//"[m"
+  setColor = getColor(ATTR=attr,FG=fg,BG=bg)//string//getColor()
 
   return
 end function setColor
-
 
 ! -------------------------------------------------
 ! String tokenization
@@ -456,8 +479,8 @@ character(:) function strtok( string, delim )
 
   ! initialize stored copy of input string and pointer into input string on first call
   if ( string(1:1) /= char(0) ) then
-      saved_start = 1                 ! beginning of unprocessed data
-      saved_string = trim(string)     ! save input string from first call in series
+    saved_start = 1                 ! beginning of unprocessed data
+    saved_string = trim(string)     ! save input string from first call in series
   endif
 
   ! Start from where we left
@@ -581,6 +604,9 @@ subroutine backup( file, status )
     return
   end if
 
+  ! Dummy initialize
+  newfile = ""
+
   ! If it exists then create a 'new' name - path/to/#file.ext.n# n=1,...
   ! Extract path and base
   i = index(file,"/",BACK=.true.)
@@ -618,38 +644,30 @@ end subroutine backup
 ! -------------------------------------------------
 ! Miscellaneous
 
-! Prints progress bar (on the same line). Eg. "50.0% |==  |"
-! NOTE: Write to output is forbiden until progress reaches 1.0;
+! Prints progress bar (on the same line). Eg. "Progress: [ 50%] [##..]"
+! NOTE: Write to output is "forbiden" until progress reaches 1.0;
 subroutine progressBar( x, size )
   implicit none
-  real, intent(in)              :: x ! Progres real in rage 0.0 - 1.0
-  integer, intent(in), optional :: size    ! Size of the progress bar
-  integer                       :: i, n, s, stat
-  character(:), allocatable     :: bar
-  character, parameter          :: backspace = char(13)
+  real, intent(in)              :: x    ! Progres real in rage 0.0 - 1.0
+  integer, intent(in), optional :: size ! Size of the progress bar
+  integer                       :: i, ni, len
+  character, parameter          :: CR = char(13), ESC = char(27)
 
-  ! Initialize bar size
-  s = merge( size, 50, present(size) )
-  allocate( character(s+10) :: bar, STAT=stat )
-  if ( stat /= 0 ) return
-
-  ! Construct blank progress bar
-  ! ???.?%_|          |
-  write (bar,"(1024a)") "???.?% |", (" ", i = 1, s),"|"
-
-  ! Add missing data
   if ( 0.0 <= x .and. x <= 1.0 ) then
-    ! Add procentage
-    n = nint( x*s )
-    write (bar(1:5),"(f5.1)") x*100
-    ! Add progress bar
-    write (bar(9:9+n-1),"(1024a)") ("=", i=1,n)
-    write (*,"(2a,$)") backspace, trim(bar)
-  else
-    write (*,"(2a,$)") backspace, trim(bar)
+    ! How many bars are full?
+    len = merge( size, 100, present(size) )
+    ni = nint( x*len )
+    ! First write "progress" then "bar"
+    write (*,100,ADVANCE="no") CR, ESC//"[7m", 'Progress: [', int(x*100), "%]", ESC//"[0m"
+    write (*,200,ADVANCE="no") "[", ('#', i=1,ni),  ('.', i=1,len-ni), "]"
+    ! Go to new line
+    if ( x == 1.0 ) write (*,*) ""
+
   end if
-  ! Go to new line
-  if ( x >= 1.0 ) write (*,*) ""
+  
+  100 format( a,x,2a,i3,2a )
+  200 format( x,*(a) )
+
   return
 end subroutine progressBar
 

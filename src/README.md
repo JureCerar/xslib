@@ -15,6 +15,8 @@
   Polymorphic double linked-list implementation.  
 - [ ] **xslib_ieee.f90:**    
   IEEE arithmetic and exception example -- exercise (not included in xslib).  
+- [ ] **xslib_cpuinfo.f90:**    
+  CPU topology detection using UNIX lscpu utility -- experimental (not included in xslib).  
 
 ### Headers
 - **fileio.h**  

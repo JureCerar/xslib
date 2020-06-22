@@ -35,7 +35,7 @@ program main
 
   ! Test correct assertion
   call assert( 1 == 1 )
-  call assert( 1.0, 1.0, TOL=1.0e-3 )
+  call assert( [1,2] == [1,2] )
 
   ! (Experimental) Try to get ENV colors.
   ! call set_error_colors()
