@@ -1,16 +1,11 @@
-# Fortran & C compilers
+# Compilers
 FC 				:= gfortran
 FC_FLAGS	:= -shared -fPIC -O2 -march=native -fopenmp
 CC 				:= gcc
 CC_FLAGS	:= -shared -fPIC -O2 -march=native -fopenmp
-
 # Install
 INSTALL 	:= install
-
-# -------------------------
-# Library
-LIB = libxslib.so
-DIR := /usr/local
+DIR       := /usr/local
 # Source
 SRC = xdrfile.c \
 xdrfor.f90 \
@@ -19,7 +14,7 @@ xslib_vector.f90 \
 xslib_time.f90 \
 xslib_error.f90 \
 xslib_xmalloc.f90 \
-xslib_list.f90 \
+xslib_iostream.f90 \
 xslib_xyzio.f90 \
 xslib_groio.f90 \
 xslib_pdbio.f90 \
@@ -37,9 +32,10 @@ xslib.f90
 OBJ = $(SRC)
 OBJ := $(OBJ:.f90=.o)
 OBJ := $(OBJ:.c=.o)
+# Library
+LIB = libxslib.so
 
 # -------------------------
-# Build
 
 default: $(LIB)
 

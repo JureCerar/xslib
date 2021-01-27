@@ -10,9 +10,5 @@ Tests also serve as examples for using xslib:
   Test memory allocation functions.
 - **test_vector.f90:**  
   Test vector operation functions.
-- **test_list.f90:**  
-  Test double linked-list functionality.
 - **test_ioutil.f90:**  
   Test I/O utility functionality.  
-- **test_fileio.f90:**  
-  Test `file_t` I/O utility functionality using OpenMP.  

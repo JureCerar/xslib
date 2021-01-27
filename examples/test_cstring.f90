@@ -17,7 +17,7 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 program main
-  use, intrinsic :: iso_fortran_env, only: INT64, REAL64
+  use iso_fortran_env, only: INT64, REAL64
   use xslib_cstring
   use xslib_time
   implicit none
@@ -31,6 +31,10 @@ program main
   complex(REAL64)    :: compl8 = (1.0d0,1.0d0)
   real               :: array(3) = [1.,2.,3.]
   character(128)     :: token
+
+  ! Write version
+  ! write (*,*) "xslib "//xslibInfo()
+  ! write (*,*) "" ! Empty line
 
   ! str() on scalar
   write (*,*) str(int), " ", str(int,"(i0.5)")

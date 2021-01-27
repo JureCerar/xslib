@@ -17,11 +17,11 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xdrfor
-  use, intrinsic :: iso_c_binding
+  use iso_c_binding
   implicit none
 
   ! Handle for portable binary files
-  ! *The data type definition is located in xdrfile.h
+  ! * The data type definition is located in xdrfile.h
   type, public, bind(C) :: xdrfile
     type(C_PTR)       :: fp, xdr
     character(C_CHAR) :: mode

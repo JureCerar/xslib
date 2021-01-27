@@ -1,6 +1,6 @@
 # xslib - Extra-Small Library
 
-[![Version](https://img.shields.io/badge/Version-v2.4.0-blue.svg)](https://github.com/JureCerar/xslib/releases)
+[![Version](https://img.shields.io/badge/Version-v2.6.0-blue.svg)](https://github.com/JureCerar/xslib/releases)
 ![Language](https://img.shields.io/badge/Language-Fortran,_C-brightgreen.svg)
 [![License](https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 

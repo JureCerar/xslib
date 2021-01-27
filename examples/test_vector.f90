@@ -16,9 +16,12 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#define __THISFILE__ "vector.F90"
+! #define assert(x) assert_( x, __THISFILE__, __LINE__ )
+
 program main
   use xslib_vector
-  use xslib_error, only: assert
+  use xslib_error
   implicit none
   real, parameter     :: pi = acos(-1.0)
   real, dimension(3)  :: a, b, c, d
@@ -29,6 +32,10 @@ program main
   character(1)        :: xc, yc
   integer             :: i, stat
   real, parameter     :: delta = 1.0e-3
+
+  ! Write version
+  ! write (*,*) "xslib "//xslibInfo()
+  ! write (*,*) "" ! Empty line
 
   ! Cross-product
   a(:) = [ 1., 0., 0. ]

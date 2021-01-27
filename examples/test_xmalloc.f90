@@ -16,8 +16,12 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#define __THISFILE__ "xmalloc.F90"
+! #define assert(x) assert_( x, __THISFILE__, __LINE__ )
+#define xslibCheck(x) xslibCheck_( x, __THISFILE__, __LINE__ )
+
 program main
-  use, intrinsic :: iso_fortran_env, only: INT32, INT64, REAL32, REAL64
+  use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   use xslib_xmalloc
   use xslib_error
   implicit none
@@ -118,12 +122,5 @@ program main
   if ( xmalloc(int_d,[DIM,DIM],ERRMSG=errmsg) /= 0 ) write (*,*) trim(errmsg) ! ERROR
 
 contains
-
-subroutine xslibCheck( int )
-  implicit none
-  integer, intent(in) :: int
-  if ( int /= 0 ) call error( "Allocation error." )
-  return
-end subroutine xslibCheck
 
 end program main

@@ -16,42 +16,63 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#define __THISFILE__ "ioutil.F90"
+#define assert(x) assert_( x, __THISFILE__, __LINE__ )
+#define xslibCheck(x) xslibCheck_( x, __THISFILE__, __LINE__ )
+
 program main
-  use xslib_error
-  use xslib_cstring, only: setColor, extension
+  use xslib
   implicit none
-  ! character(:), allocatable :: arg
-  character(128)  :: ext, arg
-  integer         :: next, stat
-  real            :: x(3) = [1.059,1.342,0.015] ! frame: 2, atom: 1
-  real, parameter :: delta = 1.0e-3
+  ! Constants
+  integer, parameter  :: SEEK_SET = 0, SEEK_CUR = 1, SEEL_END = 2
+  integer, parameter  :: DIM = 3
+  ! Extrenal files
+  character(128)      :: arg, temp = "file.txt"
+  character(3)        :: ext
+  integer             :: next, stat
+  ! Expected values
+  real                :: x(DIM)       = [ 0.000, 0.263, 1.511 ] ! frame: 1, atom: 1
+  integer             :: nframes      = 10
+  integer             :: natoms       = 5
+  real                :: box(DIM,DIM) = reshape( [2.,0.,0., 0.,2.,0., 0.,0.,2.], SHAPE=[DIM,DIM] )
+  real, parameter     :: delta        = 1.0E-3
+
+  ! Write version
+  write (*,*) "xslib "//xslibInfo()
+  write (*,*) "" ! Empty line
 
   ! Get file from command line
   next = 0
   do while ( next < command_argument_count() )
     next = next+1
     call get_command_argument( next, arg, STATUS=stat )
-    if ( stat /= 0 .or. verify(arg," ") == 0 ) exit
+    if ( stat /= 0 .or. len_trim(arg) == 0 ) exit
 
     ! Extract file extension
-    ext = extension(arg)
-    write (*,*) "Processing file: ", trim(arg)
+    ext = toLower(extension(arg))
+    write (*,*) "Processing file: '", trim(arg), "'"
 
     select case ( trim(ext) )
     case( "xyz" )
       call test_xyz( arg )
+      call test_file( arg )
     case( "gro" )
       call test_gro( arg )
+      call test_file( arg )
     case( "pdb" )
       call test_pdb( arg )
-    case( "xtc" )
-      call test_xtc( arg )
-    case( "trr" )
-      call test_trr( arg )
-    case( "cub" )
-      call test_cub( arg )
+      call test_file( arg )
     case( "dcd" )
       call test_dcd( arg )
+      call test_file( arg )
+    case( "xtc" )
+      call test_xtc( arg )
+      call test_file( arg )
+    case( "trr" )
+      call test_trr( arg )
+      call test_file( arg )
+    case( "cub" )
+      call test_cub( arg )
     case( "ndx" )
       call test_ndx( arg )
     case( "tpl" )
@@ -59,391 +80,547 @@ program main
     case( "pdh" )
       call test_pdh( arg )
     case( "csv" )
-      call test_csv( arg )
+    !   call test_csv( arg )
     case default
-      call error( "Unknown file extension: "//trim(ext) )
+      call error( "Unknown file extension: '"//trim(ext)//"'" )
     end select
 
-    write (*,*) setColor( "Test successfull", FG="green" )
+    ! Check passed
+    write (*,*) "Check :: ", setColor( "[PASSED]", FG="green", ATTR="bold" )
 
   end do
 
 contains
 
-! xslib error check wrapper.
-subroutine xslibCheck( int )
-  use xslib_error, only: xslibErrMsg, error
-  implicit none
-  integer, intent(in) :: int
-  if ( int /= 0 ) call error( xslibErrMsg(int) )
-  return
-end subroutine xslibCheck
-
-! Comment
+! Test for xyz_t class
 subroutine test_xyz( file )
   use xslib_xyzio
   implicit none
   character(*), intent(in)  :: file
   type(xyz_t)               :: obj, cpy
 
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box*10) < delta ) ! .XYZ does not have box
+  call assert( obj%ftell() == 1 )
 
-  ! -----------------
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  ! call assert( abs(obj%frame(1)%box-box*10) < delta ) ! .XYZ does not have box
+  call assert( obj%ftell() == 2 )
 
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
 
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 2 )
 
-  ! -----------------
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
 
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Close file
   call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
 
-  ! -----------------
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
 
-  cpy = obj
-  write (*,*) "Assignment -- OK"
+  ! Write file to temporary file
+  call xslibCheck( obj%write( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
   cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame assignment -- OK"
-  call xslibCheck( cpy%frame(1)%copy( obj%frame(1), DEST=1, SRC=2, NUM=1 ) )
-  call assert( cpy%frame(1)%coor(:,1) == obj%frame(1)%coor(:,2) )
-  write (*,*) "Copy -- OK"
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(cpy%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(cpy%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%nframes == nframes )
 
   return
 end subroutine test_xyz
 
-! Comment
+! Test for gro_t class
 subroutine test_gro( file )
-  use xslib
+  use xslib_groio
   implicit none
   character(*), intent(in)  :: file
   type(gro_t)               :: obj, cpy
 
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box) < delta )
+  call assert( obj%ftell() == 1 )
 
-  ! -----------------
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( abs(obj%frame(1)%box-box) < delta )
+  call assert( obj%ftell() == 2 )
 
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
 
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%ftell() == 2 )
 
-  ! -----------------
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
 
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( obj%frame(1)%coor(:,1)-x(:) <= delta )
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Close file
   call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
 
-  ! -----------------
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
 
-  cpy = obj
-  write (*,*) "Assignment -- OK"
+  ! Write file to temporary file
+  call xslibCheck( obj%write( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
   cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame assignment -- OK"
-  ! cpy%frame(1)%atom(1) = obj%frame(1)%atom(2)
-  call xslibCheck( cpy%frame(1)%copy( obj%frame(1), DEST=1, SRC=2, NUM=1 ) )
-  call assert( cpy%frame(1)%coor(:,1) == obj%frame(1)%coor(:,2) )
-  write (*,*) "Copy -- OK"
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(cpy%frame(1)%coor(:,1)-x) < delta )
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(cpy%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%nframes == nframes )
 
   return
 end subroutine test_gro
 
-! Comment
+! Test for pdb_t class
 subroutine test_pdb( file )
   use xslib_pdbio
   implicit none
   character(*), intent(in)  :: file
   type(pdb_t)               :: obj, cpy
 
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 1 )
 
-  ! -----------------
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( abs(obj%frame(1)%box-box*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 2 )
 
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
 
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 2 )
 
-  ! -----------------
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
 
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  ! Close file
   call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
 
-  ! -----------------
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
 
-  cpy = obj
-  write (*,*) "Assignment -- OK"
+  ! Write file to temporary file
+  call xslibCheck( obj%write( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
   cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame assignment -- OK"
-  ! cpy%frame(1)%atom(1) = obj%frame(1)%atom(2)
-  call xslibCheck( cpy%frame(1)%copy( obj%frame(1), DEST=1, SRC=2, NUM=1 ) )
-  call assert( cpy%frame(1)%coor(:,1) == obj%frame(1)%coor(:,2) )
-  write (*,*) "Copy -- OK"
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%nframes == nframes )
 
   return
 end subroutine test_pdb
 
-! Comment
-subroutine test_xtc( file )
-  use xslib_xtcio
-  implicit none
-  type(xtc_t)               :: obj, cpy
-  character(*), intent(in)  :: file
-
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
-
-  ! -----------------
-
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
-
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
-
-  ! -----------------
-
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
-  call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
-
-  ! -----------------
-
-  cpy = obj
-  write (*,*) "Copy -- OK"
-  cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame copy -- OK"
-
-  return
-end subroutine test_xtc
-
-! Comment
-subroutine test_trr( file )
-  use xslib_trrio
-  implicit none
-  type(trr_t)               :: obj, cpy
-  character(*), intent(in)  :: file
-
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
-
-  ! -----------------
-
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
-
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
-
-  ! -----------------
-
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
-  call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
-
-  ! -----------------
-
-  cpy = obj
-  write (*,*) "Copy -- OK"
-  cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame copy -- OK"
-
-  return
-end subroutine test_trr
-
-! Comment
-subroutine test_cub( file )
-  use xslib_cubio
-  implicit none
-  type(cub_t)               :: obj, cpy
-  character(*), intent(in)  :: file
-
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
-  cpy = obj
-  write (*,*) "Copy -- OK"
-
-  return
-end subroutine test_cub
-
-! Comment
+! Test for dcd_t class
 subroutine test_dcd( file )
   use xslib_dcdio
   implicit none
   type(dcd_t)               :: obj, cpy
   character(*), intent(in)  :: file
 
-  call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%read(file,FIRST=2,LAST=-1,STRIDE=2) )
-  write (*,*) "Read+opt -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 1 )
 
-  ! -----------------
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( abs(obj%frame(1)%box-box*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 2 )
 
-  call xslibCheck( obj%open( file ) )
-  write (*,*) "Open -- OK"
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
 
-  write (*,*) obj%getAllframes()
-  write (*,*) obj%getBox()
-  write (*,*) obj%getNatoms()
-  write (*,*) "Data -- OK"
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%ftell() == 2 )
 
-  ! -----------------
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
 
-  call xslibCheck( obj%skip_next( 1 ) )
-  write (*,*) "Skip -- OK"
-  call xslibCheck( obj%read_next( 1 ) )
-  write (*,*) "Read_next -- OK"
-  call assert( abs(obj%frame(1)%coor(:,1)-x*10.) < delta ) ! Correct for angstoms
-  write (*,*) "Coor -- OK"
-  call xslibCheck( obj%dump() )
-  write (*,*) "Write -- OK"
+  ! Close file
   call xslibCheck( obj%close() )
-  write (*,*) "Close -- OK"
 
-  ! -----------------
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
 
-  cpy = obj
-  write (*,*) "Copy -- OK"
+  ! Write file to temporary file
+  call xslibCheck( obj%dump( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
   cpy%frame(1) = obj%frame(1)
-  write (*,*) "Frame copy -- OK"
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(obj%frame(1)%coor(:,1)-x*10) < delta ) ! Correct for [A]
+  call assert( obj%nframes == nframes )
 
   return
 end subroutine test_dcd
 
-! ! Comment
-! subroutine test_file( file )
-!   use xslib_fileio
-!   implicit none
-!   character(*), intent(in)  :: file
-!   type(file_t)              :: obj
-!
-!   call xslibCheck( obj%open(file) )
-!   write (*,*) "Open -- OK"
-!   write (*,*) obj%getAllframes()
-!   write (*,*) obj%getBox()
-!   write (*,*) obj%getNatoms()
-!   write (*,*) "Data -- OK"
-!
-!   ! -----------------
-!
-!   call xslibCheck( obj%read_next() )
-!   write (*,*) "Read next -- OK"
-!
-!   write (*,*) "natoms:", obj%natoms
-!   write (*,*) "box:", obj%box(:,:)
-!   write (*,*) "x:", obj%coor(:,1)
-!   write (*,*) "Frame -- OK"
-!
-!   call xslibCheck( obj%read_next() )
-!   write (*,*) "Close -- OK"
-!
-!   return
-! end subroutine test_file
+! Test for xtc_t class
+subroutine test_xtc( file )
+  use xslib_xtcio
+  implicit none
+  type(xtc_t)               :: obj, cpy
+  character(*), intent(in)  :: file
 
-! Comment
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box) < delta )
+  call assert( obj%ftell() == 1 )
+
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( abs(obj%frame(1)%box-box) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
+
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
+
+  ! Close file
+  call xslibCheck( obj%close() )
+
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+
+  ! Write file to temporary file
+  call xslibCheck( obj%dump( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
+  cpy%frame(1) = obj%frame(1)
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%nframes == nframes )
+
+  return
+end subroutine test_xtc
+
+! Test for trr_t class
+subroutine test_trr( file )
+  use xslib_trrio
+  implicit none
+  type(trr_t)               :: obj, cpy
+  character(*), intent(in)  :: file
+
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box) < delta )
+  call assert( obj%ftell() == 1 )
+
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( abs(obj%frame(1)%box-box) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
+
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
+
+  ! Close file
+  call xslibCheck( obj%close() )
+
+  ! Read full file
+  call xslibCheck( obj%read( file )  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+
+  ! Write file to temporary file
+  call xslibCheck( obj%dump( FILE=temp ) )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
+  cpy%frame(1) = obj%frame(1)
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%nframes == nframes )
+
+  return
+end subroutine test_trr
+
+! Test for cub_t class
+subroutine test_cub( file )
+  use xslib_cubio
+  implicit none
+  type(cub_t)               :: obj, cpy
+  character(*), intent(in)  :: file
+  real, parameter           :: voxel(DIM,DIM) = reshape( [0.283459,0.,0., 0.,0.283459,0., 0.,0.,0.283459], SHAPE=[DIM,DIM] )
+  real, parameter           :: val = 7.62939E-06 ! grid[1,1,1]
+
+  ! Read file and check some values
+  call xslibCheck( obj%read(file) )
+  call assert( abs(obj%voxel(:,:)-voxel) < delta )
+  call assert( abs(obj%grid(1,1,1)-val) < delta )
+
+  ! Write to file
+  call xslibCheck( obj%write( FILE=TEMP )  )
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(cpy%voxel(:,:)-voxel) < delta )
+  call assert( abs(cpy%grid(1,1,1)-val) < delta )
+
+  return
+end subroutine test_cub
+
+! -------------------------------------------
+! One class to rule them all
+
+! Test for xyz_t class
+subroutine test_file( file )
+  use xslib_fileio
+  implicit none
+  character(*), intent(in)  :: file
+  type(file_t)              :: obj, cpy
+
+  ! Open file and check some values
+  call xslibCheck( obj%open(file) )
+  call assert( obj%getNframes() == nframes )
+  call assert( obj%getNatoms() == natoms )
+  ! call assert( abs(obj%getBox()-box) < delta )
+  call assert( obj%ftell() == 1 )
+
+  ! Read first frame and check coor
+  call xslibCheck( obj%read_next() )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  ! call assert( abs(obj%frame(1)%box-box) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Skip one frame and check position
+  call xslibCheck( obj%skip_next() )
+  call assert( obj%ftell() == 3 )
+
+  ! Read out of order (first frame) and check coor
+  call xslibCheck( obj%read_frame( 1 ) )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%ftell() == 2 )
+
+  ! Go to frame #4 and check position
+  call xslibCheck( obj%fseek( 4, SEEK_SET ) )
+  call assert( obj%ftell() == 4 )
+
+  ! Close file
+  call xslibCheck( obj%close() )
+
+  ! Read full file
+  call xslibCheck( obj%read(file)  )
+  call assert( obj%nframes == nframes )
+  call assert( abs(obj%frame(1)%coor(:,1)-x) < delta )
+
+  ! Write file to temporary file
+  call xslibCheck( obj%dump( FILE=temp ) )
+  ! call xslibCheck( obj%dump() )
+
+  ! Allocate one frame
+  call xslibCheck( cpy%allocate( 1 ) )
+  call assert( cpy%nframes == 1 )
+
+  ! Allocate one frame and one atom
+  call xslibCheck( cpy%allocate( 1, 1 ) )
+  call assert( cpy%nframes == 1 )
+  call assert( cpy%frame(1)%natoms == 1 )
+
+  ! Copy frame
+  cpy%frame(1) = obj%frame(1)
+  call assert( obj%frame(1)%natoms == natoms )
+  call assert( abs(cpy%frame(1)%coor(:,1)-x) < delta )
+
+  ! Copy object
+  cpy = obj
+  call assert( abs(cpy%frame(1)%coor(:,1)-x) < delta )
+  call assert( obj%nframes == nframes )
+
+  return
+end subroutine test_file
+
+
+! -------------------------------------------
+! Support file classes
+
+! Test for ndx_t class
 subroutine test_ndx( file )
   use xslib_ndxio
   implicit none
   type(ndx_t)               :: obj, cpy
   character(*), intent(in)  :: file
 
+  ! Read file and check some values
   call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
+  call assert( obj%ngroups == 3 )
+  call assert( obj%group(1)%natoms == 30 )
+  call assert( obj%group(1)%loc(1) == 1 )
+
+  ! Display index info
   call xslibCheck( obj%display() )
-  write (*,*) "Display -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
 
-  ! -----------------
+  ! Write file
+  call xslibCheck( obj%write( FILE=temp ) )
 
-  cpy = obj
-  write (*,*) "obj copy -- OK"
+  ! Allocate and copy group
+  call xslibCheck( cpy%allocate( 1 ) )
   cpy%group(1) = obj%group(1)
-  write (*,*) "obj%frame copy -- OK"
+  call assert( cpy%group(1)%natoms == 30 )
+  call assert( obj%group(1)%loc(1) == 1 )
+
+  ! Copy object
+  call assert( obj%ngroups == 3 )
+  call assert( obj%group(1)%natoms == 30 )
+  call assert( obj%group(1)%loc(1) == 1 )
 
   return
 end subroutine test_ndx
 
-! Comment
+! Test for tpl_t class
 subroutine test_tpl( file )
   use xslib_tplio
   use xslib_ndxio
@@ -452,58 +629,69 @@ subroutine test_tpl( file )
   type(ndx_t)               :: ndx
   character(*), intent(in)  :: file
 
+  ! Read file and check some values
   call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  call assert( obj%ntypes == 3 )
+  call assert( obj%type(1)%natoms == 3 )
 
-  ! -----------------
+  ! Write file to temporary file
+  call xslibCheck( obj%write(FILE=temp) )
 
-  call xslibCheck( obj%makeNDX( ndx ) )
-  write (*,*) "Make NDX -- OK"
-  call xslibCheck( ndx%write() )
-  write (*,*) "Write NDX -- OK"
-
-  ! -----------------
-
+  ! Copy object and check values
   cpy = obj
-  write (*,*) "obj copy -- OK"
+  call assert( obj%ntypes == 3 )
+  call assert( obj%type(1)%natoms == 3 )
+
+  ! Generate index (.ndx) file and check values
+  call xslibCheck( tpl2ndx( obj, ndx ) )
+  call assert( ndx%ngroups == 4 )
+  call assert( ndx%group(1)%natoms == 260 )
+  call assert( ndx%group(1)%loc(1) == 1 )
 
   return
 end subroutine test_tpl
 
-! Comment
+! -------------------------------------------
+! Data file classes
+
+! Test for pdh_t class
 subroutine test_pdh( file )
   use xslib_pdhio
   implicit none
   type(pdh_t)               :: obj, cpy
   character(*), intent(in)  :: file
 
+  ! Read file and check values
   call xslibCheck( obj%read(file) )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%write() )
-  write (*,*) "Write -- OK"
+  call assert( obj%num_points == 100 )
+  call assert( abs(obj%x(1)-1.0) < delta )
 
+  ! Write to temporary file
+  call xslibCheck( obj%write( FILE=temp ) )
+
+  ! Copy object and check values
   cpy = obj
-  write (*,*) "obj copy -- OK"
+  call assert( cpy%num_points == 100 )
+  call assert( abs(cpy%x(1)-1.0) < delta )
 
   return
 end subroutine test_pdh
 
-! Comment
-subroutine test_csv( file )
-  use xslib_csvio
-  implicit none
-  type(csv_t)               :: obj
-  character(*), intent(in)  :: file
+! ! Comment
+! subroutine test_csv( file )
+!   use xslib_csvio
+!   implicit none
+!   type(csv_t)               :: obj
+!   character(*), intent(in)  :: file
+!
+!   call xslibCheck( obj%read(file,DELIM=",") )
+!   write (*,*) "Read -- OK"
+!   call xslibCheck( obj%write(DELIM=";") )
+!   write (*,*) "Write -- OK"
+!
+!   return
+! end subroutine test_csv
 
-  call xslibCheck( obj%read(file,DELIM=",") )
-  write (*,*) "Read -- OK"
-  call xslibCheck( obj%write(DELIM=";") )
-  write (*,*) "Write -- OK"
-
-  return
-end subroutine test_csv
 
 
 end program main

@@ -30,18 +30,22 @@ module xslib_cubio
   ! Import error definitions
   include "fileio.h"
 
+  ! Global constants
+  integer, parameter :: DIM = 3 ! Default dimension
+  integer, parameter :: CUB_MAX_LEN = 256 ! Max buffer and title length
+
   type cub_atom
     integer :: z = 0            ! Atomic number
     real    :: pcharge = 0.000  ! Partial charge
-    real    :: coor(3) = 0.000  ! Coordinates
+    real    :: coor(DIM) = 0.000  ! Coordinates
   end type cub_atom
 
   type cub_t
-    character(256)              :: comment(2) = ""        ! Comments
+    character(CUB_MAX_LEN)      :: comment(2) = ""        ! Comments
     integer                     :: natoms = 0             ! Num. of atoms
     type(cub_atom), allocatable :: atom(:)                ! Atom definition(s)
-    real                        :: origin(3) = 0.000      ! Origin of coordinates
-    real                        :: voxel(3,3) = 0.000     ! Voxel size
+    real                        :: origin(DIM) = 0.000    ! Origin of coordinates
+    real                        :: voxel(DIM,DIM) = 0.000 ! Voxel size
     integer                     :: nx = 0, ny = 0, nz = 0 ! Grid size
     real, allocatable           :: grid(:,:,:)            ! GRID(Z,Y,X)
   contains
@@ -84,7 +88,7 @@ integer function cube_header_read( unit, comment, natoms, origin, nx, ny, nz, vo
   integer, intent(in)       :: unit
   character(*), intent(out) :: comment(2)
   integer, intent(out)      :: natoms, nx, ny, nz
-  real, intent(out)         :: origin(3), voxel(3,3)
+  real, intent(out)         :: origin(DIM), voxel(DIM,DIM)
   integer                   :: stat
   logical                   :: opened
   character(9)              :: action
@@ -118,7 +122,7 @@ integer function cube_atoms_read( unit, z, pcharge, coor )
   implicit none
   integer, intent(in)   :: unit
   integer, intent(out)  :: z
-  real, intent(out)     :: pcharge, coor(3)
+  real, intent(out)     :: pcharge, coor(DIM)
   integer               :: stat
 
   ! Read atom data

@@ -26,13 +26,13 @@ module xslib_error
   include "fileio.h"
 
   ! Default error/warning colors (<ecc>[xx;xx;xxxm)
-  character(*), parameter, private :: errorColor = char(27)//"[1;91m" ! = bold, light_red
-  character(*), parameter, private :: warningColor = char(27)//"[1;95m" ! = bold, light_magenta
-  character(*), parameter, private :: noColor = char(27)//"[m" ! = color reset
+  character(*), parameter, private :: C1 = char(27)//"[1;91m" ! = bold, light_red
+  character(*), parameter, private :: C2 = char(27)//"[1;95m" ! = bold, light_magenta
+  character(*), parameter, private :: C0 = char(27)//"[m"     ! = color reset
 
   ! Keywords for error and warning
-  character(*), parameter, private :: errorKeyword   = "[ERROR]:"
-  character(*), parameter, private :: warningKeyword = "[WARNING]:"
+  character(*), parameter, private :: errorKeyword   = C1//"[Error]:"//C0
+  character(*), parameter, private :: warningKeyword = C2//"[Warning]:"//C0
 
   ! If any of the argument expression is false, a message is written to the STDERR
   ! * and abort is called, terminating the program execution.
@@ -52,7 +52,7 @@ contains
 subroutine error( message )
   implicit none
   character(*), intent(in) :: message
-  write (ERROR_UNIT,100) trim(errorColor)//trim(errorKeyword)//trim(noColor), trim(message)
+  write (ERROR_UNIT,100) errorKeyword, trim(message)
   100 format( 2(x,a) )
   call exit( 1 )
 end subroutine error
@@ -64,8 +64,8 @@ subroutine error_( message, file, line )
   implicit none
   character(*), intent(in)  :: message, file
   integer, intent(in)       :: line
-  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(errorColor)//trim(errorKeyword)//trim(noColor), trim(message)
-  100 format( x,a,i0,a,x,a )
+  write (ERROR_UNIT,100) trim(file), ":", line, ":", errorKeyword, trim(message)
+  100 format( x,2a,i0,2a,x,a )
   call exit( 1 )
 end subroutine error_
 
@@ -74,7 +74,7 @@ end subroutine error_
 subroutine warning( message )
   implicit none
   character(*), intent(in) :: message
-  write (ERROR_UNIT,100) trim(warningColor)//trim(warningKeyword)//trim(noColor), trim(message)
+  write (ERROR_UNIT,100) warningKeyword, trim(message)
   100 format( 2(x,a) )
   return
 end subroutine warning
@@ -86,8 +86,8 @@ subroutine warning_( message, file, line )
   implicit none
   character(*), intent(in) :: message, file
   integer, intent(in)      :: line
-  write (ERROR_UNIT,100) trim(file)//":", line, ":"//trim(warningColor)//trim(warningKeyword)//trim(noColor), trim(message)
-  100 format( x,a,i0,a,x,a )
+  write (ERROR_UNIT,100) trim(file), ":", line, ":", warningKeyword, trim(message)
+  100 format( x,2a,i0,2a,x,a )
   return
 end subroutine warning_
 
@@ -135,6 +135,23 @@ character(:) function xslibErrMsg( errnum )
   return
 end function xslibErrMsg
 
+! Error check for xslib I/O procedures
+subroutine xslibCheck( stat )
+  implicit none
+  integer, intent(in) :: stat
+  if ( stat /= xslibOK ) call error( xslibErrMsg(stat) )
+  return
+end subroutine xslibCheck
+
+! Error check for xslib I/O procedures with extended error info
+subroutine xslibCheck_( stat, file, line )
+  implicit none
+  integer, intent(in)      :: stat, line
+  character(*), intent(in) :: file
+  if ( stat /= xslibOK ) call error_( xslibErrMsg(stat), file, line )
+  return
+end subroutine xslibCheck_
+
 ! -------------------------------------------
 ! Assert
 
@@ -149,8 +166,8 @@ subroutine assert( expression )
   logical, intent(in) :: expression
 
   if ( .not. expression ) then
-    write (ERROR_UNIT,*) "Assertion failed!"
-    call exit( 1 )
+    call error( "Assertion failed." )
+
   end if
 
   return
@@ -161,12 +178,13 @@ subroutine assert_1d( expression )
   implicit none
   logical, intent(in) :: expression(:)
   integer             :: i
+  character(128)      :: msg
 
   do i = 1, size(expression)
     if ( .not. expression(i) ) then
-      write (ERROR_UNIT,100) "Assertion failed at [", i ,"]!"
-      100 format( x, 2(a,i0) )
-      call exit( 1 )
+      write (msg,"(a,i0,a)") "Assertion failed at: [", i ,"]"
+      call error( msg )
+
     end if
   end do
 
@@ -178,13 +196,13 @@ subroutine assert_2d( expression )
   implicit none
   logical, intent(in) :: expression(:,:)
   integer             :: i, j
+  character(128)      :: msg
 
   do i = 1, size(expression,DIM=1)
     do j = 1, size(expression,DIM=2)
       if ( .not. expression(j,i) ) then
-        write (ERROR_UNIT,100) "Assertion failed at [", j, ",", i ,"]!"
-        100 format( x, 3(a,i0) )
-        call exit( 1 )
+        write (msg,"(2(a,i0),a)") "Assertion failed at: [", j, ",", i ,"]"
+        call error( msg )
 
       end if
     end do ! for j
@@ -201,9 +219,7 @@ subroutine assert_( expression, file, line )
   integer, intent(in)       :: line
 
   if ( .not. expression ) then
-    write (ERROR_UNIT,100) trim(file)//":", line, ": Assertion failed!"
-    100 format( x, 2(a,i0) )
-    call exit( 1 )
+    call error_( "Assertion failed.", file, line )
 
   end if
 
@@ -213,16 +229,16 @@ end subroutine assert_
 ! Comment
 subroutine assert_1d_( expression, file, line )
   implicit none
-  logical, intent(in)      :: expression(:)
-  character(*), intent(in) :: file
-  integer, intent(in)      :: line
-  integer                  :: i
+  logical, intent(in)       :: expression(:)
+  character(*), intent(in)  :: file
+  integer, intent(in)       :: line
+  integer                   :: i
+  character(128)            :: msg
 
   do i = 1, size(expression)
     if ( .not. expression(i) ) then
-      write (ERROR_UNIT,100) trim(file)//":", line, ": Assertion failed at [", i ,"]!"
-      100 format( x, 3(a,i0) )
-      call exit( 1 )
+      write (msg,"(a,i0,a)") "Assertion failed at: [", i ,"]"
+      call error_( msg, file, line )
 
     end if
   end do
@@ -237,13 +253,13 @@ subroutine assert_2d_( expression, file, line )
   character(*), intent(in)  :: file
   integer, intent(in)       :: line
   integer                   :: i, j
+  character(128)            :: msg
 
   do i = 1, size(expression,DIM=1)
     do j = 1, size(expression,DIM=2)
       if ( .not. expression(j,i) ) then
-        write (ERROR_UNIT,100) trim(file)//":", line,": Assertion failed at [", j, ",", i ,"]!"
-        100 format( x, 4(a,i0) )
-        call exit( 1 )
+        write (msg,"(2(a,i0),a)") "Assertion failed at: [", j, ",", i ,"]"
+        call error_( msg, file, line )
 
       end if
     end do ! for j

@@ -23,7 +23,7 @@ module xslib_cstring
   &   setColor, getColor, strtok, cnttok, basename, pathname, extension, backup, progressbar
 
   interface str
-    procedure :: strx, stra
+    procedure :: strx, stra, strm
   end interface
 
 contains
@@ -32,54 +32,129 @@ contains
 ! String transformations
 
 ! Trnasforms scalar of any kind to character.
-character(:) function strx( x, fmt )
-  use, intrinsic :: iso_fortran_env, only: REAL64, INT64
+character(:) function strx( obj, fmt )
+  use iso_fortran_env, only: REAL64, INT64
   implicit none
   allocatable             :: strx
-  class(*), intent(in)    :: x
+  class(*), intent(in)    :: obj
   character(*), optional  :: fmt
+  character(64)           :: tmp
+
   ! Act according to the type of variable
-  select type ( x )
+  select type ( obj )
   type is ( integer )
-    strx = itoa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,"(i0)") obj
+    end if
+    strx = trim(adjustl(tmp))
+
   type is ( integer(INT64) )
-    strx = i8toa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,"(i0)") obj
+    end if
+    strx = trim(adjustl(tmp))
+
   type is ( real )
-    strx = ftoa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,*) obj
+    end if
+    strx = trim(adjustl(tmp))
+    if ( strx(1:1) == "." ) then
+      strx = "0"//trim(strx)
+    else if ( strx(1:2) == "-." ) then
+      strx = "-0"//trim(strx(3:))
+    else if ( strx(1:2) == "+." ) then
+      strx = "+0"//trim(strx(3:))
+    end if
+
   type is ( real(REAL64) )
-    strx = f8toa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,*) obj
+    end if
+    strx = trim(adjustl(tmp))
+    if ( strx(1:1) == "." ) then
+      strx = "0"//trim(strx)
+    else if ( strx(1:2) == "-." ) then
+      strx = "-0"//trim(strx(3:))
+    else if ( strx(1:2) == "+." ) then
+      strx = "+0"//trim(strx(3:))
+    end if
+
   type is ( complex )
-    strx = ctoa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,*) obj
+    endif
+    strx = trim(adjustl(tmp))
+
   type is ( complex(REAL64) )
-    strx = c8toa( x, FMT=fmt )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,*) obj
+    endif
+    strx = trim(adjustl(tmp))
+
   type is ( logical )
-    strx = btoa( x )
+    if ( present(fmt) ) then
+      write (tmp,fmt) obj
+    else
+      write (tmp,*) merge( "true ", "false", obj )
+    end if
+    strx = trim(adjustl(tmp))
+
   type is ( character(*) )
-    strx = trim(adjustl( x ))
+    strx = trim(adjustl(obj))
+
   class default
-    ! Can't have everything
+    ! Well... we can't have everything
     strx = "???"
+
   end select
+
   return
 end function strx
 
 ! Trnasforms array of any kind to character.
-character(:) function stra( array, fmt, delim )
+character(:) function stra( obj, fmt, delim )
   implicit none
   allocatable                         :: stra
-  class(*), intent(in)                :: array(:)
+  class(*), intent(in)                :: obj(:)
   character(*), intent(in), optional  :: fmt, delim
   integer                             :: i
-  stra = str(array(1),FMT=fmt)
-  do i = 2, size(array)
+  stra = strx(obj(1),FMT=fmt)
+  do i = 2, size(obj)
     if ( present(delim) ) then
-      stra = stra//delim//str(array(i),FMT=fmt)
+      stra = stra//delim//strx(obj(i),FMT=fmt)
     else
-      stra = stra//" "//str(array(i),FMT=fmt)
+      stra = stra//" "//strx(obj(i),FMT=fmt)
     end if
   end do
   return
 end function stra
+
+! Trnasforms matrix (2D) of any kind to character.
+character(:) function strm( obj, fmt, delim )
+  implicit none
+  allocatable                         :: strm
+  class(*), intent(in)                :: obj(:,:)
+  character(*), intent(in), optional  :: fmt, delim
+  integer                             :: i
+  strm = stra(obj(:,1),FMT=fmt,DELIM=delim)
+  do i = 2, size(obj,DIM=2)
+    strm = strm//new_line("x")//" "//stra(obj(:,1),FMT=fmt,DELIM=delim)
+  end do
+  return
+end function strm
 
 ! -------------------------------------------------
 ! Individual transformations for Integer, Real, Complex, Logical and Character to string
@@ -129,6 +204,13 @@ character(:) function ftoa( float, fmt )
     write (tmp,*) float
   end if
   ftoa = trim(adjustl(tmp))
+  if ( ftoa(1:1) == "." ) then
+    ftoa = "0"//trim(ftoa)
+  else if ( ftoa(1:2) == "-." ) then
+    ftoa = "-0"//trim(ftoa(3:))
+  else if ( ftoa(1:2) == "+." ) then
+    ftoa = "+0"//trim(ftoa(3:))
+  end if
   return
 end function ftoa
 
@@ -146,6 +228,13 @@ character(:) function f8toa( float, fmt )
     write (tmp,*) float
   end if
   f8toa = trim(adjustl(tmp))
+  if ( f8toa(1:1) == "." ) then
+    f8toa = "0"//trim(f8toa)
+  else if ( f8toa(1:2) == "-." ) then
+    f8toa = "-0"//trim(f8toa(3:))
+  else if ( f8toa(1:2) == "+." ) then
+    f8toa = "+0"//trim(f8toa(3:))
+  end if
   return
 end function f8toa
 
@@ -165,7 +254,7 @@ character(:) function ctoa( imag, fmt )
   return
 end function ctoa
 
-! Complex to character; "fmt" format (optional).
+! Double complex to character; "fmt" format (optional).
 character(:) function c8toa( imag, fmt )
   use iso_fortran_env
   implicit none
@@ -251,7 +340,7 @@ character(:) function toUpper( string )
   return
 end function toUpper
 
-! Removes all characters trailing comment sign `cmt`.
+! Removes all characters trailing comment sign CMT.
 ! * "xyz #foobar" -> "xyz"
 character(:) function stripComment( string, cmt )
   implicit none
@@ -264,7 +353,7 @@ character(:) function stripComment( string, cmt )
     ! No comment line
     stripComment = trim(string)
   else if ( i == 1 ) then
-    ! Whole line is coment; is empty line
+    ! Comment line
     stripComment = ""
   else
     stripComment = string(1:i-1)
@@ -307,7 +396,7 @@ logical function isNumber( string )
   return
 end function isNumber
 
-! Replace <old> with <new> within <string>.
+! Replace OLD with NEW within STRING.
 character(:) function replaceText( string, old, new )
   implicit none
   allocatable               :: replacetext
@@ -454,9 +543,7 @@ character(:) function setColor( string, attr, fg, bg )
   allocatable                         :: setColor
   character(*), intent(in)            :: string
   character(*), intent(in), optional  :: attr, fg, bg
-
   setColor = getColor(ATTR=attr,FG=fg,BG=bg)//string//getColor()
-
   return
 end function setColor
 
@@ -588,7 +675,7 @@ end function extension
 
 ! Backups file; Checks if "file.ext" exists and renames it to "#file.ext.1#".
 subroutine backup( file, status )
-  use, intrinsic :: iso_fortran_env, only: error_unit
+  use, intrinsic :: iso_fortran_env, only: ERROR_UNIT
   implicit none
   character(*), intent(in)       :: file
   integer, intent(out), optional :: status
@@ -628,7 +715,7 @@ subroutine backup( file, status )
     ! Check if this newfile exists
     inquire( FILE=newfile, EXIST=exist )
     if ( .not. exist ) then
-      write (error_unit,*) "File '"//trim(file)//"' already exists. Backing it up as: '"//trim(newfile)//"'"
+      write (ERROR_UNIT,*) "File '"//trim(file)//"' already exists. Backing it up as: '"//trim(newfile)//"'"
       call rename( trim(file), newfile, STATUS=stat )
       if ( present(status) ) status = stat
       return
@@ -644,7 +731,7 @@ end subroutine backup
 ! -------------------------------------------------
 ! Miscellaneous
 
-! Prints progress bar (on the same line). Eg. "Progress: [ 50%] [##..]"
+! Prints progress bar (on the same line). Eg. "Progress: [ 50%] [####....]"
 ! NOTE: Write to output is "forbiden" until progress reaches 1.0;
 subroutine progressBar( x, size )
   implicit none
@@ -664,7 +751,7 @@ subroutine progressBar( x, size )
     if ( x == 1.0 ) write (*,*) ""
 
   end if
-  
+
   100 format( a,x,2a,i3,2a )
   200 format( x,*(a) )
 

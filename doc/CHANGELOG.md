@@ -3,12 +3,25 @@
 #### To-do (someday):
 - There is always something to do...
 
-#### v3.0.0 - TBA
-- [ ] Improved documentation and split it in sections.
-- [ ] Added read modes "xvf" to `trr_t`, `gro_t` and `dcd_t`.
-- [ ] Better and more flexible implementation of `file_t` (can now handle frames).
-- [ ] Added frame indexes (ToC) can now read out of order.
-- [ ] Code cleanup
+#### v2.6.0 - 27.11.2020
+- Added `xslib_iostream` utilities.  
+- Added `character(*)` support to `xslib_xmalloc`.  
+
+#### v2.5.2
+- Fixed .pdb read bug(s).  
+
+#### v2.5.1
+- Improvements to CMake.
+- Bug fixes and code clean-up in `tpl_t`.
+- Added `tpl2ndx` function.
+- `tpl%makeNdx` is no longer part of `tpl_t`. See `tpl2ndx`.
+
+#### v2.5.0 - 05.08.2020
+- Better and more flexible implementation of `file_t` (can now handle frames).
+- All file I/O now support out-of-order file reading.
+- Added `xslibCheck()` routine
+- Code clean-up
+- Fixed bug in `pdh%copy`
 
 #### v2.4.0 - 22.06.2020
 - Changed CMake flags.
@@ -26,7 +39,7 @@
 - Corrected c_sifeof and fixed print in `trr_t`.
 - Added file dump to `file_t`.
 - Improved `file_t` class.
-- Added beter implementation of `ctoa`.
+- Added better implementation of `ctoa`.
 - Fixed getColor not being public?
 - Added dummy initialize to backup & progress.
 - Added `isnumber`, `isspace`, `isnum`, and `ischar`
@@ -101,7 +114,7 @@
 - `frame_file` is now a polymorphic.
 - Bug-fixes in `str_ARRAY()`
 - Added alternative (more stable) `getAngle2()`.  
-- **IMPORTANT:** Fixed xdrfile dependency flaw in CMake.
+- **IMPORTANT:** Fixed xdrfile dependency in CMake.
 - Changed file names to *xslib_<name\>.f90* and *xdrlib_<name\>.c* .  
 
 #### v0.3.0 - 03.02.2019:

@@ -22,7 +22,7 @@ module xslib_xmalloc
   public :: xmalloc, xcalloc, xrealloc
 
   ! Fortran wrapper for allocate with "integrated" error handling.
-  ! NOTE: Only supports arrays of rank up to 2 AND variables of type int, int64, real, and real64.
+  ! NOTE: Only supports arrays of rank up to 2 AND variables of type int, int64, real, real64, and character(*).
 
   ! xmalloc - Allocates a block of memory for an array of num. elements.
   ! * The content of the newly allocated block of memory is not initialized, remaining with indeterminate values.
@@ -37,18 +37,18 @@ module xslib_xmalloc
   ! * to change nothing and return the same address that you gave.
 
   interface xmalloc
-    procedure :: xmalloc_int, xmalloc_long, xmalloc_float, xmalloc_double
-    procedure :: xmalloc_int_2d, xmalloc_long_2d, xmalloc_float_2d, xmalloc_double_2d
+    procedure :: xmalloc_int, xmalloc_long, xmalloc_float, xmalloc_double, xmalloc_char
+    procedure :: xmalloc_int_2d, xmalloc_long_2d, xmalloc_float_2d, xmalloc_double_2d, xmalloc_char_2d
   end interface xmalloc
 
   interface xcalloc
-    procedure :: xcalloc_int, xcalloc_long, xcalloc_float, xcalloc_double
-    procedure :: xcalloc_int_2d, xcalloc_long_2d, xcalloc_float_2d, xcalloc_double_2d
+    procedure :: xcalloc_int, xcalloc_long, xcalloc_float, xcalloc_double, xcalloc_char
+    procedure :: xcalloc_int_2d, xcalloc_long_2d, xcalloc_float_2d, xcalloc_double_2d, xcalloc_char_2d
   end interface xcalloc
 
   interface xrealloc
-    procedure :: xrealloc_int, xrealloc_long, xrealloc_float, xrealloc_double
-    procedure :: xrealloc_int_2d, xrealloc_long_2d, xrealloc_float_2d, xrealloc_double_2d
+    procedure :: xrealloc_int, xrealloc_long, xrealloc_float, xrealloc_double, xrealloc_char
+    procedure :: xrealloc_int_2d, xrealloc_long_2d, xrealloc_float_2d, xrealloc_double_2d, xrealloc_char_2d
   end interface xrealloc
 
 contains
@@ -193,6 +193,38 @@ integer function xmalloc_double_2d( object, spec, errmsg )
   return
 end function xmalloc_double_2d
 
+integer function xmalloc_char( object, spec, errmsg )
+  character(*), allocatable, intent(inout)  :: object(:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+
+  if ( rank(object) /= size(spec) ) then
+    xmalloc_char = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  else
+    if ( allocated(object) ) deallocate( object, STAT=xmalloc_char )
+    allocate( object(spec(1)), STAT=xmalloc_char, ERRMSG=errmsg )
+  end if
+
+  return
+end function xmalloc_char
+
+integer function xmalloc_char_2d( object, spec, errmsg )
+  character(*), allocatable, intent(inout)  :: object(:,:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+
+  if ( rank(object) /= size(spec) ) then
+    xmalloc_char_2d = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  else
+    if ( allocated(object) ) deallocate( object, STAT=xmalloc_char_2d )
+    allocate( object(spec(1),spec(2)), STAT=xmalloc_char_2d, ERRMSG=errmsg )
+  end if
+
+  return
+end function xmalloc_char_2d
+
 ! --------------------------------
 
 integer function xcalloc_int( object, spec, errmsg )
@@ -334,6 +366,40 @@ integer function xcalloc_double_2d( object, spec, errmsg )
 
   return
 end function xcalloc_double_2d
+
+integer function xcalloc_char( object, spec, errmsg )
+  character(*), allocatable, intent(inout)  :: object(:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+
+  if ( rank(object) /= size(spec) ) then
+    xcalloc_char = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  else
+    if ( allocated(object) ) deallocate( object, STAT=xcalloc_char )
+    allocate( object(spec(1)), STAT=xcalloc_char, ERRMSG=errmsg )
+    object(:) = ""
+  end if
+
+  return
+end function xcalloc_char
+
+integer function xcalloc_char_2d( object, spec, errmsg )
+  character(*), allocatable, intent(inout)  :: object(:,:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+
+  if ( rank(object) /= size(spec) ) then
+    xcalloc_char_2d = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  else
+    if ( allocated(object) ) deallocate( object, STAT=xcalloc_char_2d )
+    allocate( object(spec(1),spec(2)), STAT=xcalloc_char_2d, ERRMSG=errmsg )
+    object(:,:) = ""
+  end if
+
+  return
+end function xcalloc_char_2d
 
 ! --------------------------------
 
@@ -618,5 +684,76 @@ integer function xrealloc_double_2d( object, spec, errmsg )
 
   return
 end function xrealloc_double_2d
+
+integer function xrealloc_char( object, spec, errmsg )
+  implicit none
+  character(*), allocatable, intent(inout)  :: object(:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+  character(:), allocatable                 :: temp(:)
+  integer                                   :: nlen, nx
+
+  if ( rank(object) /= size(spec) ) then
+    xrealloc_char = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1)), STAT=xrealloc_char, ERRMSG=errmsg )
+
+  else
+    if ( any(shape(object)/=spec(:)) ) then
+      nlen = len(object)
+      allocate( character(nlen)::temp(spec(1)), STAT=xrealloc_char, ERRMSG=errmsg )
+      if ( xrealloc_char /= 0 ) return
+      nx = min( spec(1), size(object,DIM=1) )
+      temp(1:nx) = object(1:nx)
+      call move_alloc(temp,object)
+
+    else
+      xrealloc_char = 0
+      if ( present(errmsg) ) errmsg = ""
+
+    end if
+  end if
+
+  return
+end function xrealloc_char
+
+integer function xrealloc_char_2d( object, spec, errmsg )
+  implicit none
+  character(*), allocatable, intent(inout)  :: object(:,:)
+  integer, intent(in)                       :: spec(:)
+  character(*), intent(out), optional       :: errmsg
+  character(:), allocatable                 :: temp(:,:)
+  integer                                   :: nlen, nx, ny
+
+  if ( rank(object) /= size(spec) ) then
+    xrealloc_char_2d = -1
+    if ( present(errmsg) ) errmsg = "Specified SIZE does not match object RANK."
+  end if
+
+  if ( .not. allocated(object) ) then
+    allocate( object(spec(1),spec(2)), STAT=xrealloc_char_2d, ERRMSG=errmsg )
+
+  else
+    if ( any(shape(object)/=spec(:)) ) then
+      nlen = len(object)
+      allocate( character(nlen)::temp(spec(1),spec(2)), STAT=xrealloc_char_2d, ERRMSG=errmsg )
+      if ( xrealloc_char_2d /= 0 ) return
+      nx = min( spec(1), size(object,DIM=1) )
+      ny = min( spec(2), size(object,DIM=2) )
+      temp(1:nx,1:ny) = object(1:nx,1:ny)
+      call move_alloc(temp,object)
+
+    else
+      xrealloc_char_2d = 0
+      if ( present(errmsg) ) errmsg = ""
+
+    end if
+  end if
+
+  return
+end function xrealloc_char_2d
 
 end module xslib_xmalloc

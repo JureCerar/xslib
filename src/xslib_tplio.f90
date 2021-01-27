@@ -16,41 +16,44 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+! Include make_ndx function. Dependancy on xslib_ndxio: ndx_t type definition.
+#define _TPL2NDX
+
 module xslib_tplio
   implicit none
   private
-  public :: tpl_t
+  public :: tpl_t, tpl2ndx
 
   ! Import error definitions
   include "fileio.h"
 
-  ! NOTE: xslib_tplio is not completly transferable, but is dependable on
-  ! * xslib_ndxio: ndx_t type definition, in order to use "makeNdx" utility.
-
-  ! NOTE: Comment symbol is hidden in processLine utility
-
   ! NOTE: To understand how pointers are connected/structured see tpl_allocate().
 
+  ! Global constants
+  integer, parameter      :: DIM = 3 ! Default dimension
+  integer, parameter      :: TPL_LEN = 6 ! Length of name
+  character(*), parameter :: TPL_COMMENT = "#"  ! Default comment simbol
+  integer, parameter      :: SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 ! Positioning constants
+
   type, private :: tpl_mol
-    integer               :: natoms = 0, nmol = 0
-    integer, pointer      :: id(:) => null()
-    character(6), pointer :: name(:) => null()
-    real, pointer         :: pcharge(:) => null()
+    integer                     :: natoms = 0, nmol = 0  ! Num. of molecules and 'atoms in molecule'
+    integer, pointer            :: id(:) => null()       ! Atom's ID number 
+    character(TPL_LEN), pointer :: name(:) => null()     ! Atom's name
+    real, pointer               :: pcharge(:) => null()  ! Atom's charge
   end type tpl_mol
 
   type tpl_t
-    real                        :: box(3) = 0.000   ! Simulation box side
-    integer                     :: ntypes = 0  ! Number of different types
-    type(tpl_mol), allocatable  :: type(:)  ! Type of molecule
-    integer                     :: natoms = 0
-    integer, pointer            :: id(:) => null()
-    character(6), pointer       :: name(:) => null()
-    real, pointer               :: pcharge(:) => null()
+    real                        :: box(DIM) = 0.000     ! Simulation box side
+    integer                     :: ntypes = 0           ! Number of different molecules (types)
+    type(tpl_mol), allocatable  :: type(:)              ! Molecule (type) object
+    integer                     :: natoms = 0           ! Total num. of atoms
+    integer, pointer            :: id(:) => null()      ! Atom's ID number 
+    character(TPL_LEN), pointer :: name(:) => null()    ! Atom's name
+    real, pointer               :: pcharge(:) => null() ! Atom's charge 
   contains
     procedure :: allocate => tpl_allocate
     procedure :: read => tpl_read
     procedure :: write => tpl_write
-    procedure :: makeNdx => tpl_makeNdx
   end type tpl_t
 
 contains
@@ -96,9 +99,9 @@ integer function tpl_allocate( this, natoms )
     offset = sum(natoms(:i-1))+1
 
     ! Connect pointers
-    this%type(i)%name => this%name(offset:offset+natoms(i)-1)
+    this%type(i)%name    => this%name(offset:offset+natoms(i)-1)
     this%type(i)%pcharge => this%pcharge(offset:offset+natoms(i)-1)
-    this%type(i)%id => this%id(offset:offset+natoms(i)-1)
+    this%type(i)%id      => this%id(offset:offset+natoms(i)-1)
 
   end do
 
@@ -117,7 +120,8 @@ integer function tpl_read( this, file )
   character(256)            :: buffer
   character(32)             :: keyword
   logical                   :: exist
-  integer                   :: i, n, unit, offset, stat, int
+  integer                   :: natoms
+  integer                   :: i, n, unit, offset, stat
 
   ! Check if file exists
   inquire( FILE=trim(file), EXIST=exist )
@@ -126,8 +130,8 @@ integer function tpl_read( this, file )
     return
   end if
 
-  ! Open file
-  open( NEWUNIT=unit, FILE=trim(file), STATUS="old", ACTION="read", IOSTAT=stat )
+  ! Open file in stream mode
+  open( NEWUNIT=unit, FILE=trim(file), ACCESS="stream", FORM="formatted", STATUS="old", ACTION="read", IOSTAT=stat )
   if ( stat /= 0 ) then
     tpl_read = xslibOPEN
     return
@@ -153,13 +157,13 @@ integer function tpl_read( this, file )
       this%ntypes = this%ntypes+1
 
       ! Read number of atoms
-      read (buffer,*,IOSTAT=stat) keyword, n
+      read (buffer,*,IOSTAT=stat) keyword, natoms
       if ( stat /= 0 ) then
         tpl_read = xslibINT
         return
       end if
 
-      this%natoms = this%natoms+n
+      this%natoms = this%natoms+natoms
 
     end if
   end do ! while
@@ -167,7 +171,7 @@ integer function tpl_read( this, file )
   ! Rewind file
   rewind( unit, IOSTAT=stat )
 
-  ! Allocate overall data (1st level)
+  ! Allocate tpl data (top level)
   if ( associated(this%name) ) deallocate( this%name, STAT=stat )
   if ( associated(this%pcharge) ) deallocate( this%pcharge, STAT=stat )
   if ( associated(this%id) ) deallocate( this%id, STAT=stat )
@@ -182,7 +186,7 @@ integer function tpl_read( this, file )
   this%pcharge(:) = 0.000
   this%id(:)      = 0
 
-  ! Allocate data for each "molecule" (2nd level)
+  ! Allocate data for each type
   if ( allocated(this%type) ) deallocate( this%type, STAT=stat )
   allocate( this%type(this%ntypes), STAT=stat )
   if ( stat /= 0 ) then
@@ -197,44 +201,53 @@ integer function tpl_read( this, file )
     read (unit,"(a)",IOSTAT=stat) buffer
     if ( stat /= 0 ) exit
 
-    ! Process line
+    ! Process line (remove comment and transform to upper case)
     buffer = processLine( buffer )
-    if ( verify(buffer, " ") == 0 ) cycle
+    if ( len_trim(buffer) == 0 ) cycle
 
     ! Check first word
     read (buffer,*) keyword
     select case ( keyword )
     case ( "SIDE" )
       ! LEGACY: Box side (optional)
-      read (buffer,*,IOSTAT=int) keyword, this%box(1:3)
-      if ( this%box(2) == 0. ) this%box(2) = this%box(1)
-      if ( this%box(3) == 0. ) this%box(3) = this%box(1)
+      read (buffer,*,IOSTAT=stat) keyword, this%box(:)
+      ! First DIM is mandatory
+      if ( this%box(1) == 0. ) then
+        tpl_read = xslibHEADER
+        return
+      end if
+      ! Other DIMs are optional
+      do i = 1, DIM
+        if ( this%box(DIM) == 0. ) this%box(DIM) = this%box(1)
+      end do
+      ! Reset stat (if not all box-sides were provided)
+      stat = 0
+
 
     case ( "MOLTYPE" )
-      ! LEGACY: Number of molecules (optional)
-      ! Completly ignore
-      ! read (buffer,*,IOSTAT=int) keyword, i
-      ! if ( n /= this%ntypes )
+      ! LEGACY: Number of molecules. Ignore.
 
     case ( "MOLECULE" )
-      ! Each molecule definition
-
-      ! Read num of atoms in molecule and number of molecules in system
+      ! Read "num. of atoms in molecule" and "num. of molecules"
       read (buffer,*,IOSTAT=stat) keyword, this%type(n)%natoms, this%type(n)%nmol
+      if ( stat /= 0 ) then
+        tpl_read = xslibHEADER
+        return
+      end if
 
-      ! Calc. pointer offset in overall data.
-      offset = sum(this%type(:n-1)%natoms)+1
-      if ( offset+this%type(n)%natoms-1 > this%natoms ) then
+      ! Set pointer offset in overall data
+      offset = sum(this%type(:n-1)%natoms)
+      if ( offset+this%type(n)%natoms > this%natoms ) then
         tpl_read = xslibNATOMS
         return
       end if
 
       ! Associate "molecule" pointers to "overall" data ( Link 2nd and 1st levels )
-      this%type(n)%name => this%name(offset:offset+this%type(n)%natoms-1)
-      this%type(n)%pcharge => this%pcharge(offset:offset+this%type(n)%natoms-1)
-      this%type(n)%id => this%id(offset:offset+this%type(n)%natoms-1)
+      this%type(n)%name    => this%name(offset+1:offset+this%type(n)%natoms)
+      this%type(n)%pcharge => this%pcharge(offset+1:offset+this%type(n)%natoms)
+      this%type(n)%id      => this%id(offset+1:offset+this%type(n)%natoms)
 
-      ! Read (pseudo-)atoms
+      ! Read particle definitions
       i = 1 ! Index of current atom
       do while ( i <= this%type(n)%natoms )
         ! Read line
@@ -245,12 +258,14 @@ integer function tpl_read( this, file )
         end if
 
         buffer = processLine( buffer )
-        if ( verify(buffer, " ") /= 0 ) then
-          ! Read name, partial charge (optional), and ID (optional)
-          read (buffer,*,IOSTAT=int) this%type(n)%name(i), this%type(n)%pcharge(i), this%type(n)%id(i)
+        if ( len_trim(buffer) /= 0 ) then
 
-          ! Only name realy needs to be defined
-          if ( verify(this%type(n)%name(i)," ") == 0 ) then
+          ! Each line can contain 3 parameters: name, partial-charge and ID
+          ! * partial-charge and ID are optional -- we only realy care about name
+          read (buffer,*,IOSTAT=stat) this%type(n)%name(i), this%type(n)%pcharge(i), this%type(n)%id(i)
+          if ( stat /= 0 ) read (buffer,*,IOSTAT=stat) this%type(n)%name(i), this%type(n)%pcharge(i)
+          if ( stat /= 0 ) read (buffer,*,IOSTAT=stat) this%type(n)%name(i)
+          if ( stat /= 0 .or. len_trim(this%type(n)%name(i)) == 0 ) then
             tpl_read = xslib3DX
             return
           end if
@@ -297,17 +312,23 @@ integer function tpl_write( this, file, unit )
   logical                             :: opened
   character(9)                        :: action
 
+  ! Check if data is allocated
+  if ( .not. allocated(this%type) ) then
+    tpl_write = xslibNOMEM
+    return
+  end if
+
   ! Select output method. Default is stdout
   if ( present(file) ) then
     open( NEWUNIT=out, FILE=trim(file), STATUS="unknown", ACTION="write", IOSTAT=stat )
     if ( stat /= 0 ) then
-      tpl_write = xslibFILENOTFOUND
+      tpl_write = xslibOPEN
       return
     end if
   else if ( present(unit) ) then
     inquire( UNIT=unit, OPENED=opened, ACTION=action )
     if ( .not. opened .or. index(action,"WRITE") == 0 ) then
-      tpl_write = xslibFILENOTFOUND
+      tpl_write = xslibOPEN
       return
     end if
     out = unit
@@ -315,19 +336,15 @@ integer function tpl_write( this, file, unit )
     out = OUTPUT_UNIT
   end if
 
-  ! Check if data is allocated
-  if ( .not. allocated(this%type) ) then
-    tpl_write = xslibNOMEM
-    return
+  ! Box side
+  if ( any(this%box(:) /= 0.000) ) then
+    write (out,100) "SIDE", this%box(:)
+    100 format( a, 3( 2x, f9.4 ) )
   end if
 
-  ! Box side
-  write (out,100) "SIDE", this%box(:)
-  100 format( a, 3( 2x, f9.4 ) )
-
-  ! Molecule types
-  write (out,200) "MOLTYPE", this%ntypes
-  200 format( a, 3x, i0 )
+  ! LEGACY: Molecule types
+  ! write (out,200) "MOLTYPE", this%ntypes
+  ! 200 format( a, 3x, i0 )
 
   ! Molecules one by one
   do n = 1, this%ntypes
@@ -359,25 +376,36 @@ integer function tpl_write( this, file, unit )
 
   end do ! for n
 
+  ! Close file
+  if ( present(file) ) then
+    close( out, IOSTAT=stat )
+    if ( stat /= 0 ) then
+      tpl_write = xslibCLOSE
+      return
+    end if
+  end if
+
   ! Return success
   tpl_write = xslibOK
 
   return
 end function tpl_write
 
-! Create ndx file based on tpl entries. Only for non-zero ID
+#ifdef _TPL2NDX
+
+! Create ndx file based on tpl entries. Only for non-zero ID.
 ! NOTE: ndx_t definition can be found in "xslib_ndxio.f90"
-integer function tpl_makeNdx( this, ndx )
+integer function tpl2ndx( tpl, ndx )
   use xslib_ndxio, only: ndx_t
   implicit none
-  class(tpl_t)              :: this
-  type(ndx_t), intent(out)  :: ndx
-  integer                   :: i, j, n, index
-  character(32)             :: name
+  type(tpl_t), intent(in)     :: tpl
+  type(ndx_t), intent(inout)  :: ndx
+  integer                     :: i, j, n, index
+  character(32)               :: name
 
-  ! Check if this is allocated
-  if ( .not. allocated(this%type) ) then
-    tpl_makeNdx = xslibNOMEM
+  ! Check if input is allocated
+  if ( .not. allocated(tpl%type) ) then
+    tpl2ndx = xslibNOMEM
     return
   end if
 
@@ -388,28 +416,28 @@ integer function tpl_makeNdx( this, ndx )
   index = 0 ! Index of current group.
   do while ( .true. )
     ! Find next unique id group; Exit if not found (index==huge)
-    index = minval( this%id(:), MASK=( this%id(:) > index ) )
+    index = minval( tpl%id(:), MASK=( tpl%id(:) > index ) )
     if ( index == huge(index) ) exit
     ndx%ngroups = ndx%ngroups+1
 
   end do
 
   ! Allocate groups
-  tpl_makeNdx = ndx%allocate( ndx%ngroups )
-  if ( tpl_makeNdx /= xslibOK ) return
+  tpl2ndx = ndx%allocate( ndx%ngroups )
+  if ( tpl2ndx /= xslibOK ) return
 
   ! Construct "System" group
   ndx%group(1)%title = "System"
-  ndx%group(1)%natoms = sum( this%type(:)%natoms * this%type(:)%nmol )
-  tpl_makeNdx = ndx%group(1)%allocate( ndx%group(1)%natoms )
-  if ( tpl_makeNdx /= xslibOK ) return
+  ndx%group(1)%natoms = sum( tpl%type(:)%natoms * tpl%type(:)%nmol )
+  tpl2ndx = ndx%group(1)%allocate( ndx%group(1)%natoms )
+  if ( tpl2ndx /= xslibOK ) return
   ndx%group(1)%loc(:) = [(i,i=1,ndx%group(1)%natoms)]
 
   ! Construct each group
   index = 0
   do n = 2, ndx%ngroups
     ! Find next unique id group; Exit if not found (i==huge)
-    index = minval( this%id(:), MASK=( this%id(:) > index ) )
+    index = minval( tpl%id(:), MASK=( tpl%id(:) > index ) )
     if ( index == huge(index) ) exit
 
     ! Generate title
@@ -418,25 +446,38 @@ integer function tpl_makeNdx( this, ndx )
 
     ! Count number of atoms in each molecule (n loop)
     ndx%group(n)%natoms = 0
-    do i = 1, this%ntypes
-      ndx%group(n)%natoms = ndx%group(n)%natoms + this%type(i)%nmol * count( this%type(i)%id(:) == index )
+    do i = 1, tpl%ntypes
+      ndx%group(n)%natoms = ndx%group(n)%natoms + tpl%type(i)%nmol * count( tpl%type(i)%id(:) == index )
     end do
 
     ! Allocate data
-    tpl_makeNdx = ndx%group(n)%allocate( ndx%group(n)%natoms )
-    if ( tpl_makeNdx /= xslibOK ) return
+    tpl2ndx = ndx%group(n)%allocate( ndx%group(n)%natoms )
+    if ( tpl2ndx /= xslibOK ) return
 
     ! Construct the group using "System" as template.
     ndx%group(n)%loc(:) =  pack( ndx%group(1)%loc(:), &
-    & MASK=[( (this%type(i)%id(:)==index, j=1,this%type(i)%nmol), i=1,this%ntypes )] )
+    & MASK=[( (tpl%type(i)%id(:)==index, j=1,tpl%type(i)%nmol), i=1,tpl%ntypes )] )
 
   end do ! for n
 
   ! Return sucess
-  tpl_makeNdx = xslibOK
+  tpl2ndx = xslibOK
 
   return
-end function tpl_makeNdx
+end function tpl2ndx
+
+#else
+
+! Dummy procedure - returns error
+integer function tpl2ndx( tpl, ndx )
+  implicit none
+  type(tpl_t), intent(in) :: tpl
+  type(*), intent(inout)  :: ndx
+  tpl2ndx = xslibNR
+  return
+end function tpl2ndx
+
+#endif
 
 ! -------------------------------------------------
 ! Utilities
@@ -446,9 +487,8 @@ function processLine( string )
   implicit none
   character(:), allocatable :: processLine
   character(*), intent(in)  :: string
-  character, parameter      :: cmt = "#"
   integer                   :: i
-  i = index( string, cmt )
+  i = index( string, TPL_COMMENT )
   if ( i == 0 ) then
     ! No comment
     processLine = toUpper( trim(string) )
@@ -463,14 +503,17 @@ end function processLine
 
 ! Returns string in all upper case.
 character(:) function toUpper( string )
+  implicit none
   allocatable               :: toUpper
   character(*), intent(in)  :: string
-  integer, parameter        :: offset=ichar("a")-ichar("A") ! ASCII offset
+  integer, parameter        :: offset = ichar("a") - ichar("A") ! ASCII offset
   integer                   :: i
   toUpper = trim(string)
-  do i = 1, len(toUpper)
-    ! Shift character by offset
-    if (toUpper(i:i)>="a" .and. toUpper(i:i)<= "z") toUpper(i:i) = char(ichar(toUpper(i:i))-offset)
+  do i = 1, len_trim(toUpper)
+    select case ( toUpper(i:i) )
+    case ( "a" : "z" )
+      toUpper(i:i) = char(ichar(toUpper(i:i))-offset)
+    end select
   end do
   return
 end function toUpper

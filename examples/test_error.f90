@@ -19,13 +19,22 @@
 ! --------------------------------
 
 ! Warning and error macro override.
-! #define error(x) error_(x,__FILE__,__LINE__)
-! #define warning(x) warning_(x,__FILE__,__LINE__)
+
+#define __THISFILE__ "error.F90"
+#define error(x) error_( x, __THISFILE__, __LINE__ )
+#define warning(x) warning_( x, __THISFILE__, __LINE__ )
+#define assert(x) assert_( x, __THISFILE__, __LINE__ )
 
 program main
   use xslib_error
   implicit none
-  integer :: i
+  integer, parameter :: DIM = 3
+  integer            :: i
+  integer            :: value = 1, array(DIM) = 1, matrix(DIM,DIM) = 1
+
+  ! Write version
+  ! write (*,*) "xslib "//xslibInfo()
+  ! write (*,*) "" ! Empty line
 
   ! Test all xslib error messages
   do i = 1, xslibNR
@@ -34,14 +43,13 @@ program main
   end do
 
   ! Test correct assertion
-  call assert( 1 == 1 )
-  call assert( [1,2] == [1,2] )
-
-  ! (Experimental) Try to get ENV colors.
-  ! call set_error_colors()
+  call assert( value == 1 )
+  call assert( array(:) == [(1,i=1,DIM)] )
+  call assert( matrix(:,:) == reshape( [(1,i=1,DIM*DIM)], SHAPE=shape(matrix) ) )
 
   ! Write warning and error to stderr.
   call warning( "This is warning message." )
   call error( "This is error message." )
 
+  return
 end program main

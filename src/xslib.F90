@@ -25,8 +25,9 @@ module xslib
   use xslib_vector
   use xslib_error
   use xslib_time
-  use xslib_list
   use xslib_xmalloc
+  use xslib_iostream
+  use xslib_quickio
   use xslib_fileio
   use xslib_groio
   use xslib_pdbio
@@ -38,12 +39,11 @@ module xslib
   use xslib_ndxio
   use xslib_tplio
   use xslib_pdhio
-  use xslib_csvio
   implicit none
 
   ! Version and compile date strings
-  character(*), parameter :: xslib_version="v@PROJECT_VERSION@"
-  character(*), parameter :: xslib_date=__DATE__//" "//__TIME__
+  character(*), parameter :: xslib_version = "v@PROJECT_VERSION@"
+  character(*), parameter :: xslib_date    = __DATE__//" "//__TIME__
 
 contains
 
@@ -59,7 +59,6 @@ end function xslibInfo
 
 ! More extensive xslib info and copyright.
 subroutine xslibAbout()
-  ! use, intrinsic :: iso_fortran_env
   implicit none
   character(:), allocatable :: FC_flags, FC_build_flags, FC_compiler_flags
   character(:), allocatable :: CC_flags, CC_build_flags, CC_compiler_flags
@@ -75,7 +74,6 @@ subroutine xslibAbout()
   ! Fortran combined flags
   FC_compiler_flags = trim(adjustl(FC_build_flags)) // " " // trim(adjustl(FC_flags))
 
-
   ! C compiler flags
   CC_flags = "@CMAKE_C_FLAGS@"
   ! C build flags (Release/Debug)
@@ -88,7 +86,7 @@ subroutine xslibAbout()
   CC_compiler_flags = trim(adjustl(FC_build_flags)) // " " // trim(adjustl(FC_flags))
 
   ! About
-  write (*,*) "Name:             ", "xslib - Extra-Small Library"
+  write (*,*) "Name:             ", "xslib - extra-small library"
   write (*,*) "URL:              ", "@PROJECT_URL@"
   write (*,*) "Version:          ", "@PROJECT_VERSION@"
   write (*,*) "Build date:       ", __DATE__//" "//__TIME__
@@ -98,8 +96,8 @@ subroutine xslibAbout()
   write (*,*) "C flags:          ", trim(CC_compiler_flags)
   write (*,*) ""
   write (*,*) "Copyright (C) 2019-2020 Jure Cerar"
-  write (*,*) " This is free software; See the source for copying conditions. There is NO warranty; "
-  write (*,*) " Not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+  write (*,*) " This is free software; See the source for copying conditions.  There is NO"
+  write (*,*) " warranty; Not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 
   return
 end subroutine xslibAbout

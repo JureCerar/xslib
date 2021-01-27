@@ -25,7 +25,7 @@ module xslib_list
   ! https://github.com/LadaF/fortran-list/blob/master/src/lists.f90
 
   type link_t
-    class(*), pointer   :: value => null()
+    class(*), pointer      :: value => null()
     class(link_t), pointer :: next => null()
     class(link_t), pointer :: prev => null()
   end type link_t

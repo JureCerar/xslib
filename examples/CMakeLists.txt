@@ -2,17 +2,19 @@
 add_custom_target( check COMMAND ${CMAKE_CTEST_COMMAND} )
 add_dependencies( check ${CMAKE_PROJECT_NAME}_static )
 
-# Include module files from the build
+# Include library and module files from the build
+link_directories ( "${CMAKE_BINARY_DIR}/lib" )
 include_directories ( "${CMAKE_BINARY_DIR}/include" )
 
-# Test list
-set ( TESTS about cstring vector error xmalloc ioutil fileio list )
+# Get source files for tests
+file ( GLOB "TEST_SRC" RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.f90" "*.F90" )
 
 # Compile tests as part of 'check'.
-foreach ( "TEST" ${TESTS} )
-  add_executable ( ${TEST} EXCLUDE_FROM_ALL test_${TEST}.f90 )
-  # Linking shared library does not work properly? --> keeps linking external xslib
-  # target_link_libraries ( ${TEST} ${CMAKE_PROJECT_NAME}_shared )
+foreach ( "FILE" ${TEST_SRC} )
+  # Get file name
+  get_filename_component ( "TEST" ${FILE} NAME_WE )
+  add_executable ( ${TEST} EXCLUDE_FROM_ALL ${FILE} )
+  # Linking shared or static library
   target_link_libraries ( ${TEST} ${CMAKE_PROJECT_NAME}_static )
   add_dependencies ( check ${TEST} )
 
@@ -20,46 +22,33 @@ endforeach ()
 
 # -----------------------------------------------------------
 # Simple test to see if library runs correctly
-add_test ( NAME "simple" COMMAND about )
+add_test ( NAME "simple" COMMAND test_about )
 
 # Error test expects failure.
-add_test ( NAME "error" COMMAND error )
+add_test ( NAME "error" COMMAND test_error )
 set_tests_properties ( error PROPERTIES WILL_FAIL TRUE )
 
 # Test each library
-add_test ( NAME "cstring" COMMAND cstring )
-add_test ( NAME "vector" COMMAND vector )
-add_test ( NAME "xmalloc" COMMAND xmalloc )
+add_test ( NAME "cstring" COMMAND test_cstring )
+add_test ( NAME "vector" COMMAND test_vector )
+add_test ( NAME "xmalloc" COMMAND test_xmalloc )
 
 # Test each I/O library individually
-add_test ( NAME "xyzio" COMMAND ioutil "files/conf.xyz" )
-add_test ( NAME "groio" COMMAND ioutil "files/conf.gro" )
-add_test ( NAME "pdbio" COMMAND ioutil "files/conf.pdb" )
-add_test ( NAME "xtcio" COMMAND ioutil "files/conf.xtc" )
-add_test ( NAME "trrio" COMMAND ioutil "files/conf.trr" )
-add_test ( NAME "dcdio" COMMAND ioutil "files/conf.dcd" )
-add_test ( NAME "cubio" COMMAND ioutil "files/grid.cub" )
-
-# Test each file with file_t and OpenMP.
-add_test ( NAME "master" COMMAND fileio
-  "files/conf.xyz"
-  "files/conf.gro"
-  "files/conf.pdb"
-  "files/conf.xtc"
-  "files/conf.trr"
-  "files/conf.dcd"
-)
+add_test ( NAME "xyzio" COMMAND test_ioutil "files/conf.xyz" )
+add_test ( NAME "groio" COMMAND test_ioutil "files/conf.gro" )
+add_test ( NAME "pdbio" COMMAND test_ioutil "files/conf.pdb" )
+add_test ( NAME "xtcio" COMMAND test_ioutil "files/conf.xtc" )
+add_test ( NAME "trrio" COMMAND test_ioutil "files/conf.trr" )
+add_test ( NAME "dcdio" COMMAND test_ioutil "files/conf.dcd" )
+add_test ( NAME "cubio" COMMAND test_ioutil "files/grid.cub" )
 
 # Test support files I/O
-add_test ( NAME "ndxio" COMMAND ioutil "files/index.ndx" )
-add_test ( NAME "tplio" COMMAND ioutil "files/temp.tpl" )
+add_test ( NAME "ndxio" COMMAND test_ioutil "files/index.ndx" )
+add_test ( NAME "tplio" COMMAND test_ioutil "files/temp.tpl" )
 
 # Test data files I/O
-add_test ( NAME "pdhio" COMMAND ioutil "files/data.pdh" )
-add_test ( NAME "csvio" COMMAND ioutil "files/data.csv" )
-
-# Linked list test
-add_test ( NAME "list" COMMAND list )
+add_test ( NAME "pdhio" COMMAND test_ioutil "files/data.pdh" )
+add_test ( NAME "csvio" COMMAND test_ioutil "files/data.csv" )
 
 # -----------------------------------------------------------
 # Copy over files needed for running the tests

@@ -24,14 +24,18 @@ module xslib_pdhio
   ! Import error definitions
   include "fileio.h"
 
+  ! Global constants
+  integer, parameter :: TEXT_LEN = 80
+  integer, parameter :: KEY_LEN = 4
+
   ! .PDH file format
   type pdh_t
-    character(80)     :: text = ""
-    character(4)      :: key_words(16) = ""
-    integer           :: int_const(8) = 0
-    integer           :: num_points = 0
-    real              :: real_const(10) = 0.000
-    real, allocatable :: x(:), y(:), y_error(:)
+    character(TEXT_LEN) :: text = ""              ! Title text
+    character(KEY_LEN)  :: key_words(16) = ""     ! Key words
+    integer             :: int_const(8) = 0       ! Integer constants
+    real                :: real_const(10) = 0.    ! Real constants
+    integer             :: num_points = 0         ! Num. of points 
+    real, allocatable   :: x(:), y(:), y_error(:) ! x, y and error
   contains
     procedure :: allocate => pdh_allocate
     procedure :: assign => pdh_assign
@@ -74,18 +78,18 @@ subroutine pdh_assign( this, other )
   integer                     :: stat
 
   ! Copy header
-  this%text = other%text
-  this%key_words(:) = other%key_words
-  this%int_const(:) = other%int_const
-  this%real_const(:) = other%real_const
+  this%text           = other%text
+  this%key_words(:)   = other%key_words
+  this%int_const(:)   = other%int_const
+  this%real_const(:)  = other%real_const
 
   ! Copy data
   this%num_points = other%num_points
-  if ( allocated(this%x) ) then
+  if ( allocated(other%x) .and. other%num_points > 0 ) then
     stat = this%allocate( other%num_points )
     if ( stat /= xslibOK ) stop "Segmentation fault - allocation failure"
-    this%x(:) = other%x
-    this%y(:) = other%y
+    this%x(:)       = other%x
+    this%y(:)       = other%y
     this%y_error(:) = other%y_error
 
   end if
@@ -95,7 +99,7 @@ end subroutine pdh_assign
 
 ! Read .PDH file
 integer function pdh_read( this, file )
-  use, intrinsic :: iso_fortran_env, only: IOSTAT_END
+  use iso_fortran_env, only: IOSTAT_END
   implicit none
   class(pdh_t)              :: this
   character(*), intent(in)  :: file
@@ -172,7 +176,7 @@ end function pdh_read
 
 ! write .PDH to file or unit
 integer function pdh_write( this, file, unit )
-  use, intrinsic :: iso_fortran_env
+  use iso_fortran_env, only: OUTPUT_UNIT
   implicit none
   class(pdh_t)                        :: this
   integer, intent(in), optional       :: unit
