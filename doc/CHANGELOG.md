@@ -3,6 +3,28 @@
 #### To-do (someday):
 - There is always something to do...
 
+
+#### v3.0.0
+- [ ] Major rework for file objects.
+
+#### v2.7.0
+- [x] Added sorting algorithm `xslib_sort` (Not part of main library).
+- [ ] Fix atom/res in gro files.
+- [ ] Add `has_<attribute>` to files.
+- [ ] Add `xslib_atom` functions.
+- [ ] Add `xslib_algorithms` functions (qsort, nearest, linest, minimize, etc.).
+- [ ] Add `xslib_plot` to main library (+rework)
+- [ ] Add `fatalError` function.
+- [ ] Add create mask(resn, resi, etc) (tpl->gro) for `tpl_t`.
+- [ ] Add verbosity to xslib
+- [ ] Rework csv_t file
+- [ ] Add allocatable atribute to fileio. 
+- [ ] Add constructors to data files
+- [ ] Add operations(+) to coordinate files.
+- [ ] Add copy oiperation to coordinate files.
+- [ ] Add initialize functions to data files.
+* obj = obj + obj_t( xyz(:), "name" )
+ 
 #### v2.6.0 - 27.11.2020
 - Added `xslib_iostream` utilities.  
 - Added `character(*)` support to `xslib_xmalloc`.  

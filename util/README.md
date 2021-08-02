@@ -13,3 +13,8 @@
 ## Tests
 - **test_list.f90:**  
   Test double linked-list functionality.
+
+
+## Todo:
+- [ ] Add `xslib_list` functions: `forall` (execute), `sort` (?), etc
+- [ ] Add `xslibn_iostream` functions: open file, open program (popen, ...)  

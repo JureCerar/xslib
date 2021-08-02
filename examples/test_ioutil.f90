@@ -24,7 +24,7 @@ program main
   use xslib
   implicit none
   ! Constants
-  integer, parameter  :: SEEK_SET = 0, SEEK_CUR = 1, SEEL_END = 2
+  ! integer, parameter  :: SEEK_SET = 0, SEEK_CUR = 1, SEEL_END = 2 ! Now part of iostream
   integer, parameter  :: DIM = 3
   ! Extrenal files
   character(128)      :: arg, temp = "file.txt"

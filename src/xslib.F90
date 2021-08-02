@@ -27,7 +27,6 @@ module xslib
   use xslib_time
   use xslib_xmalloc
   use xslib_iostream
-  use xslib_quickio
   use xslib_fileio
   use xslib_groio
   use xslib_pdbio
