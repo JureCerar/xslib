@@ -16,19 +16,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-module xslib
-  use xslib_cstring
-  use xslib_xmalloc
-  use xslib_errorh
-  use xslib_time
-  use xslib_vector
-  use xslib_math
-  use xslib_sort
-  use xslib_stats
-  use xslib_fitting
+program main
+  use xslib
   implicit none
-  
-  ! Library version string
-  character(*), parameter :: xslib_version = "@PROJECT_VERSION@"
 
-end module xslib
+  print *, "xslib version:", xslib_version
+
+end program main

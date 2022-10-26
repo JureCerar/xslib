@@ -1,46 +1,49 @@
-# Compilers
-FC 				:= gfortran
-FC_FLAGS	:= -shared -fPIC -O2 -march=native -fopenmp
-CC 				:= gcc
-CC_FLAGS	:= -shared -fPIC -O2 -march=native -fopenmp
+# This file is part of xslib
+# https://github.com/JureCerar/xslib
+#
+# Copyright (C) 2019-2022 Jure Cerar
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Compilers & linker
+FC ?= gfortran
+FC_FLAGS := -g -Og -march=native -Wall -fcheck=all
+CC ?= gcc
+CC_FLAGS := -g -Og -march=native
 # Install
-INSTALL 	:= install
-DIR       := /usr/local
+INSTALL := install
+INSTALL_DIR := /usr/local
 # Source
-SRC = xdrfile.c \
-xdrfor.f90 \
-xslib_cstring.f90 \
-xslib_vector.f90 \
-xslib_time.f90 \
-xslib_error.f90 \
-xslib_xmalloc.f90 \
-xslib_iostream.f90 \
-xslib_xyzio.f90 \
-xslib_groio.f90 \
-xslib_pdbio.f90 \
-xslib_xtcio.f90 \
-xslib_trrio.f90 \
-xslib_dcdio.f90 \
-xslib_cubio.f90 \
-xslib_ndxio.f90 \
-xslib_tplio.f90 \
-xslib_pdhio.f90 \
-xslib_csvio.f90 \
-xslib_fileio.f90 \
-xslib.f90
+SRC  = cstring.f90 time.f90 xmalloc.f90 vector.f90 math.f90
+SRC += sort.f90 stats.f90 errorh.f90 fitting.f90
 # Objects
-OBJ = $(SRC)
+OBJ  = $(SRC)
+OBJ := $(OBJ:.F90=.o)
 OBJ := $(OBJ:.f90=.o)
 OBJ := $(OBJ:.c=.o)
 # Library
 LIB = libxslib.so
+BIN = a.out
 
-# -------------------------
-
+# Build
 default: $(LIB)
 
 $(LIB): $(OBJ)
-	$(FC) $^ -o $(LIB) $(FC_FLAGS)
+	$(FC) -shared $^ -o $(LIB) $(FC_FLAGS)
+
+$(BIN): $(OBJ)
+	$(FC) $^ -o $(BIN) $(FC_FLAGS)
 
 %.o: %.f90
 	$(FC) -c $< $(FC_FLAGS)
@@ -51,11 +54,21 @@ $(LIB): $(OBJ)
 %.o: %.c
 	$(CC) -c $< $(CC_FLAGS)
 
-.PHONY: clean install
+.PHONY: test
+test: $(BIN)
+	@./$(BIN)
 
+.PHONY: install
 install:
-	$(INSTALL) $(LIB) $(DIR)/lib
-	$(INSTALL) *.mod  $(DIR)/include
+	$(INSTALL) $(LIB) $(INSTALL_DIR)/lib
+	$(INSTALL) *.mod  $(INSTALL_DIR)/include
 
+.PHONY: clean
 clean:
-	@rm -rf *.o *.mod $(LIB)
+	@rm -rf *.o *.mod $(BIN) $(LIB)
+
+.PHONY: help	
+help:
+	@$(foreach V,$(sort $(.VARIABLES)), \
+	$(if $(filter-out environment% default automatic, \
+	$(origin $V)),$(warning $V=$($V) ($(value $V)))))

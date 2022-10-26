@@ -1,14 +1,27 @@
-## 0. Preprocess all source files
+# This file is part of xslib
+# https://github.com/JureCerar/xslib
+#
+# Copyright (C) 2019-2022 Jure Cerar
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+## Preprocess all source files
 file ( GLOB_RECURSE "FILES" RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.f90" "*.F90" "*.c" "*.h" )
 foreach ( "FILE" ${FILES} )
   configure_file ( ${FILE} "${PROJECT_BINARY_DIR}/src/${FILE}" )
   set ( SRC "${PROJECT_BINARY_DIR}/src/${FILE}" ${SRC} )
 endforeach ()
-
-# -----------------------------------------------------------
-## 1. Create object library
-
-# Include preprocessed source files
 include_directories ( "${PROJECT_BINARY_DIR}/src" )
 
 # Create Object library
@@ -19,9 +32,6 @@ set_target_properties( "ObjectLib"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
   Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/include"
 )
-
-# -----------------------------------------------------------
-## 2. Compile library
 
 # Create shared (dynamic) library
 add_library ( ${CMAKE_PROJECT_NAME}_shared SHARED $<TARGET_OBJECTS:ObjectLib> )
@@ -49,30 +59,23 @@ set_target_properties ( ${CMAKE_PROJECT_NAME}_static
 
 # Add some external definitions
 if ( CMAKE_BUILD_TYPE STREQUAL "DEBUG" )
-	add_definitions ( -D_DEBUG=.true. )
+	add_definitions ( -D_DEBUG=.True. )
 endif ()
 
-# -----------------------------------------------------------
-## 3. Link libraries
-
+# Link libraries
 target_link_libraries ( ${CMAKE_PROJECT_NAME}_shared
   ${OpenMP_Fortran_LIBRARIES}
   ${OpenMP_C_LIBRARIES}
 )
-
 target_link_libraries ( ${CMAKE_PROJECT_NAME}_static
   ${OpenMP_Fortran_LIBRARIES}
   ${OpenMP_C_LIBRARIES}
 )
 
-# -----------------------------------------------------------
-## 4. Install library
-
+# Install library and include directory
 message ( STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 install ( TARGETS ${CMAKE_PROJECT_NAME}_shared LIBRARY DESTINATION lib )
 install ( TARGETS ${CMAKE_PROJECT_NAME}_static ARCHIVE DESTINATION lib )
-
-# Install FORTRAN modules in include directory
 install ( DIRECTORY "${CMAKE_BINARY_DIR}/include/"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${CMAKE_PROJECT_NAME}"
 	FILES_MATCHING PATTERN "*.mod"

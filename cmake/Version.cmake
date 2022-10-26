@@ -16,9 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Find OpenMP library 
-find_package ( OpenMP )
-if ( OpenMP_FOUND )
-  list ( APPEND CMAKE_Fortran_FLAGS ${OpenMP_Fortran_FLAGS} )
-  list ( APPEND CMAKE_C_FLAGS ${OpenMP_C_FLAGS} )
-endif ()
+# Version number is stored in a file .VERSION
+file ( STRINGS "${CMAKE_SOURCE_DIR}/.VERSION" VERSION )
+string ( REPLACE "." ";" VERSION_LIST ${VERSION} )
+list ( GET VERSION_LIST 0 VERSION_MAJOR )
+list ( GET VERSION_LIST 1 VERSION_MINOR )
+list ( GET VERSION_LIST 2 VERSION_PATCH )
+set ( PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" )
+message ( STATUS "CMake build configuration for ${CMAKE_PROJECT_NAME} ${PROJECT_VERSION}" )
+
+# Set package name and version
+string ( TOLOWER ${CMAKE_PROJECT_NAME} PACKAGE_NAME )
+set ( PACKAGE_VERSION "${PACKAGE_NAME}-${VERSION}" )
