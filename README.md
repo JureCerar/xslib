@@ -17,7 +17,7 @@ mkdir build
 cd build
 cmake ..
 make
-make test
+make check
 ```
 To install the library type the following as *root* (or *sudo*):
 ```bash
@@ -64,14 +64,14 @@ target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_STATIC_LIBRARIES} )
 - `-Dxslib_DIR=xxx` equal to CMake config file path (default is `/usr/local/lib/cmake/xslib-X.X.X`).
 
 ## Notes
-Functions for handling molecular files is now available seperatly. See [`atomlib`](https://github.com/JureCerar/atom) for more information.
+Functions for handling molecular files are now available seperatly. See [atomlib](https://github.com/JureCerar/atom) for more information.
 
 Also check out (arguably *much* better) [Fortran-lang/stdlib](https://github.com/fortran-lang/stdlib) project.
 
 ## License
 This program is licensed under the **GNU General Public License v3.0**
 
-Copyright (C) 2019-2022 [Jure Cerar](https://github.com/JureCerar)
+Copyright (C) 2019-2023 [Jure Cerar](https://github.com/JureCerar)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
