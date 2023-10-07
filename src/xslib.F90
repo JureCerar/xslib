@@ -25,6 +25,7 @@ module xslib
   use xslib_math
   use xslib_sort
   use xslib_stats
+  use xslib_list
   use xslib_fitting
   implicit none
   
