@@ -21,7 +21,7 @@ module xslib
   use xslib_cstring
   use xslib_errorh
   use xslib_fitting
-  ! use xslib_list
+  use xslib_list
   ! use xslib_logger
   use xslib_math
   use xslib_pathlib
