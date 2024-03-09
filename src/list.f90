@@ -79,6 +79,8 @@ logical function equal (a, b)
   implicit none
   class(*), intent(in) :: a, b
   
+  equal = .false.
+
   select type (a)
   type is (integer(INT32))
     select type (b)
@@ -115,9 +117,6 @@ logical function equal (a, b)
     type is (character(*))
       equal = (a == b)
     end select
-    
-  class default 
-    equal = .false.
 
   end select
 
