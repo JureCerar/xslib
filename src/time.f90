@@ -22,23 +22,64 @@ module xslib_time
   private
   public :: wtime, writeTime, msleep
 
+  ! %%%
+  ! # `TIME` - Time functions
+  !   Module `xslib_time` contains functions for timing and displaying time.
+  ! %%%
+
 contains
 
-! Return precise time in sec.
-function wtime () result (time)
+function wtime () result (out)
+  ! %%%
+  ! ## `WTIME` - Precise time
+  ! #### DESCRIPTION
+  !   Returns precise wall time in seconds since an unspecified time. The absolute
+  !   value of `wtime` is meaningless, only differences between subsequent calls to
+  !   this function should be used.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = wtime()
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(REAL64) :: out`
+  !     Precise time in seconds. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > wtime()
+  !   1234.567890000
+  !   ```
+  ! %%%
   implicit none
-  real(REAL64) :: time
+  real(REAL64) :: out
   integer(INT64) :: count, count_rate
 
   call system_clock (count, count_rate)
-  time = count / real(count_rate, KIND=REAL64)
+  out = count / real(count_rate, KIND=REAL64)
 
 end function wtime
 
-! Transforms time in sec to string in format "ddd-hh:mm:ss.sss".
-! * Use with either OMP_get_wtime() or wtime()
-! * Example: 151501.992 = "001-18:05:01.992"
+
 function writeTime (time) result (out)
+  ! %%%
+  ! ## `WRITETIME` - Write precise time
+  ! #### DESCRIPTION
+  !   Transforms time in seconds from `wtime` or `OMP_get_wtime` to string
+  !   in format `ddd-hh:mm:ss.sss`. Format can be shorter depending on the length of time. 
+  ! #### USAGE
+  !   ```Fortran
+  !   out = writeTime(time)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(REAL64), intent(IN) :: time`
+  !     Precise time in seconds. 
+  !   * `character(64) :: out`
+  !     Time string in format `ddd-hh:mm:ss.sss`. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > writeTime(151501.992d0)
+  !   "1-18:05:01.992"
+  !   ```
+  ! %%%
   implicit none
   character(64) :: out
   real(REAL64), intent(in) :: time ! seconds
@@ -80,15 +121,31 @@ function writeTime (time) result (out)
 
 end function writeTime
 
-! Susspend execution for millisecond intervals.
+
 subroutine msleep (time)
+  ! %%%
+  ! ## `MSLEEP` - Suspend execution for time interval
+  ! #### DESCRIPTION
+  !   Suspends execution for specified millisecond interval.
+  ! #### USAGE
+  !   ```Fortran
+  !   call msleep(time)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN) :: time`
+  !     Time interval in milliseconds. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call msleep(1000)
+  !   ```
+  ! %%%
   use iso_c_binding, only: C_INT
   implicit none
   integer, intent(in) :: time
   integer(C_INT) :: out
 
   interface
-    ! usleep - suspend execution for microsecond intervals
+    ! `usleep` - Suspend execution for microsecond intervals
     ! SOURCE: https://linux.die.net/man/3/usleep
     integer(C_INT) function usleep (usec) bind( C )
       import

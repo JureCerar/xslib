@@ -22,7 +22,14 @@ module xslib_xmalloc
   private
   public :: xmalloc, xcalloc, xrealloc
 
-  integer, parameter :: ERRLEN = 128 ! Length of error string
+  ! %%%
+  ! # `XMALLOC` - Memory allocation
+  !   Modules `xslib_xmalloc` contains functions for memory allocation.
+  !   Currently supported types are: `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER`
+  ! %%%
+
+  ! Length of error string
+  integer, parameter :: ERRLEN = 128 
 
   interface xmalloc
     module procedure :: xmalloc_int32, xmalloc_int64, xmalloc_real32, xmalloc_real64, xmalloc_bool, xmalloc_char
@@ -38,8 +45,30 @@ module xslib_xmalloc
 
 contains
 
-! Allocates a block of memory for an array of num. elements.
 subroutine xmalloc_int32 (object, spec, stat, errmsg)
+  ! %%%
+  ! ## `XMALLOC` - Allocate memory
+  ! #### DESCRIPTION
+  !   Allocates a block of memory for an array of num. elements. It's just
+  !   a nice wrapper for built-in allocation but with error handling.
+  ! #### USAGE
+  !   ```Fortran
+  !   call xmalloc(object, spec, stat=stat, errmsg=errmsg)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+  !     Object to be allocated.
+  !   `integer, dimension(:), intent(IN) :: spec`
+  !     Object shape specification. Must be same size as `rank(object)`.
+  !   * `integer, intent(OUT), OPTIONAL :: stat`
+  !     Error status code. Returns zero if no error. 
+  !   * `character(*), intent(OUT), OPTIONAL :: errmsg`
+  !     Error status message. Empty if no error. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call xmalloc(array, [10, 10], STAT=status, ERRMSG=message)
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), allocatable, intent(inout) :: object(..)
   integer, intent(in) :: spec(:)
@@ -73,6 +102,7 @@ subroutine xmalloc_int32 (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xmalloc_int32
+
 
 subroutine xmalloc_int64 (object, spec, stat, errmsg)
   implicit none
@@ -109,6 +139,7 @@ subroutine xmalloc_int64 (object, spec, stat, errmsg)
 
 end subroutine xmalloc_int64
 
+
 subroutine xmalloc_real32 (object, spec, stat, errmsg)
   implicit none
   real(REAL32), allocatable, intent(inout) :: object(..)
@@ -143,6 +174,7 @@ subroutine xmalloc_real32 (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xmalloc_real32
+
 
 subroutine xmalloc_real64 (object, spec, stat, errmsg)
   implicit none
@@ -179,6 +211,7 @@ subroutine xmalloc_real64 (object, spec, stat, errmsg)
 
 end subroutine xmalloc_real64
 
+
 subroutine xmalloc_bool (object, spec, stat, errmsg)
   implicit none
   logical, allocatable, intent(inout) :: object(..)
@@ -213,6 +246,7 @@ subroutine xmalloc_bool (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xmalloc_bool
+
 
 subroutine xmalloc_char (object, spec, stat, errmsg)
   implicit none
@@ -249,8 +283,31 @@ subroutine xmalloc_char (object, spec, stat, errmsg)
 
 end subroutine xmalloc_char
 
-! Allocates and initializes a block of memory for an array of num. elements. 
+
 subroutine xcalloc_int32 (object, spec, stat, errmsg)
+  ! %%%
+  ! ## `XCALLOC` - Allocate and initialize memory
+  ! #### DESCRIPTION
+  !   Allocates and initializes a block of memory for an array of num. elements. 
+  !   It's just a nice wrapper for built-in allocation but with error handling.
+  ! #### USAGE
+  !   ```Fortran
+  !   call xcalloc(object, spec, stat=stat, errmsg=errmsg)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+  !     Object to be allocated.
+  !   `integer, dimension(:), intent(IN) :: spec`
+  !     Object shape specification. Must be same size as `rank(object)`.
+  !   * `integer, intent(OUT), OPTIONAL :: stat`
+  !     Error status code. Returns zero if no error. 
+  !   * `character(*), intent(OUT), OPTIONAL :: errmsg`
+  !     Error status message. Empty if no error. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call xcalloc(array, [10, 10], STAT=status, ERRMSG=message)
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), allocatable, intent(inout) :: object(..)
   integer, intent(in) :: spec(:)
@@ -286,6 +343,7 @@ subroutine xcalloc_int32 (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xcalloc_int32
+
 
 subroutine xcalloc_int64 (object, spec, stat, errmsg)
   implicit none
@@ -324,6 +382,7 @@ subroutine xcalloc_int64 (object, spec, stat, errmsg)
 
 end subroutine xcalloc_int64
 
+
 subroutine xcalloc_real32 (object, spec, stat, errmsg)
   implicit none
   real(REAL32), allocatable, intent(inout) :: object(..)
@@ -360,6 +419,7 @@ subroutine xcalloc_real32 (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xcalloc_real32
+
 
 subroutine xcalloc_real64 (object, spec, stat, errmsg)
   implicit none
@@ -398,6 +458,7 @@ subroutine xcalloc_real64 (object, spec, stat, errmsg)
 
 end subroutine xcalloc_real64
 
+
 subroutine xcalloc_bool (object, spec, stat, errmsg)
   implicit none
   logical, allocatable, intent(inout) :: object(..)
@@ -434,6 +495,7 @@ subroutine xcalloc_bool (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xcalloc_bool
+
 
 subroutine xcalloc_char (object, spec, stat, errmsg)
   implicit none
@@ -472,10 +534,34 @@ subroutine xcalloc_char (object, spec, stat, errmsg)
 
 end subroutine xcalloc_char
 
-! Changes the size of memory block. The content of the memory block is preserved up to the
-! * lesser of the new and old sizes, even if the block is moved to a new location. If the new size is larger,
-! * the value of the newly allocated portion is indeterminate.
+
 subroutine xrealloc_int32 (object, spec, stat, errmsg)
+  ! %%%
+  ! ## `XREALLOC` - Reallocate memory
+  ! #### DESCRIPTION
+  !   Changes the size of memory block. Allocates a new memory block if
+  !   not allocated. The content of the memory block is preserved up to
+  !   the lesser of the new and old sizes, even if the block is moved to
+  !   a new location. If the new size is larger, the value of the newly 
+  !   allocated portion is indeterminate.
+  ! #### USAGE
+  !   ```Fortran
+  !   call xrealloc(object, spec, stat=stat, errmsg=errmsg)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+  !     Object to be allocated.
+  !   * `integer, dimension(:), intent(IN) :: spec`
+  !     Object shape specification. Must be same size as `rank(object)`.
+  !   * `integer, intent(OUT), OPTIONAL :: stat`
+  !     Error status code. Returns zero if no error. 
+  !   * `character(*), intent(OUT), OPTIONAL :: errmsg`
+  !     Error status message. Empty if no error. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call xrealloc(array, [10, 10], STAT=status, ERRMSG=message)
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), allocatable, intent(inout) :: object(..)
   integer, intent(in) :: spec(:)
@@ -532,6 +618,7 @@ subroutine xrealloc_int32 (object, spec, stat, errmsg)
 
 end subroutine xrealloc_int32
 
+
 subroutine xrealloc_int64 (object, spec, stat, errmsg)
   implicit none
   integer(INT64), allocatable, intent(inout) :: object(..)
@@ -587,6 +674,7 @@ subroutine xrealloc_int64 (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xrealloc_int64
+
 
 subroutine xrealloc_real32 (object, spec, stat, errmsg)
   implicit none
@@ -645,6 +733,7 @@ subroutine xrealloc_real32 (object, spec, stat, errmsg)
 
 end subroutine xrealloc_real32
 
+
 subroutine xrealloc_real64 (object, spec, stat, errmsg)
   implicit none
   real(REAL64), allocatable, intent(inout) :: object(..)
@@ -702,6 +791,7 @@ subroutine xrealloc_real64 (object, spec, stat, errmsg)
 
 end subroutine xrealloc_real64
 
+
 subroutine xrealloc_bool (object, spec, stat, errmsg)
   implicit none
   logical, allocatable, intent(inout) :: object(..)
@@ -758,6 +848,7 @@ subroutine xrealloc_bool (object, spec, stat, errmsg)
   if (present(errmsg)) errmsg = trim(message)
 
 end subroutine xrealloc_bool
+
 
 subroutine xrealloc_char (object, spec, stat, errmsg)
   implicit none

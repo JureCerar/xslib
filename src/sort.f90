@@ -22,14 +22,39 @@ module xslib_sort
   private
   public :: swap, sort, qsort, msort, hsort
 
+  ! %%%
+  ! # `SORT` - Sorting functions 
+  !   Module `xslib_sort` contains function sorting arrays.
+  !   Supports `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER` input arrays.
+  ! %%%
+
   interface swap
     module procedure :: swap_int32, swap_int64, swap_real32, swap_real64, swap_char
   end interface swap
 
 contains 
 
-! Swap values of A and B
 subroutine swap_int32 (a, b)
+  ! %%%
+  ! ## `SWAP` - Swap input values
+  ! #### DESCRIPTION
+  !   Swap values of `a` and `b`.
+  ! #### USAGE
+  !   ```Fortran
+  !   call swap (a, b)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), intent(INOUT) :: a, b`
+  !     Values to be swapped. Must be same KIND.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > print *, a, b
+  !   1.0, 2.0
+  !   > call swap(a, b)
+  !   > print *, a, b
+  !   2.0, 1.0
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(inout) :: a, b
   integer(INT32) :: temp
@@ -39,6 +64,7 @@ subroutine swap_int32 (a, b)
   b = temp
 
 end subroutine swap_int32
+
 
 subroutine swap_int64 (a, b)
   implicit none
@@ -51,6 +77,7 @@ subroutine swap_int64 (a, b)
 
 end subroutine swap_int64
 
+
 subroutine swap_real32 (a, b)
   implicit none
   real(REAL32), intent(inout) :: a, b
@@ -61,6 +88,7 @@ subroutine swap_real32 (a, b)
   b = temp
 
 end subroutine swap_real32
+
 
 subroutine swap_real64 (a, b)
   implicit none
@@ -73,6 +101,7 @@ subroutine swap_real64 (a, b)
 
 end subroutine swap_real64
 
+
 subroutine swap_char (a, b)
   implicit none
   character(*), intent(inout) :: a, b
@@ -84,9 +113,35 @@ subroutine swap_char (a, b)
 
 end subroutine swap_char
 
-! Returns sorted array. Sorting algorithm can be selected: "quicksort", "mergesort", and "heapsort";
-! default is "quicksort". Order contains argument sort order.
+
 subroutine sort (array, kind, order)
+  ! %%%
+  ! ## `SORT` - Sort input array
+  ! #### DESCRIPTION
+  !   Sort input array in ascending order. Different sorting algorithm can be
+  !   selected: `quicksort`, `mergesort`, or `heapsort`. Default is `quicksort`.
+  !   Order contains argument sort order from original array.
+  ! #### USAGE
+  !   ```Fortran
+  !   call sort(array, kind=kind, order=order)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(INOUT) :: array`
+  !     Input array to be sorted. Supports array of any KIND.
+  !   * `character(*), intent(IN), OPTIONAL :: kind`
+  !     Sorting algorithm: `quicksort` (default), `mergesort`, or `heapsort`.
+  !   * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+  !     Value order in sorted array in respect to original. Same size as `array`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > array = [1.0, 4.0, 3.0, 2.0]
+  !   > call sort (array, kind="quicksort", kind=order)
+  !   > print *, array
+  !   1.0, 2.0, 3.0, 4.0
+  !   > print *, order
+  !   1, 4, 3, 2
+  !   ```
+  ! %%%
   implicit none
   class(*), intent(inout) :: array(:)
   character(*), intent(in), optional :: kind
@@ -96,22 +151,46 @@ subroutine sort (array, kind, order)
     call qsort (array, order)
   else
     select case (kind)
-    case ("quicksort")
+    case ("quicksort", "QUICKSORT")
       call qsort (array, order)
-    case ("mergesort")
+    case ("mergesort", "MERGESORT")
       call msort (array, order)
-    case ("heapsort")
+    case ("heapsort", "HEAPSORT")
       call hsort (array, order)
     case default
-      error stop "Unsupported sort algorithm"
+      error stop "Unsupported sorting algorithm"
     end select
   end if
 
 end subroutine sort
 
-! Sort array using quicksort algorithm.
-! SOURCE: https://rosettacode.org/wiki/Sorting_algorithms/Quicksort#Fortran
+
 subroutine qsort (array, order)
+  ! %%%
+  ! ## `QSORT` - Sort input array using Quicksort
+  ! #### DESCRIPTION
+  !   Sort input array in ascending order using using [Quicksort](https://en.wikipedia.org/wiki/Quicksort)
+  !   algorithm. Order contains argument sort order from original array.
+  ! #### USAGE
+  !   ```Fortran
+  !   call qsort(array, order=order)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(INOUT) :: array`
+  !     Input array to be sorted. Supports array of any KIND.
+  !   * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+  !     Value order in sorted array in respect to original. Same size as `array`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > array = [1.0, 4.0, 3.0, 2.0]
+  !   > call qsort(array, kind=order)
+  !   > print *, array
+  !   1.0, 2.0, 3.0, 4.0
+  !   > print *, order
+  !   1, 4, 3, 2
+  !   ```
+  ! %%%
+  ! See: https://rosettacode.org/wiki/Sorting_algorithms/Quicksort#Fortran
   implicit none
   class(*), intent(inout) :: array(:)
   integer, intent(out), optional :: order(size(array))
@@ -135,6 +214,7 @@ subroutine qsort (array, order)
   if (present(order)) order = temp
 
 end subroutine qsort
+
 
 recursive subroutine qsort_int32 (array, order)
   implicit none
@@ -172,6 +252,7 @@ recursive subroutine qsort_int32 (array, order)
 
 end subroutine qsort_int32 
 
+
 recursive subroutine qsort_int64 (array, order)
   implicit none
   integer(INT64), intent(inout) :: array(:)
@@ -207,6 +288,7 @@ recursive subroutine qsort_int64 (array, order)
   end if  
 
 end subroutine qsort_int64 
+
 
 recursive subroutine qsort_real32 (array, order)
   implicit none
@@ -244,6 +326,7 @@ recursive subroutine qsort_real32 (array, order)
 
 end subroutine qsort_real32 
 
+
 recursive subroutine qsort_real64 (array, order)
   implicit none
   real(REAL64), intent(inout) :: array(:)
@@ -279,6 +362,7 @@ recursive subroutine qsort_real64 (array, order)
   end if
 
 end subroutine qsort_real64
+
 
 recursive subroutine qsort_char (array, order)
   implicit none
@@ -316,9 +400,33 @@ recursive subroutine qsort_char (array, order)
 
 end subroutine qsort_char
 
-! Sort array using mergesort algorithm.
-! SOURCE: https://rosettacode.org/wiki/Sorting_algorithms/Merge_sort
+
 subroutine msort (array, order)
+  ! %%%
+  ! ## `MSORT` - Sort input array using Merge sort
+  ! #### DESCRIPTION
+  !   Sort input array in ascending order using using [Merge sort](https://en.wikipedia.org/wiki/Merge_sort)
+  !   algorithm. Order contains argument sort order from original array.
+  ! #### USAGE
+  !   ```Fortran
+  !   call msort(array, order=order)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(INOUT) :: array`
+  !     Input array to be sorted. Supports array of any KIND.
+  !   * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+  !     Value order in sorted array in respect to original. Same size as `array`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > array = [1.0, 4.0, 3.0, 2.0]
+  !   > call msort(array, kind=order)
+  !   > print *, array
+  !   1.0, 2.0, 3.0, 4.0
+  !   > print *, order
+  !   1, 4, 3, 2
+  !   ```
+  ! %%%
+  ! See: https://rosettacode.org/wiki/Sorting_algorithms/Merge_sort
   implicit none
   class(*), intent(inout) :: array(:)
   integer, intent(out), optional :: order(size(array))
@@ -342,6 +450,7 @@ subroutine msort (array, order)
   if (present(order)) order = temp
 
 end subroutine msort
+
 
 recursive subroutine msort_int32 (array, order)
   integer(INT32), intent(inout) :: array(:)
@@ -391,6 +500,7 @@ recursive subroutine msort_int32 (array, order)
 
 end subroutine msort_int32
 
+
 recursive subroutine msort_int64 (array, order)
   integer(INT64), intent(inout) :: array(:)
   integer, intent(inout) :: order(size(array))
@@ -438,6 +548,7 @@ recursive subroutine msort_int64 (array, order)
   end if  
 
 end subroutine msort_int64
+
 
 recursive subroutine msort_real32 (array, order)
   implicit none
@@ -488,6 +599,7 @@ recursive subroutine msort_real32 (array, order)
 
 end subroutine msort_real32
 
+
 recursive subroutine msort_real64 (array, order)
   implicit none
   real(REAL64), intent(inout) :: array(:)
@@ -536,6 +648,7 @@ recursive subroutine msort_real64 (array, order)
   end if 
 
 end subroutine msort_real64
+
 
 recursive subroutine msort_char (array, order)
   implicit none
@@ -586,9 +699,33 @@ recursive subroutine msort_char (array, order)
 
 end subroutine msort_char
 
-! Sort array using heapsort algorithm.
-! SOURCE: https://rosettacode.org/wiki/Sorting_algorithms/Heapsort#Fortran
+
 subroutine hsort (array, order)
+  ! %%%
+  ! ## `HSORT` - Sort input array using Merge sort
+  ! #### DESCRIPTION
+  !   Sort input array in ascending order using using [Heapsort](https://en.wikipedia.org/wiki/Heapsort)
+  !   algorithm. Order contains argument sort order from original array.
+  ! #### USAGE
+  !   ```Fortran
+  !   call hsort(array, order=order)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(INOUT) :: array`
+  !     Input array to be sorted. Supports array of any KIND.
+  !   * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+  !     Value order in sorted array in respect to original. Same size as `array`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > array = [1.0, 4.0, 3.0, 2.0]
+  !   > call hsort(array, kind=order)
+  !   > print *, array
+  !   1.0, 2.0, 3.0, 4.0
+  !   > print *, order
+  !   1, 4, 3, 2
+  !   ```
+  ! %%%
+  ! See: https://rosettacode.org/wiki/Sorting_algorithms/Heapsort#Fortran
   implicit none
   class(*), intent(inout) :: array(:)
   integer, intent(out), optional :: order(size(array))
@@ -612,6 +749,7 @@ subroutine hsort (array, order)
   if (present(order)) order = temp
 
 end subroutine hsort
+
 
 subroutine hsort_int32 (array, order)
   implicit none
@@ -657,6 +795,7 @@ subroutine hsort_int32 (array, order)
 
 end subroutine hsort_int32
 
+
 subroutine hsort_int64 (array, order)
   implicit none
   integer(INT64), intent(inout) :: array(0:)
@@ -700,6 +839,7 @@ subroutine hsort_int64 (array, order)
   end do
 
 end subroutine hsort_int64
+
 
 subroutine hsort_real32 (array, order)
   implicit none
@@ -745,6 +885,7 @@ subroutine hsort_real32 (array, order)
 
 end subroutine hsort_real32
 
+
 subroutine hsort_real64 (array, order)
   implicit none
   real(REAL64), intent(inout) :: array(0:)
@@ -788,6 +929,7 @@ subroutine hsort_real64 (array, order)
   end do
 
 end subroutine hsort_real64
+
 
 subroutine hsort_char (array, order)
   implicit none

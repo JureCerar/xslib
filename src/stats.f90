@@ -20,19 +20,24 @@ module xslib_stats
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: normal, average, stddev, variance, welford, welford_finalize, histogram
+  public :: normal, mean, stdev, variance, welford, welford_finalize, histogram
+
+  ! %%%
+  ! # `STAT` - Basic statistics functions
+  !   Module `xslib_stats` contains basic statistics functions. Supports both single and double precision (`DP`).
+  ! %%%
 
   interface normal
     module procedure :: normal_real32, normal_real64
   end interface normal
 
-  interface average 
-    module procedure :: ave_int32, ave_int64, ave_real32, ave_real64
-  end interface average
+  interface mean 
+    module procedure :: mean_int32, mean_int64, mean_real32, mean_real64
+  end interface mean
 
-  interface stddev
-    module procedure :: stddev_int32, stddev_int64, stddev_real32, stddev_real64
-  end interface stddev
+  interface stdev
+    module procedure :: stdev_int32, stdev_int64, stdev_real32, stdev_real64
+  end interface stdev
 
   interface variance
     module procedure :: variance_int32, variance_int64, variance_real32, variance_real64
@@ -52,9 +57,28 @@ module xslib_stats
 
 contains
 
-! Return random samples from a normal (Gaussian) distribution.
-! See: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
 function normal_real32 (mu, sigma) result (out)
+  ! %%%
+  ! ## `NORMAL` - Random number on a normal distribution
+  ! #### DESCRIPTION
+  !   Return random samples from a normal (Gaussian) distribution. Random number sequence 
+  !   can be initialized with [`srand`](https://gcc.gnu.org/onlinedocs/gfortran/SRAND.html) function.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = normal(mu, sigma)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(ANY), intent(IN) :: mu, sigma`
+  !     The mean `mu` and variance `sigma` values of normal distribution.  
+  !   * `real(ANY) :: out`
+  !     Random value on a normal distribution.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > normal(0.0, 1.0)
+  !   0.123456
+  !   ```
+  ! %%%
+  ! See: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
   implicit none
   real, parameter :: PI = acos(-1.0)
   real(REAL32), intent(in) :: mu, sigma
@@ -63,6 +87,7 @@ function normal_real32 (mu, sigma) result (out)
   out = mu + sigma * sqrt(-2 * log(rand())) * cos(2 * PI * rand())
 
 end function normal_real32
+
 
 function normal_real64 (mu, sigma) result (out)
   implicit none
@@ -74,45 +99,86 @@ function normal_real64 (mu, sigma) result (out)
 
 end function normal_real64
 
-! Calculate average value of an array.
-function ave_int32 (array) result (out)
+
+function mean_int32 (array) result (out)
+  ! %%%
+  ! ## `MEAN` - Arithmetic mean
+  ! #### DESCRIPTION
+  !   Return mean (average) value of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = mean(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*) dimension(:), intent(IN) :: array`
+  !     Input array of `REAL` or `INT` kind.
+  !   * `real(ANY) :: out`
+  !     Average value of array. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > mean([1, 2, 3, 4, 5])
+  !   3.0
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(in) :: array(:)
   real(REAL32) :: out
 
   out = sum(real(array, KIND=REAL32)) / size(array)
 
-end function ave_int32
+end function mean_int32
 
-function ave_int64 (array) result (out)
+
+function mean_int64 (array) result (out)
   implicit none
   integer(INT64), intent(in) :: array(:)
   real(REAL64) :: out
 
   out = sum(real(array, KIND=REAL64)) / size(array)
 
-end function ave_int64
+end function mean_int64
 
-function ave_real32 (array) result (out)
+
+function mean_real32 (array) result (out)
   implicit none
   real(REAL32), intent(in) :: array(:)
   real(REAL32) :: out
 
   out = sum(array) / size(array)
 
-end function ave_real32
+end function mean_real32
 
-function ave_real64 (array) result (out)
+
+function mean_real64 (array) result (out)
   implicit none
   real(REAL64), intent(in) :: array(:)
   real(REAL64) :: out
 
   out = sum(array) / size(array)
 
-end function ave_real64
+end function mean_real64
 
-! Calculate standard deviation of an array.
-function stddev_int32 (array) result (out)
+
+function stdev_int32 (array) result (out)
+  ! %%%
+  ! ## `STDEV` - Get standard deviation
+  ! #### DESCRIPTION
+  !   Return standard deviation of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = stdev(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: array`
+  !     Input array of `REAL` or `INT` kind.
+  !   * `real(ANY) :: out`
+  !     Standard deviation of array values. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > stdev([1, 2, 3, 4, 5])
+  !   1.58114
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(in) :: array(:)
   real(REAL32) :: out, ave
@@ -120,9 +186,10 @@ function stddev_int32 (array) result (out)
   ave = sum(real(array, REAL32)) / size(array)
   out = sqrt(sum((array - ave) ** 2) / size(array))
 
-end function stddev_int32
+end function stdev_int32
 
-function stddev_int64 (array) result (out)
+
+function stdev_int64 (array) result (out)
   implicit none
   integer(INT64), intent(in) :: array(:)
   real(REAL64) :: out, ave
@@ -130,9 +197,10 @@ function stddev_int64 (array) result (out)
   ave = sum(real(array, REAL64)) / size(array)
   out = sqrt(sum((array - ave) ** 2) / size(array))
 
-end function stddev_int64
+end function stdev_int64
 
-function stddev_real32 (array) result (out)
+
+function stdev_real32 (array) result (out)
   implicit none
   real(REAL32), intent(in) :: array(:)
   real(REAL32) :: out, ave
@@ -140,9 +208,10 @@ function stddev_real32 (array) result (out)
   ave = sum(array) / size(array)
   out = sqrt(sum((array - ave) ** 2) / size(array))
 
-end function stddev_real32
+end function stdev_real32
 
-function stddev_real64 (array) result (out)
+
+function stdev_real64 (array) result (out)
   implicit none
   real(REAL64), intent(in) :: array(:)
   real(REAL64) :: out, ave
@@ -150,10 +219,29 @@ function stddev_real64 (array) result (out)
   ave = sum(array) / size(array)
   out = sqrt(sum((array - ave) ** 2) / size(array))
 
-end function stddev_real64
+end function stdev_real64
 
-! Calculate variance of an array.
+
 function variance_int32 (array) result (out)
+  ! %%%
+  ! ## `VARIANCE` - Get variance of an array
+  ! #### DESCRIPTION
+  !   Calculate variance of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = variance(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: array`
+  !     Input array of kind `INT` or `REAL`.
+  !   * `real(ANY) :: out`
+  !     Variance of array values. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > variance([1, 2, 3, 4, 5])
+  !   2.5
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(in) :: array(:)
   real(REAL32) :: out, ave
@@ -162,6 +250,7 @@ function variance_int32 (array) result (out)
   out = sum((array - ave) ** 2) / size(array)
 
 end function variance_int32
+
 
 function variance_int64 (array) result (out)
   implicit none
@@ -173,6 +262,7 @@ function variance_int64 (array) result (out)
 
 end function variance_int64
 
+
 function variance_real32 (array) result (out)
   implicit none
   real(REAL32), intent(in) :: array(:)
@@ -182,6 +272,7 @@ function variance_real32 (array) result (out)
   out = sum((array - ave) ** 2) / size(array)
 
 end function variance_real32
+
 
 function variance_real64 (array) result (out)
   implicit none
@@ -193,9 +284,33 @@ function variance_real64 (array) result (out)
 
 end function variance_real64
 
-! Welford's online algorithm for calculating variance. Final variance must be "corrected" with `welford_finalize()` call. 
-! See: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
+
 subroutine welford_int32 (array, mean, variance, n)
+  ! %%%
+  ! ## `WELFORD` - Welford's online variance
+  ! #### DESCRIPTION
+  !   [Welford's online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm) 
+  !   for calculating variance. Final variance must be "corrected" with `welford_finalize` call.
+  ! #### USAGE
+  !   ```Fortran
+  !   call welford(array, mean, variance, n)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: array`
+  !     Input array of kind `INT` or `REAL`.
+  !   * `real(ANY), dimension(:), intent(INOUT) :: mean, variance`
+  !     Mean value and variance of array values. Must be same size as `array`.
+  !   * `integer, intent(IN) :: n`
+  !     Sequential number of an array. Must be non-zero.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > do i = 1, NP
+  !   >   call random_number(array)
+  !   >   call welford(array, mean, variance, i)
+  !   > end do
+  !   > call welford_finalize(mean, variance, NP)
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(in) :: array(:)
   real(REAL32), intent(inout) :: mean(size(array)), variance(size(array))
@@ -210,6 +325,7 @@ subroutine welford_int32 (array, mean, variance, n)
   end do
 
 end subroutine welford_int32
+
 
 subroutine welford_int64 (array, mean, variance, n)
   implicit none
@@ -227,6 +343,7 @@ subroutine welford_int64 (array, mean, variance, n)
 
 end subroutine welford_int64
 
+
 subroutine welford_real32 (array, mean, variance, n)
   implicit none
   real(REAL32), intent(in) :: array(:)
@@ -242,6 +359,7 @@ subroutine welford_real32 (array, mean, variance, n)
   end do
 
 end subroutine welford_real32
+
 
 subroutine welford_real64 (array, mean, variance, n)
   implicit none
@@ -259,8 +377,30 @@ subroutine welford_real64 (array, mean, variance, n)
 
 end subroutine welford_real64
 
-! Correct final variance of Welford's online algorithm.
+
 subroutine welford_finalize_real32 (mean, variance, n)
+  ! %%%
+  ! ## `WELFORD_FINALIZE` - Correct Welford's online variance
+  ! #### DESCRIPTION
+  !   Correct final variance of Welford's online algorithm.
+  ! #### USAGE
+  !   ```Fortran
+  !   call welford_finalize(mean, variance, n)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(ANY), dimension(:), intent(INOUT) :: mean, variance`
+  !     Mean value and variance of arrays. Must be same size.
+  !   * `integer, intent(IN) :: n`
+  !     Total number of averaged arrays. Must be non-zero.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > do i = 1, NP
+  !   >   call random_number(array)
+  !   >   call welford(array, mean, variance, i)
+  !   > end do
+  !   > call welford_finalize(mean, variance, NP)
+  !   ```
+  ! %%%
   use ieee_arithmetic, only: ieee_value, IEEE_QUIET_NAN
   implicit none
   real(REAL32), intent(inout) :: mean(:)
@@ -271,6 +411,7 @@ subroutine welford_finalize_real32 (mean, variance, n)
   variance = merge(variance / n, ieee_value(1.0, IEEE_QUIET_NAN), n > 1)
   
 end subroutine welford_finalize_real32
+
 
 subroutine welford_finalize_real64 (mean, variance, n)
   use ieee_arithmetic, only: ieee_value, IEEE_QUIET_NAN
@@ -284,8 +425,33 @@ subroutine welford_finalize_real64 (mean, variance, n)
   
 end subroutine welford_finalize_real64
 
-! Compute the histogram of an array.
+
 function histogram_int32 (array, nbins, min, max) result (out)
+  ! %%%
+  ! ## `HISTOGRAM` - Get histogram of an array.
+  ! #### DESCRIPTION
+  !   Calculate histogram distribution of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = histogram(array, nbins, min=min, max=max)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: array`
+  !     Input array of kind `INT` or `REAL`.
+  !   * `integer, intent(IN) :: nbins`
+  !     Number of equal-width bins in the given range.
+  !   * `real, intent(IN), OPTIONAL :: min, max`
+  !     The lower and upper range of the bins. If not provided, ranges are
+  !     simply: `min(array)` and `max(array)`, respectively.
+  !   * `integer, dimension(nbins) :: out`
+  !     The values of the histogram.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call random_number(array)
+  !   > histogram(array, 5, MIN=0.0, MAX=1.0)
+  !   [9, 10, 8, 11, 11]
+  !   ```
+  ! %%%
   implicit none
   integer(INT32), intent(in) :: array(:)
   integer, intent(in) :: nbins
@@ -309,6 +475,7 @@ function histogram_int32 (array, nbins, min, max) result (out)
   end if
 
 end function histogram_int32
+
 
 function histogram_int64 (array, nbins, min, max) result (out)
   implicit none
@@ -335,6 +502,7 @@ function histogram_int64 (array, nbins, min, max) result (out)
 
 end function histogram_int64
 
+
 function histogram_real32 (array, nbins, min, max) result (out)
   implicit none
   real(REAL32), intent(in) :: array(:)
@@ -359,6 +527,7 @@ function histogram_real32 (array, nbins, min, max) result (out)
   end if
 
 end function histogram_real32
+
 
 function histogram_real64 (array, nbins, min, max) result (out)
   implicit none

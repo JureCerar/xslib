@@ -22,12 +22,31 @@ module xslib_list
   private
   public :: list_t
 
+  ! %%%
+  ! #  `LIST` - Linked list functions
+  !   Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
+  !   List currently supports only `INT32`, `INT64`, `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)`
+  !   variable types. To add new derived TYPE support you only have write extension to `equal`, `copy`,
+  !   and (optional) `write` functions.
+  ! %%%
+
   type link_t
     class(*), pointer :: value => null()
     type(link_t), pointer :: next => null()
   end type link_t
 
   type list_t
+    ! %%%
+    ! ## `LIST_T` - Polymorphic linked list
+    ! #### DESCRIPTION
+    !   Implementation of unlimited polymorphic linked list derived type variable. Supports `INT32`, `INT64`, 
+    !   `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)` variable types. Variables on list cannot be directly
+    !   accessed and can be set via `append`, `extend`, and `set` functionality or retrieved via `get` functionality.  
+    ! #### USAGE
+    !   ```Fortran
+    !   > type(list_t) :: list
+    !   ```
+    ! %%%
     class(link_t), pointer, private :: first => null()
     class(link_t), pointer, private :: last => null()
   contains
@@ -42,6 +61,7 @@ module xslib_list
     procedure :: pop => list_pop
     procedure :: remove => list_remove
     procedure :: reverse => list_reverse
+    procedure :: same_type_as => list_same_type_as
     procedure :: set => list_set
     procedure :: sort => list_sort
     procedure, private :: write_formatted
@@ -51,18 +71,14 @@ module xslib_list
   interface list_t
     module procedure :: list_constructor
   end interface list_t
-
-  ! NOTE: List currently supports only INT32, INT64, REAL32, REAL64, LOGICAL, and CHARACTER(*) 
-  ! variable types. To add new derived TYPE support add them to: `equal`, `copy`, and (optional) `write`.
-
+ 
 contains
 
-! Compare (strictly) two unlimited polymorphic variables
 logical function equal (a, b)
+  ! Strictly compare (===) two unlimited polymorphic variables
   implicit none
   class(*), intent(in) :: a, b
   
-  equal = .false.
   select type (a)
   type is (integer(INT32))
     select type (b)
@@ -99,101 +115,106 @@ logical function equal (a, b)
     type is (character(*))
       equal = (a == b)
     end select
+    
+  class default 
+    equal = .false.
+
   end select
 
 end function equal
 
-! Copy value between two unlimited polymorphic variables
-subroutine copy (in, out)
+
+subroutine copy (src, dest)
+  ! Copy value from src to dest of two unlimited polymorphic variables
   implicit none
-  class(*), intent(in) :: in
-  class(*), intent(out) :: out
+  class(*), intent(in) :: src
+  class(*), intent(out) :: dest
   character(128) :: buffer
 
-  select type (out)
+  select type (dest)
   type is (integer(INT32))
-    select type (in)
+    select type (src)
     type is (integer(INT32))
-      out = int(in, INT32)
+      dest = int(src, INT32)
     type is (integer(INT64))
-      out = int(in, INT32)
+      dest = int(src, INT32)
     type is (real(REAL32))
-      out = int(in, INT32)
+      dest = int(src, INT32)
     type is (real(REAL64))
-      out = int(in, INT32)
+      dest = int(src, INT32)
     class default
       error stop "Cannot convert data types"
     end select
 
   type is (integer(INT64))
-    select type (in)
+    select type (src)
     type is (integer(INT32))
-      out = int(in, INT64)
+      dest = int(src, INT64)
     type is (integer(INT64))
-      out = int(in, INT64)
+      dest = int(src, INT64)
     type is (real(REAL32))
-      out = int(in, INT64)
+      dest = int(src, INT64)
     type is (real(REAL64))
-      out = int(in, INT64)
+      dest = int(src, INT64)
     class default
       error stop "Cannot convert data types"
     end select
 
   type is (real(REAL32))
-    select type (in)
+    select type (src)
     type is (integer(INT32))
-      out = real(in, REAL32)
+      dest = real(src, REAL32)
     type is (integer(INT64))
-      out = real(in, REAL32)
+      dest = real(src, REAL32)
     type is (real(REAL32))
-      out = real(in, REAL32)
+      dest = real(src, REAL32)
     type is (real(REAL64))
-      out = real(in, REAL32)
+      dest = real(src, REAL32)
     class default
       error stop "Cannot convert data types"
     end select
 
   type is (real(REAL64))
-    select type (in)
+    select type (src)
     type is (integer(INT32))
-      out = real(in, REAL64)
+      dest = real(src, REAL64)
     type is (integer(INT64))
-      out = real(in, REAL64)
+      dest = real(src, REAL64)
     type is (real(REAL32))
-      out = real(in, REAL64)
+      dest = real(src, REAL64)
     type is (real(REAL64))
-      out = real(in, REAL64)
+      dest = real(src, REAL64)
     class default
       error stop "Cannot convert data types"
     end select
 
   type is (logical)
-    select type (in)
+    select type (src)
     type is (logical)
-      out = in
+      dest = src
     class default
       error stop "Cannot convert data types"
     end select
 
   type is (character(*))
-    select type (in)
+    select type (src)
     type is (integer(INT32))
-      write (buffer,*) in
-      out = trim(adjustl(buffer))
+      write (buffer,*) src
+      dest = trim(adjustl(buffer))
     type is (integer(INT64))
-      write (buffer,*) in
-      out = trim(adjustl(buffer))
+      write (buffer,*) src
+      dest = trim(adjustl(buffer))
     type is (real(REAL32))
-      write (buffer,*) in
-      out = trim(adjustl(buffer))
+      write (buffer,*) src
+      dest = trim(adjustl(buffer))
     type is (real(REAL64))
-      write (buffer,*) in
-      out = trim(adjustl(buffer))
+      write (buffer,*) src
+      dest = trim(adjustl(buffer))
     type is (logical)
-      write (buffer,*) in
-      out = trim(adjustl(buffer))
+      write (buffer,*) src
+      dest = trim(adjustl(buffer))
     type is (character(*))
-      out = in
+      dest = src
     class default
       error stop "Cannot convert data types"
     end select
@@ -205,8 +226,9 @@ subroutine copy (in, out)
 
 end subroutine copy
 
-! Create a new link w/ value
+
 function constructor (value)
+  ! Create a new link w/ value
   implicit none
   class(link_t), pointer :: constructor
   class(*) :: value
@@ -216,8 +238,9 @@ function constructor (value)
 
 end function constructor
 
-! Destroy link (returns next pointer).
+
 function destructor (this)
+  ! Destroy link (returns next pointer).
   implicit none
   class(link_t), pointer :: this
   class(link_t), pointer :: destructor
@@ -234,8 +257,9 @@ function destructor (this)
 
 end function destructor
 
-! List constructor
+
 function list_constructor (value) result (list)
+  ! List constructor
   implicit none
   class(*), intent(in) :: value(..)
   type(list_t) :: list
@@ -251,21 +275,40 @@ function list_constructor (value) result (list)
 
 end function list_constructor
 
-! Adds an element at the end of the list
-subroutine list_append (this, value)
+
+subroutine list_append (this, elem)
+  ! %%%
+  ! ## `LIST%APPEND` - Append element to the list
+  ! #### DESCRIPTION
+  !   Append new element to the end of the list. 
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%append(elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), intent(IN) :: elem`
+  !     Element to be added end of the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%append(4])
+  !   [1, 2, 3, 4]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
-  class(*), intent(in) :: value
+  class(*), intent(in) :: elem
   class(link_t), pointer :: new
 
   if (.not. associated(this%first)) then
-    ! Create first link_t and update last
-    this%first => constructor(value)
+    ! Create first link and update last
+    this%first => constructor(elem)
     this%last => this%first
 
   else
     ! Append new link and update last.
-    new => constructor(value)
+    new => constructor(elem)
     this%last%next => new
     this%last => new
 
@@ -273,8 +316,24 @@ subroutine list_append (this, value)
 
 end subroutine list_append
 
-! Removes all the elements from the list
+
 subroutine list_clear (this)
+  ! %%%
+  ! ## `LIST%CLEAR` - Removes all elements from the list
+  ! #### DESCRIPTION
+  !   Remove ALL elements from the list.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%clear()
+  !   ```
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(lit_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%clear()
+  !   []
+  !   ```  
+  ! %%%
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr => null()
@@ -288,24 +347,65 @@ subroutine list_clear (this)
 
 end subroutine list_clear
 
-! Returns the number of elements with the specified value.
-integer function list_count (this, value)
+
+function list_count (this, elem) result (out)
+  ! %%%
+  ! ## `LIST%COUNT` - Count elements on the list
+  ! #### DESCRIPTION
+  !   Returns the number of `elem` elements (with the specified value) on the list.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = list%count(elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), intent(IN) :: elem`
+  !     Value of elements to search on the list.
+  !   * `integer :: out`
+  !     Number of elements with specified value on the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 1])
+  !   > list%count(1)
+  !   2
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
-  class(*) :: value
+  class(*), intent(in) :: elem
+  integer :: out
   class(link_t), pointer :: curr
 
-  list_count = 0
+  out = 0
   curr => this%first
   do while (associated(curr))
-    if (equal(value, curr%value)) list_count = list_count + 1
+    if (equal(elem, curr%value)) out = out + 1
     curr => curr%next 
   end do
 
 end function list_count
 
-! Add an array to the end of the current list
+
 subroutine list_extend (this, array)
+  ! %%%
+  ! ## `LIST%EXTEND` - Append array of elements to the list
+  ! #### DESCRIPTION
+  !   Append array of elements to the end of the list. 
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%append(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: array`
+  !     Array of elements to be added to the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2])
+  !   > call list%extend([3, 4, 5])
+  !   [1, 2, 3, 4, 5]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: array(:)
@@ -317,11 +417,34 @@ subroutine list_extend (this, array)
 
 end subroutine list_extend
 
-! Returns the index of the first element with the specified value
-integer function list_index (this, value)
+
+integer function list_index (this, elem)
+  ! %%%
+  ! ## `LIST%INDEX` - Return index of element on the list
+  ! #### DESCRIPTION
+  !   Returns the index of the first element on list with `elem` value.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = list%index(elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), intent(IN) :: elem`
+  !     Value of element to index.
+  !   * `integer :: out`
+  !     Index of element on the list. Returns zero if element is not present.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > list%index(1)
+  !   1
+  !   > list%index(4)
+  !   0
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
-  class(*), intent(in) :: value
+  class(*), intent(in) :: elem
   class(link_t), pointer :: curr
   integer :: i
 
@@ -330,7 +453,7 @@ integer function list_index (this, value)
   curr => this%first
   do while (associated(curr))
     i = i + 1 
-    if (equal(value, curr%value)) then
+    if (equal(elem, curr%value)) then
       list_index = i
       exit
     end if
@@ -339,20 +462,42 @@ integer function list_index (this, value)
 
 end function list_index
 
-! Adds an element at the specified position
-subroutine list_insert (this, pos, value)
+
+subroutine list_insert (this, pos, elem)
+  ! %%%
+  ! ## `LIST%INSERT` - Append element to the list at specified position
+  ! #### DESCRIPTION
+  !   Adds an element `elem` at the specified `pos` position on the list. If position index is outside the list range
+  !   it is either appended to the list if the index is larger than the list or prepended in index is smaller than one.  
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%insert(pos, elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN) :: pos`
+  !     A number specifying in which position to insert the element.
+  !   * `class(*), intent(IN) :: elem`
+  !     Element to be added to the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > list%insert(2, 1.5)
+  !   [1, 1.5, 2, 3]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
-  class(*), intent(in) :: value
+  class(*), intent(in) :: elem
   class(link_t), pointer :: new, curr, prev
   integer :: i
 
-  new => null()
+  new => constructor(elem)
 
   if (.not. associated(this%first)) then
     ! Special case if not associated
-    this%first => constructor(value)
+    this%first => new
     this%last => this%first
   
   else
@@ -364,7 +509,6 @@ subroutine list_insert (this, pos, value)
       curr => curr%next    
     end do
 
-    new => constructor(value)
     if (associated(this%first, curr)) then
       ! Special case if first
       new%next => this%first
@@ -384,8 +528,27 @@ subroutine list_insert (this, pos, value)
 
 end subroutine list_insert
 
-! Get number of elements on the list
+
 integer function list_len (this)
+  ! %%%
+  ! ## `LIST%LEN` - Count number of elements on the list
+  ! #### DESCRIPTION
+  !   Get number of ALL elements on the list.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = list%len()
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer :: out`
+  !     Number of all elements on the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > list%len()
+  !   3
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr
@@ -399,12 +562,35 @@ integer function list_len (this)
 
 end function list_len 
 
-! Get an element from the list
-subroutine list_get (this, pos, value)
+
+subroutine list_get (this, pos, elem)
+  ! %%%
+  ! ## `LIST%GET` - Get an element from the list
+  ! #### DESCRIPTION
+  !   Get element at `pos` index from the list. Raises error if `pos` index
+  !   is out of range.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%get(pos, elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN) :: pos`
+  !     A number specifying at which position to get element.
+  !   * `class(*), intent(IN) :: elem`
+  !     Corresponding element from to the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%get(1, val)
+  !   > print *, val
+  !   1
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
-  class(*), intent(out) :: value
+  class(*), intent(out) :: elem
   class(link_t), pointer :: curr
   integer :: i
 
@@ -417,12 +603,35 @@ subroutine list_get (this, pos, value)
     if (.not. associated(curr%next)) exit
     curr => curr%next
   end do
-  call copy (curr%value, value)
+  call copy (curr%value, elem)
   
 end subroutine list_get
 
-! Removes the element at the specified position
+
 subroutine list_pop (this, pos)
+  ! %%%
+  ! ## `LIST%POP` - Removes element at the specified position from the list
+  ! #### DESCRIPTION
+  !   Removes the element at the specified position `pos`. Last element is removed if
+  !   `pos` is not specified.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%pop(pos=pos)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN), OPTIONAL :: pos`
+  !     A number specifying the position of the element you want to remove.
+  !     Last element is removed if not specified.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3, 4])
+  !   > call list%pop()
+  !   [1, 2, 3]
+  !   > call list%pop(1)
+  !   [2, 3]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   integer, intent(in), optional :: pos
@@ -436,6 +645,7 @@ subroutine list_pop (this, pos)
   if (associated(this%first, this%last)) then
     ! Special case if only one element
     this%first => destructor(this%first)
+    this%first => null()
     this%last => null()
   
   else
@@ -475,25 +685,60 @@ subroutine list_pop (this, pos)
 
 end subroutine list_pop
 
-! Removes the first item with the specified value
-subroutine list_remove (this, value)
+
+subroutine list_remove (this, elem)
+  ! %%%
+  ! ## `LIST%REMOVE` - Remove element from the list
+  ! #### DESCRIPTION
+  !   Removes the first occurrence of `elem` from the list.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%remove(value)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), intent(IN) :: elem`
+  !     Element to be removed from the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%remove(2)
+  !   [1, 3]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
-  class(*), intent(in) :: value
+  class(*), intent(in) :: elem
   integer :: i
   
-  i = this%index(value)
+  i = this%index(elem)
   if (i > 0) call this%pop(i)
   
 end subroutine list_remove
 
-! Reverses the order of the list
+
 subroutine list_reverse (this)
+  ! %%%
+  ! ## `LIST%REVERSE` - Reverse element order on the list
+  ! #### DESCRIPTION
+  !   Reverse element order on the list.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%reverse()
+  !   ```
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%reverse()
+  !   [3, 2, 1]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr, prev, next
 
-  ! Source: https://www.geeksforgeeks.org/reverse-a-linked-list/
+  ! See: https://www.geeksforgeeks.org/reverse-a-linked-list/
 
   prev => null()
   curr => this%first
@@ -508,12 +753,83 @@ subroutine list_reverse (this)
 
 end subroutine list_reverse
 
-! Set a value of an element from the list
-subroutine list_set (this, pos, value)
+
+function list_same_type_as (this, pos, elem) result (out)
+  ! %%%
+  ! ## `LIST%SAME_TYPE_AS` - Check if element on list is same type as reference
+  ! #### DESCRIPTION
+  !   Returns `.True.` if the dynamic type of element at index `pos` is the same as the dynamic type of `elem`.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = list%same_type_as(pos, elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN) :: pos`
+  !     A number specifying at which position to check the element.
+  !   * `class(*), intent(IN) :: elem`
+  !     Element against which to compare the type.
+  !   * `logical :: out`
+  !     Returns `.True.` if evaluated elements are of same type.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > call list%extend([1, 2])
+  !   > list%same_type_as(1, 0)
+  !   .True.
+  !   > list%same_type_as(1, "one")
+  !   .False.
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
-  class(*), intent(in) :: value
+  class(*), intent(in) :: elem
+  class(link_t), pointer :: curr
+  logical :: out
+  integer :: i
+
+  if (.not. associated(this%first)) then
+    error stop "No elements present on list"
+  end if
+    
+  curr => this%first
+  do i = 1, pos - 1
+    if (.not. associated(curr%next)) exit
+    curr => curr%next
+  end do
+  
+  out = same_type_as(curr%value, elem)
+
+end function list_same_type_as
+
+
+subroutine list_set (this, pos, elem)
+  ! %%%
+  ! ## `LIST%SET` - Change element on the list
+  ! #### DESCRIPTION
+  !   Change value of element at index `pos` on the list. Raises error if `pos` index
+  !   is out of list range.
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%set(pos, elem)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer, intent(IN) :: pos`
+  !     A number specifying at which position to set element.
+  !   * `class(*), intent(IN) :: elem`
+  !     Element to be replaced on the list.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([1, 2, 3])
+  !   > call list%set(1, 0)
+  !   [0, 2, 3]
+  !   ```
+  ! %%%
+  implicit none
+  class(list_t) :: this
+  integer, intent(in) :: pos
+  class(*), intent(in) :: elem
   class(link_t), pointer :: curr
   integer :: i
 
@@ -528,24 +844,59 @@ subroutine list_set (this, pos, value)
   end do
   
   deallocate (curr%value)
-  allocate (curr%value, SOURCE=value)
+  allocate (curr%value, SOURCE=elem)
 
 end subroutine list_set
 
-! Sorts the list
+
 subroutine list_sort (this)
+  ! %%%
+  ! ## `LIST%SORT` - Sort elements on the list
+  ! #### DESCRIPTION
+  !   Sort elements on the list in ascending order.
+  !   __WARING:__ Implementation pending!
+  ! #### USAGE
+  !   ```Fortran
+  !   call list%sort()
+  !   ```
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_t([3, 1, 2, 4])
+  !   > call list%sort()
+  !   [1, 2, 3, 4]
+  !   ```
+  ! %%%
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr
 
   curr => this%first
-  
   error stop "Pending implementation"
 
 end subroutine list_sort
 
-! Write list as formatted string
+
 subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
+  ! %%%
+  ! ## `LIST%WRITE` - Formatted and unformatted write 
+  ! #### DESCRIPTION
+  !   Allows for formatted and unformatted write of `list_t`.
+  ! #### USAGE
+  !   ```Fortran
+  !   print *, list_t
+  !   write (*, *) list_t
+  !   ```
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > type(list_t) :: list
+  !   > list = list_T([1, 2, 3])
+  !   > print *, list
+  !   [1, 2, 3]
+  !   > write (*, *) list_t
+  !   [1, 2, 3]
+  !   ```
+  ! %%%  
   implicit none
   class(list_t), intent(in) :: this
   integer, intent(in) :: unit
@@ -583,11 +934,11 @@ subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
           exit catch
         end select
 
-        ! Add delimiter to string
-        if (associated(curr%next)) then
-          buffer = buffer // trim(adjustl(tmp)) // ", "
-        else
+        ! Add delimiter to string if not last element
+        if (associated(curr, this%last)) then
           buffer = buffer // trim(adjustl(tmp))
+        else
+          buffer = buffer // trim(adjustl(tmp))  // "," // " "
         end if
 
         curr => curr%next

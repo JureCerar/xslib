@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2022 Jure Cerar
+! Copyright (C) 2019-2024 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,22 +17,27 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_math
-  use iso_fortran_env, only: REAL32, REAL64
+  use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: linspace, logspace, arange, mix, clip, isClose, interp, trapz, gradient, gcd, lcm
+  public :: factorial, perm, comb, mix, clip, isClose, gcd, lcm
   
-  interface linspace
-    module procedure :: linspace_real32, linspace_real64
-  end interface linspace 
+  ! %%%
+  ! # `MATH` - Basic mathematical functions
+  !   Module `xslib_math` contains basic mathematical functions. Supports both single and double precision (`DP`).
+  ! %%%
 
-  interface logspace
-    module procedure :: logspace_real32, logspace_real64
-  end interface logspace 
+  interface factorial
+    module procedure :: factorial_int32, factorial_int64
+  end interface factorial
 
-  interface arange
-    module procedure :: arange_real32, arange_real64
-  end interface arange 
+  interface perm
+    module procedure :: perm_int32, perm_int64
+  end interface perm
+
+  interface comb
+    module procedure :: comb_int32, comb_int64
+  end interface comb 
 
   interface mix
     module procedure :: mix_real32, mix_real64
@@ -46,103 +51,184 @@ module xslib_math
     module procedure :: isClose_real32, isClose_real64
   end interface isClose
 
-  interface interp
-    module procedure :: interp_real32, interp_real64
-  end interface interp
+  interface gcd
+    module procedure :: gcd_int32, gcd_int64
+  end interface gcd 
 
-  interface trapz
-    module procedure :: trapz_real32, trapz_real64, trapz_dx_real32, trapz_dx_real64
-  end interface trapz
-
-  interface gradient
-    module procedure :: gradient_real32, gradient_real64, gradient_dx_real32, gradient_dx_real64
-  end interface gradient
+  interface lcm
+    module procedure :: lcm_int32, lcm_int64 
+  end interface lcm 
 
 contains
 
-! Return evenly spaced numbers over a specified interval.
-function linspace_real32 (start, stop, num) result (out)
+function factorial_int32 (n) result (out)
+  ! %%%
+  ! ## `FACTORIAL` - Return factorial of an integer
+  ! #### DESCRIPTION
+  !   Return factorial of an integer `n`. Returns error if `n` is not integral or is negative.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = factorial(n)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer(ANY), intent(IN) :: n`
+  !     Input value.
+  !   * `integer(ANY) :: out`
+  !     Factorial of an input value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > factorial(5)
+  !   120
+  !   ```
+  ! %%%
   implicit none
-  real(REAL32) :: out(num)
-  real(REAL32), intent(in) :: start, stop
-  integer, intent(in) :: num
-  real(REAL32) :: step
-  integer :: i
+  integer(INT32) :: out, i 
+  integer(INT32), intent(in) :: n
+  
+  if (n < 0) error stop "Negative value input"
+  out = 1
+  do i = 1, n
+    out = out * i
+  end do
+  
+end function factorial_int32
 
-  step = (stop - start) / (num - 1)
-  out = [(start + (i - 1) * step, i = 1, num)]
 
-end function linspace_real32
-
-function linspace_real64 (start, stop, num) result (out)
+function factorial_int64 (n) result (out)
   implicit none
-  real(REAL64) :: out(num)
-  real(REAL64), intent(in) :: start, stop
-  integer, intent(in) :: num
-  real(REAL64) :: step
-  integer :: i
+  integer(INT64) :: out, i 
+  integer(INT64), intent(in) :: n
+  
+  if (n < 0) error stop "Negative value input"
+  out = 1
+  do i = 1, n
+    out = out * i
+  end do
+  
+end function factorial_int64
 
-  step = (stop - start) / (num - 1)
-  out = [(start + (i - 1) * step, i = 1, num)]
 
-end function linspace_real64
-
-! Return evenly spaced numbers on a log scale over a specified interval.
-function logspace_real32 (start, stop, num) result (out)
+function perm_int32 (n, k) result (out)
+  ! %%%
+  ! ## `PERM` - Permutation of two numbers
+  ! #### DESCRIPTION
+  !   Return the number of ways to choose `k` items from `n` items without repetition and with order.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = perm(n, k)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer(ANY), intent(IN) :: k, n`
+  !     ...
+  !   * `integer(ANY) :: out`
+  !     ...
+  ! #### EXAMPLE
+  ! ```Fortran
+  ! > perm(6, 4)
+  ! 360
+  ! ```
+  ! %%%
   implicit none
-  real(REAL32) :: out(num)
-  real(REAL32), intent(in) :: start, stop
-  integer, intent(in) :: num
-  real(REAL32) :: step
-  integer :: i
+  integer(INT32) :: out
+  integer(INT32), intent(in) :: n, k
 
-  if (start <= 0) error stop "Start value cannot be less than 0"
+  if (n < 0 .or. k < 0) error stop "Negative value input"
+  if (k <= n) then
+    out = factorial_int32(n) / factorial_int32(n - k)
+  else
+    out = 0
+  end if
 
-  step = (stop / start) ** (1.0 / (num - 1))
-  out = [(start * step ** (i - 1), i = 1, num)]
+end function perm_int32 
 
-end function logspace_real32
 
-function logspace_real64 (start, stop, num) result (out)
+function perm_int64 (n, k) result (out)
   implicit none
-  real(REAL64) :: out(num)
-  real(REAL64), intent(in) :: start, stop
-  integer, intent(in) :: num
-  real(REAL64) :: step
-  integer :: i
+  integer(INT64) :: out
+  integer(INT64), intent(in) :: n, k
 
-  if (start <= 0) error stop "Start value cannot be less than 0"
+  if (n < 0 .or. k < 0) error stop "Negative value input"
+  if (k <= n) then
+    out = factorial_int64(n) / factorial_int64(n - k)
+  else
+    out = 0
+  end if
 
-  step = (stop / start) ** (1.0 / (num - 1))
-  out = [(start * step ** (i - 1), i = 1, num)]
+end function perm_int64 
 
-end function logspace_real64
 
-! Return evenly spaced values within a given interval.
-function arange_real32 (start, stop, step) result (out)
+function comb_int32 (n, k) result (out)
+  ! %%%
+  ! ## `COMB` - Combination of two numbers
+  ! #### DESCRIPTION
+  !   Return the number of ways to choose `k` items from `n` items without repetition and without order.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = comb(n, k)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer(ANY), intent(IN) :: k, n`
+  !     ...
+  !   * `integer(ANY) :: out`
+  !     ...
+  ! #### EXAMPLE
+  ! ```Fortran
+  ! > comb(6, 4)
+  ! 15
+  ! ```
+  ! %%%
   implicit none
-  real(REAL32), allocatable :: out(:)
-  real(REAL32), intent(in) :: start, stop, step
-  integer :: num, i
+  integer(INT32) :: out
+  integer(INT32), intent(in) :: n, k
 
-  num = int((stop - start) / step) + 1
-  out = [(start + (i - 1) * step, i = 1, num)]
+  if (n < 0 .or. k < 0) error stop "Negative value input"
+  if (k <= n) then
+    out = factorial_int32(n) / (factorial_int32(k) * factorial_int32(n - k))
+  else
+    out = 0
+  end if
 
-end function arange_real32
+end function comb_int32 
 
-function arange_real64 (start, stop, step) result (out)
+
+function comb_int64 (n, k) result (out)
   implicit none
-  real(REAL64), allocatable :: out(:)
-  real(REAL64), intent(in) :: start, stop, step
-  integer :: num, i
+  integer(INT64) :: out
+  integer(INT64), intent(in) :: n, k
 
-  num = int((stop - start) / step) + 1
-  out = [(start + (i - 1) * step, i = 1, num)]
+  if (n < 0 .or. k < 0) error stop "Negative value input"
+  if (k <= n) then
+    out = factorial_int64(n) / (factorial_int64(k) * factorial_int64(n - k))
+  else
+    out = 0
+  end if
 
-end function arange_real64
+end function comb_int64 
 
-! Retrun fractional linear interpolation (mix) between two points.
+
 function mix_real32 (a, b, x) result (out)
+  ! %%%
+  ! ## `MIX` - Linear interpolation of two numbers
+  ! #### DESCRIPTION
+  !   Return mix *i.e.* fractional linear interpolation between two values. If `x = 0.0` then 
+  !   return `a` if `x = 1.0` return `b` otherwise return linear interpolation of `a` and `b`.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = mix(a, b, x)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(ANY), intent(IN) :: a, b`
+  !     Two input values to mix.
+  !   * `real(ANY), intent(IN) :: x`
+  !     Fraction of the mixture: form 0.0 to 1.0.
+  !   * `real(ANY) :: out`
+  !     Output value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > mix(0.0, 5.0, 0.25)
+  !   1.25
+  !   ```
+  ! %%%
   implicit none
   real(REAL32) :: out
   real(REAL32), intent(in) :: a, b, x
@@ -150,6 +236,7 @@ function mix_real32 (a, b, x) result (out)
   out = a + x * (b - a)
 
 end function mix_real32
+
 
 function mix_real64 (a, b, x) result (out)
   implicit none
@@ -160,8 +247,37 @@ function mix_real64 (a, b, x) result (out)
 
 end function mix_real64
 
-! Return clip (limit) of the value between lower and upper bound.
-function clip_real32 (a, lower, upper) result (out)
+
+elemental function clip_real32 (a, lower, upper) result (out)
+  ! %%%
+  ! ## `CLIP` - Limit the values in an array.
+  ! #### DESCRIPTION
+  !   Clip (limit) the values in an array.
+  ! 
+  !   Given an interval, values outside the interval are clipped to the interval edges.
+  !   For example, if an interval of `[0, 1]` is specified, values smaller than 0 become `0`,
+  !   and values larger than 1 become `1`.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = clip(a, lower, upper)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(ANY), intent(IN) :: a`
+  !     Input value
+  !   * `real(ANY), intent(IN) :: lower, upper`
+  !     Upper and lower bounds. 
+  !   * `real(ANY) :: out`
+  !     Output value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > clip(0.9, 1., 2.)
+  !   1.00000
+  !   > clip(1.1, 1., 2.)
+  !   1.10000
+  !   > clip(2.1, 1., 2.)
+  !   2.00000
+  !   ```
+  ! %%%
   implicit none
   real(REAL32) :: out
   real(REAL32), intent(in) :: a, lower, upper
@@ -170,7 +286,9 @@ function clip_real32 (a, lower, upper) result (out)
 
 end function clip_real32
 
-function clip_real64 (a, lower, upper) result (out)
+
+elemental function clip_real64 (a, lower, upper) result (out)
+  implicit none
   real(REAL64) :: out
   real(REAL64), intent(in) :: a, lower, upper
 
@@ -178,250 +296,152 @@ function clip_real64 (a, lower, upper) result (out)
 
 end function clip_real64
 
-! Check if two values are within a tolerance.
-function isClose_real32 (a, b, delta) result (bool)
+
+function isClose_real32 (a, b, rtol, atol) result (out)
+  ! %%%
+  ! ## `ISCLOSE` - Checks if two values are within a tolerance
+  ! #### DESCRIPTION
+  !   Checks if two values are within a tolerance. The tolerance values are positive,
+  !   typically very small numbers. The relative difference `(rtol * abs(b))` and the
+  !   absolute difference `atol` are added together to compare against the absolute
+  !   difference between `a` and `b`.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = isClose(a, b, rtol=rtol, atol=atol)
+  !   ```
+  ! #### PARAMETERS
+  !   * `real(ANY), intent(IN) :: a, b`
+  !     Input values to compare.
+  !   * `real(ANY), intent(IN), OPTIONAL :: rtol`
+  !     The relative tolerance parameter. Default: 1.0e-05
+  !   * `real(ANY), intent(IN), OPTIONAL :: rtol`
+  !     The absolute tolerance parameter. Default: 1.0e-08
+  !   * `logical :: out`
+  !     Output value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > isclose(1.1, 1.0, atol=1.0)
+  !   .True.
+  !   > isclose(1.5, 1.0, RTOL=1.0)
+  !   .False.
+  !   ```
+  ! %%%
   implicit none
-  logical :: bool
-  real(REAL32), intent(in) :: a, b, delta
-  
-  bool = (abs(a - b) <= delta)
+  logical :: out
+  real(REAL32), intent(in) :: a, b
+  real(REAL32), intent(in), optional :: rtol, atol
+  real(REAL32) :: rtol_, atol_
+
+  rtol_ = merge(rtol, 1.0e-05, present(rtol))
+  atol_ = merge(atol, 1.0e-08, present(atol))
+  out = (abs(a - b) <= (atol_ + rtol_ * abs(b)))
 
 end function isClose_real32
 
-function isClose_real64 (a, b, delta) result (bool)
+
+function isClose_real64 (a, b, rtol, atol) result (out)
   implicit none
-  logical :: bool
-  real(REAL64), intent(in) :: a, b, delta
-  
-  bool = (abs(a - b) <= delta)
+  logical :: out
+  real(REAL64), intent(in) :: a, b
+  real(REAL64), intent(in), optional :: rtol, atol
+  real(REAL64) :: rtol_, atol_
+
+  rtol_ = merge(rtol, 1.0d-05, present(rtol))
+  atol_ = merge(atol, 1.0d-08, present(atol))
+  out = (abs(a - b) <= (atol_ + rtol_ * abs(b)))
 
 end function isClose_real64
 
-! Linear interpolation for increasing array points.
-function interp_real32 (x, xp, yp) result (out)
+
+recursive function gcd_int32 (a, b) result (out)
+  ! %%%
+  ! ## `GCD` - Return greatest common divisor
+  ! #### DESCRIPTION
+  !   Return the greatest common divisor (GCD) of the specified integer arguments.
+  !   If any of the arguments is nonzero, then the returned value is the largest
+  !   positive integer that is a divisor of all arguments. If all arguments are
+  !   zero, then the returned value is 0.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = gcd (a, b)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer(ANY), intent(IN) :: a, b`
+  !     Input values.
+  !   * `integer(ANY) :: out`
+  !     Output value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > gcd(106, 901)
+  !   53
+  !   ```
+  ! %%%
   implicit none
-  real(REAL32), intent(in) :: x(:)
-  real(REAL32), intent(in) :: xp(:), yp(size(xp)) 
-  real(REAL32) :: out(size(x))
-  integer :: i, n
-
-  do n = 1, size(x)
-    i = 1
-    do while (i < size(x) - 1)
-      if (xp(i+1) >= x(n)) exit
-      i = i + 1
-    end do
-    out(n) = (yp(i+1)-yp(i)) / (xp(i+1)-xp(i)) * (x(n)-xp(i)) + yp(i)
-  end do
-
-end function interp_real32
-
-function interp_real64 (x, xp, yp) result (out)
-  implicit none
-  real(REAL64), intent(in) :: x(:)
-  real(REAL64), intent(in) :: xp(:), yp(size(xp)) 
-  real(REAL64) :: out(size(x))
-  integer :: i, n
-
-  do n = 1, size(x)
-    i = 1
-    do while (i < size(x) - 1)
-      if (xp(i+1) >= x(n)) exit
-      i = i + 1
-    end do
-    out(n) = (yp(i+1)-yp(i)) / (xp(i+1)-xp(i)) * (x(n)-xp(i)) + yp(i)
-  end do
-
-end function interp_real64
-
-! Integrate given array using the composite trapezoidal rule.
-function trapz_real32 (y, x) result (out)
-  implicit none
-  real(REAL32) :: out
-  real(REAL32), intent(in) :: y(:), x(size(y))
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * (x(i+1) - x(i))
-  end do
- 
-end function trapz_real32
-
-function trapz_real64 (y, x) result (out)
-  implicit none
-  real(REAL64) :: out
-  real(REAL64), intent(in) :: y(:), x(size(y))
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * (x(i+1) - x(i))
-  end do
- 
-end function trapz_real64
-
-function trapz_dx_real32 (y, dx) result (out)
-  implicit none
-  real(REAL32) :: out
-  real(REAL32), intent(in) :: y(:), dx
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * dx
-  end do
- 
-end function trapz_dx_real32
-
-function trapz_dx_real64 (y, dx) result (out)
-  implicit none
-  real(REAL64) :: out
-  real(REAL64), intent(in) :: y(:), dx
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * dx
-  end do
- 
-end function trapz_dx_real64
-
-! Calculate gradient (derivative) of an array using finite difference method.
-function gradient_real32 (y, x) result (out)
-  implicit none
-  real(REAL32), intent(in) :: y(:), x(size(y))
-  real(REAL32) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (-3 * x(1) + 4 * x(2) - x(3))
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (x(i+1) - x(i-1))
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (x(np-2) - 4 * x(np-1) + 3 * x(np))
-  else if (np > 1) then
-    out = (y(2) - y(1)) / (x(2) - x(1))
-  else
-    out = 0.
-  end if
-
-end function gradient_real32
-
-function gradient_real64 (y, x) result (out)
-  implicit none
-  real(REAL64), intent(in) :: y(:), x(size(y))
-  real(REAL64) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (-3 * x(1) + 4 * x(2) - x(3))
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (x(i+1) - x(i-1))
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (x(np-2) - 4 * x(np-1) + 3 * x(np))
-  else if (np > 1) then
-    out = (y(2) - y(1)) / (x(2) - x(1))
-  else
-    out = 0.
-  end if
-
-end function gradient_real64
-
-function gradient_dx_real32 (y, dx) result (out)
-  implicit none
-  real(REAL32), intent(in) :: y(:), dx
-  real(REAL32) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (2 * dx)
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (2 * dx)
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (2 * dx)
-  else if (np > 1) then
-    out = (y(2) - y(1)) / dx
-  else
-    out = 0.0
-  end if
-
-end function gradient_dx_real32
-
-function gradient_dx_real64 (y, dx) result (out)
-  implicit none
-  real(REAL64), intent(in) :: y(:), dx
-  real(REAL64) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (2 * dx)
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (2 * dx)
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (2 * dx)
-  else if (np > 1) then
-    out = (y(2) - y(1)) / dx
-  else
-    out = 0.0
-  end if
-
-end function gradient_dx_real64
-
-! Return the greatest common divisor of the specified arguments
-recursive function gcd (a, b) result (out)
-  implicit none
-  integer :: out
-  integer, intent(in) :: a, b
+  integer(INT32) :: out
+  integer(INT32), intent(in) :: a, b
 
   if (mod(a, b) /= 0) then
-    out = gcd(b, mod(a, b))
+    out = gcd_int32(b, mod(a, b))
   else
     out = b
   end if
 
-end function gcd
+end function gcd_int32
 
-! Return the least common multiple of the specified arguments
-function lcm (a, b) result (out)
+
+recursive function gcd_int64 (a, b) result (out)
   implicit none
-  integer :: out
-  integer, intent(in) :: a, b
+  integer(INT64) :: out
+  integer(INT64), intent(in) :: a, b
 
-  out = a * b / gcd(a, b)
+  if (mod(a, b) /= 0) then
+    out = gcd_int64(b, mod(a, b))
+  else
+    out = b
+  end if
 
-end function lcm
+end function gcd_int64
+
+
+function lcm_int32 (a, b) result (out)
+  ! %%%
+  ! ## `LCM` - Return least common multiple
+  ! #### DESCRIPTION
+  !   Return the least common multiple (LCM) of the specified integer arguments.
+  !   If all arguments are nonzero, then the returned value is the smallest
+  !   positive integer that is a multiple of all arguments. If any of the arguments
+  !   is zero, then the returned value is 0.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = lcm(a, b)
+  !   ```
+  ! #### PARAMETERS
+  !   * `integer(ANY), intent(IN) :: a, b`
+  !     Input values.
+  !   * `integer(ANY) :: out`
+  !     Output value.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > out = lcm(12, 17)
+  !   204
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32) :: out
+  integer(INT32), intent(in) :: a, b
+
+  out = a * b / gcd_int32(a, b)
+
+end function lcm_int32
+
+
+function lcm_int64 (a, b) result (out)
+  implicit none
+  integer(INT64) :: out
+  integer(INT64), intent(in) :: a, b
+
+  out = a * b / gcd_int64(a, b)
+
+end function lcm_int64
 
 end module xslib_math
-
-! program main
-!   use xslib_math
-!   implicit none
-!   real, parameter :: PI = acos(-1.0)
-!   integer, parameter :: NP = 8
-!   real :: x(NP), y(NP), nx(NP*NP), ny(NP*NP)
-!   integer :: i 
-
-!   x = linspace(0., 2*PI, NP)
-!   y = sin(x)
-  
-!   open (100, FILE="in.txt")
-!   do i = 1, NP
-!     write (100, *) x(i), y(i)
-!   end do
-!   close (100) 
-
-!   nx = linspace(0., 2*PI, NP*NP)
-!   ny = interp(nx, x, y)
-
-!   open (100, FILE="out.txt")
-!   do i = 1, NP*NP
-!     write (100, *) nx(i), ny(i)
-!   end do
-!   close (100) 
-  
-! end program main
