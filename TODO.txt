@@ -1,0 +1,19 @@
+* arrays
+    * diff
+    * cumprod
+    * cumsum
+* stat
+    * cov
+    * mean, gmean, hmean
+    * median
+* cstring
+    * split
+* pathlib
+    * filename
+    * joinpath
+    * realpath
+    * basename
+    * dirname
+    * extension
+    * joinpath
+    
