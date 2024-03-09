@@ -20,7 +20,7 @@ module xslib_array
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: linspace, logspace, arange, interp, trapz, gradient
+  public :: linspace, logspace, arange, diff, cumsum, cumprod, interp, trapz, gradient
 
   ! %%%
   ! # `ARRAY` - Array operations
@@ -38,6 +38,18 @@ module xslib_array
   interface arange
     module procedure :: arange_real32, arange_real64
   end interface arange 
+
+  interface diff
+    module procedure :: diff_int32, diff_int64, diff_real32, diff_real64
+  end interface diff
+
+  interface cumsum
+    module procedure :: cumsum_int32, cumsum_int64, cumsum_real32, cumsum_real64
+  end interface cumsum
+
+  interface cumprod
+    module procedure :: cumprod_int32, cumprod_int64, cumprod_real32, cumprod_real64
+  end interface cumprod
 
   interface interp
     module procedure :: interp_real32, interp_real64
@@ -198,6 +210,241 @@ function arange_real64 (start, stop, step) result (out)
   out = [(start + (i - 1) * step, i = 1, num)]
 
 end function arange_real64
+
+
+function diff_int32 (a, n) result (out)
+  ! %%%
+  ! ## `DIFF` - Generate equally spaced values
+  ! #### DESCRIPTION
+  !   Calculate the n-th discrete difference along the array.
+  !   The first difference is given by `out[i] = a[i+1] - a[i]`,
+  !   higher differences are calculated by using diff recursively.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = diff(a, n=n)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: a`
+  !     Input array.
+  !   * `integer, intent(IN), OPTIONAL :: n`
+  !     The number of times values are differentiated. If zero, the input is returned as-is.
+  !   * `class(*), dimension(LENGTH) :: out`
+  !     The n-th differences array. Size of output array is `size(a) - n`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > diff([1.0, 2.0, 4.0, 8.0])
+  !   [1.0, 2.0, 4.0]
+  !   > diff([1.0, 2.0, 4.0, 8.0], n=2)
+  !   [1.0, 2.0]
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32), allocatable :: out(:)
+  integer(INT32), intent(in) :: a(:)
+  integer, intent(in), optional :: n
+  integer :: i, j
+
+  out = a
+  do i = 1, merge(n, 1, present(n))
+    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
+  end do
+
+end function diff_int32
+
+
+function diff_int64 (a, n) result (out)
+  implicit none
+  integer(INT64), allocatable :: out(:)
+  integer(INT64), intent(in) :: a(:)
+  integer, intent(in), optional :: n
+  integer :: i, j
+
+  out = a
+  do i = 1, merge(n, 1, present(n))
+    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
+  end do
+
+end function diff_int64
+
+
+function diff_real32 (a, n) result (out)
+  implicit none
+  real(REAL32), allocatable :: out(:)
+  real(REAL32), intent(in) :: a(:)
+  integer, intent(in), optional :: n
+  integer :: i, j
+
+  out = a
+  do i = 1, merge(n, 1, present(n))
+    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
+  end do
+
+end function diff_real32
+
+
+function diff_real64 (a, n) result (out)
+  implicit none
+  real(REAL64), allocatable :: out(:)
+  real(REAL64), intent(in) :: a(:)
+  integer, intent(in), optional :: n
+  integer :: i, j
+
+  out = a
+  do i = 1, merge(n, 1, present(n))
+    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
+  end do
+
+end function diff_real64
+
+
+function cumsum_int32 (a) result (out)
+  ! %%%
+  ! ## `CUMSUM` - Calculate cumulative sum
+  ! #### DESCRIPTION
+  !   Return the cumulative sum of the elements of given array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = cumsum(a)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: a`
+  !     Input array.
+  !   * `class(*), dimension(:) :: out`
+  !     Cumulative sum result. The result has the same size as `a`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > cumsum([1,0, 2.0, 3.0, 4.0, 5.0])
+  !   [1.0, 3.0, 6.0, 10.0, 15.0]
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32), allocatable :: out(:)
+  integer(INT32), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) + out(i-1)
+  end do
+
+end function cumsum_int32
+
+
+function cumsum_int64 (a) result (out)
+  implicit none
+  integer(INT64), allocatable :: out(:)
+  integer(INT64), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) + out(i-1)
+  end do
+
+end function cumsum_int64
+
+
+function cumsum_real32 (a) result (out)
+  implicit none
+  real(REAL32), allocatable :: out(:)
+  real(REAL32), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) + out(i-1)
+  end do
+
+end function cumsum_real32
+
+
+function cumsum_real64 (a) result (out)
+  implicit none
+  real(REAL64), allocatable :: out(:)
+  real(REAL64), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) + out(i-1)
+  end do
+
+end function cumsum_real64
+
+
+function cumprod_int32 (a) result (out)
+  ! %%%
+  ! ## `CUMPROD` - Calculate cumulative product
+  ! #### DESCRIPTION
+  !   Return the cumulative product of the elements of given array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = cumprod(a)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(:), intent(IN) :: a`
+  !     Input array.
+  !   * `class(*), dimension(:) :: out`
+  !     Cumulative product result. The result has the same size as `a`.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > cumprod([1,0, 2.0, 3.0, 4.0, 5.0])
+  !   [1.0, 2.0, 6.0, 24.0, 120.0]
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32), allocatable :: out(:)
+  integer(INT32), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) * out(i-1)
+  end do
+
+end function cumprod_int32
+
+
+function cumprod_int64 (a) result (out)
+  implicit none
+  integer(INT64), allocatable :: out(:)
+  integer(INT64), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) * out(i-1)
+  end do
+
+end function cumprod_int64
+
+
+function cumprod_real32 (a) result (out)
+  implicit none
+  real(REAL32), allocatable :: out(:)
+  real(REAL32), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) * out(i-1)
+  end do
+
+end function cumprod_real32
+
+
+function cumprod_real64 (a) result (out)
+  implicit none
+  real(REAL64), allocatable :: out(:)
+  real(REAL64), intent(in) :: a(:)
+  integer :: i
+
+  out = a(:)
+  do i = 2, size(a)
+    out(i) = out(i) * out(i-1)
+  end do
+
+end function cumprod_real64
 
 
 function interp_real32 (x, xp, yp) result (out)
