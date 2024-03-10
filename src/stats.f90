@@ -20,10 +20,10 @@ module xslib_stats
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: normal, mean, stdev, variance, welford, welford_finalize, histogram
+  public :: normal, mean, stdev, variance, median, welford, welford_finalize, histogram
 
   ! %%%
-  ! # `STAT` - Basic statistics functions
+  ! # `STATS` - Basic statistics functions
   !   Module `xslib_stats` contains basic statistics functions. Supports both single and double precision (`DP`).
   ! %%%
 
@@ -35,6 +35,14 @@ module xslib_stats
     module procedure :: mean_int32, mean_int64, mean_real32, mean_real64
   end interface mean
 
+  interface gmean 
+    module procedure :: gmean_int32, gmean_int64, gmean_real32, gmean_real64
+  end interface gmean
+
+  interface hmean 
+    module procedure :: hmean_int32, hmean_int64, hmean_real32, hmean_real64
+  end interface hmean
+
   interface stdev
     module procedure :: stdev_int32, stdev_int64, stdev_real32, stdev_real64
   end interface stdev
@@ -42,6 +50,10 @@ module xslib_stats
   interface variance
     module procedure :: variance_int32, variance_int64, variance_real32, variance_real64
   end interface variance
+
+  interface median
+    module procedure :: median_int32, median_int64, median_real32, median_real64
+  end interface median
 
   interface welford
     module procedure :: welford_int32, welford_int64, welford_real32, welford_real64
@@ -104,7 +116,7 @@ function mean_int32 (array) result (out)
   ! %%%
   ! ## `MEAN` - Arithmetic mean
   ! #### DESCRIPTION
-  !   Return mean (average) value of an array.
+  !   Return arithmetic mean value of an array.
   ! #### USAGE
   !   ```Fortran
   !   out = mean(array)
@@ -113,7 +125,7 @@ function mean_int32 (array) result (out)
   !   * `class(*) dimension(:), intent(IN) :: array`
   !     Input array of `REAL` or `INT` kind.
   !   * `real(ANY) :: out`
-  !     Average value of array. 
+  !     Arithmetic mean of an array. 
   ! #### EXAMPLE
   !   ```Fortran
   !   > mean([1, 2, 3, 4, 5])
@@ -157,6 +169,128 @@ function mean_real64 (array) result (out)
   out = sum(array) / size(array)
 
 end function mean_real64
+
+
+function gmean_int32 (a) result (out)
+  ! %%%
+  ! ## `GMEAN` - Geometric mean
+  ! #### DESCRIPTION
+  !   Return geometric mean value of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = gmean(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*) dimension(:), intent(IN) :: array`
+  !     Input array of `REAL` or `INT` kind.
+  !   * `real(ANY) :: out`
+  !     Geometric mean of an array. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > gmean([1, 2, 3, 4, 5])
+  !   2.60517120
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32), intent(in) :: a(:)
+  real(REAL32) :: out
+
+  out = product(a) ** (1. / size(a)) 
+
+end function gmean_int32
+
+
+function gmean_int64 (a) result (out)
+  implicit none
+  integer(INT64), intent(in) :: a(:)
+  real(REAL64) :: out
+
+  out = product(a) ** (1.d0 / size(a)) 
+
+end function gmean_int64
+
+
+function gmean_real32 (a) result (out)
+  implicit none
+  real(REAL32), intent(in) :: a(:)
+  real(REAL32) :: out
+
+  out = product(a) ** (1. / size(a)) 
+
+end function gmean_real32
+
+
+function gmean_real64 (a) result (out)
+  implicit none
+  real(REAL64), intent(in) :: a(:)
+  real(REAL64) :: out
+
+  out = product(a) ** (1.0d0 / size(a)) 
+
+end function gmean_real64
+
+
+function hmean_int32 (a) result (out)
+  ! %%%
+  ! ## `HMEAN` - Harmonic mean
+  ! #### DESCRIPTION
+  !   Return harmonic mean value of an array.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = hmean(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*) dimension(:), intent(IN) :: array`
+  !     Input array of `REAL` or `INT` kind.
+  !   * `real(ANY) :: out`
+  !     Harmonic mean of an array. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > hmean([1, 2, 3, 4, 5])
+  !   2.60517120
+  !   ```
+  ! %%%
+  implicit none
+  integer(INT32), intent(in) :: a(:)
+  real(REAL32) :: out
+  integer :: i
+
+  out = size(a) * 1.0 / sum([(1.0 / a(i), i = 1, size(a))])
+
+end function hmean_int32
+
+
+function hmean_int64 (a) result (out)
+  implicit none
+  integer(INT64), intent(in) :: a(:)
+  real(REAL64) :: out
+  integer :: i
+
+  out = size(a) * 1.0d0 / sum([(1.0d0 / a(i), i = 1, size(a))])
+
+end function hmean_int64
+
+
+function hmean_real32 (a) result (out)
+  implicit none
+  real(REAL32), intent(in) :: a(:)
+  real(REAL32) :: out
+  integer :: i
+
+  out = size(a) * 1.0 / sum([(1.0 / a(i), i = 1, size(a))])
+
+end function hmean_real32
+
+
+function hmean_real64 (a) result (out)
+  implicit none
+  real(REAL64), intent(in) :: a(:)
+  real(REAL64) :: out
+  integer :: i
+
+  out = size(a) * 1.0 / sum([(1.0 / a(i), i = 1, size(a))])
+
+end function hmean_real64
 
 
 function stdev_int32 (array) result (out)
@@ -283,6 +417,107 @@ function variance_real64 (array) result (out)
   out = sum((array - ave) ** 2) / size(array)
 
 end function variance_real64
+
+
+function median_int32 (a) result (out)
+  ! %%%
+  ! ## `MEAN` - Median value
+  ! #### DESCRIPTION
+  !   Return the median (middle value) of numeric data, using the common _mean of middle two_ method.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = median(array)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*) dimension(:), intent(IN) :: a`
+  !     Input array of `REAL` or `INT` kind.
+  !   * `real(ANY) :: out`
+  !     Median value of an array. 
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > median([1, 2, 3, 4, 5])
+  !   3.0
+  !   > median([1, 2, 3, 4])
+  !   2.5
+  !   ```
+  ! %%%
+  use xslib_sort, only: qsort
+  implicit none
+  real(REAL32) :: out
+  integer(INT32), intent(in) :: a(:)
+  integer(INT32), allocatable :: tmp(:)
+  integer :: n
+
+  tmp = a(:)
+  call qsort(tmp)
+  n = size(a)
+  if (mod(n, 2) == 0) then
+    out = 0.5 * (tmp(n / 2) + tmp(n / 2 + 1))
+  else
+    out = tmp((n + 1) / 2)
+  end if
+
+end function median_int32
+
+
+function median_int64 (a) result (out)
+  use xslib_sort, only: qsort
+  implicit none
+  real(REAL64) :: out
+  integer(INT64), intent(in) :: a(:)
+  integer(INT64), allocatable :: tmp(:)
+  integer :: n
+
+  tmp = a(:)
+  call qsort(tmp)
+  n = size(a)
+  if (mod(n, 2) == 0) then
+    out = 0.5d0 * (tmp(n / 2) + tmp(n / 2 + 1))
+  else
+    out = tmp((n + 1) / 2)
+  end if
+
+end function median_int64
+
+
+function median_real32 (a) result (out)
+  use xslib_sort, only: qsort
+  implicit none
+  real(REAL32) :: out
+  real(REAL32), intent(in) :: a(:)
+  real(REAL32), allocatable :: tmp(:)
+  integer :: n
+
+  tmp = a(:)
+  call qsort(tmp)
+  n = size(a)
+  if (mod(n, 2) == 0) then
+    out = 0.5 * (tmp(n / 2) + tmp(n / 2 + 1))
+  else
+    out = tmp((n + 1) / 2)
+  end if
+
+end function median_real32
+
+
+function median_real64 (a) result (out)
+  use xslib_sort, only: qsort
+  implicit none
+  real(REAL64) :: out
+  real(REAL64), intent(in) :: a(:)
+  real(REAL64), allocatable :: tmp(:)
+  integer :: n
+
+  tmp = a(:)
+  call qsort(tmp)
+  n = size(a)
+  if (mod(n, 2) == 0) then
+    out = 0.5d0 * (tmp(n / 2) + tmp(n / 2 + 1))
+  else
+    out = tmp((n + 1) / 2)
+  end if
+
+end function median_real64
 
 
 subroutine welford_int32 (array, mean, variance, n)
