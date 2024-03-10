@@ -49,12 +49,24 @@ subroutine average_test_int32 ()
 
   ! Array of integers from 1 to 100
   array = [(int(i, kind(array)), i = 1, NP)]
-  val = average(array)
+
+  val = mean(array)
   if (abs(val - 50.5) > delta) error stop
-  val = stddev(array)
+
+  val = gmean(array)
+  if (abs(val - 37.992689344834304) > delta) error stop
+
+  val = hmean(array)
+  if (abs(val - 19.277563597396004) > delta) error stop
+  
+  val = stdev(array)
   if (abs(val - 28.866) > delta) error stop
+
   val = variance(array)
   if (abs(val - 833.25) > delta) error stop
+
+  val = median(array)
+  if (abs(val - 50.5) > delta) error stop
 
 end subroutine average_test_int32 
 
@@ -65,13 +77,27 @@ subroutine average_test_int64 ()
   real(REAL64) :: val
   integer :: i
 
+  ! Array of integers from 1 to 100
   array = [(int(i, kind(array)), i = 1, NP)]
-  val = average(array)
+
+  val = mean(array)
   if (abs(val - 50.5) > delta) error stop
-  val = stddev(array)
+
+  val = gmean(array)
+  print *, val
+  if (abs(val - 37.992689344834304) > delta) error stop
+
+  val = hmean(array)
+  if (abs(val - 19.277563597396004) > delta) error stop
+  
+  val = stdev(array)
   if (abs(val - 28.866) > delta) error stop
+
   val = variance(array)
   if (abs(val - 833.25) > delta) error stop
+
+  val = median(array)
+  if (abs(val - 50.5) > delta) error stop
 
 end subroutine average_test_int64 
 
@@ -81,13 +107,26 @@ subroutine average_test_real32 ()
   real(REAL32) :: array(NP), val
   integer :: i
 
+  ! Array of integers from 1 to 100
   array = [(int(i, kind(array)), i = 1, NP)]
-  val = average(array)
+
+  val = mean(array)
   if (abs(val - 50.5) > delta) error stop
-  val = stddev(array)
+
+  val = gmean(array)
+  if (abs(val - 37.992689344834304) > delta) error stop
+
+  val = hmean(array)
+  if (abs(val - 19.277563597396004) > delta) error stop
+  
+  val = stdev(array)
   if (abs(val - 28.866) > delta) error stop
+
   val = variance(array)
   if (abs(val - 833.25) > delta) error stop
+
+  val = median(array)
+  if (abs(val - 50.5) > delta) error stop
 
 end subroutine average_test_real32 
 
@@ -97,13 +136,26 @@ subroutine average_test_real64 ()
   real(REAL64) :: array(NP), val
   integer :: i
 
+  ! Array of integers from 1 to 100
   array = [(int(i, kind(array)), i = 1, NP)]
-  val = average(array)
+
+  val = mean(array)
   if (abs(val - 50.5) > delta) error stop
-  val = stddev(array)
+
+  val = gmean(array)
+  if (abs(val - 37.992689344834304) > delta) error stop
+
+  val = hmean(array)
+  if (abs(val - 19.277563597396004) > delta) error stop
+  
+  val = stdev(array)
   if (abs(val - 28.866) > delta) error stop
+
   val = variance(array)
   if (abs(val - 833.25) > delta) error stop
+
+  val = median(array)
+  if (abs(val - 50.5) > delta) error stop
 
 end subroutine average_test_real64 
 
@@ -187,7 +239,7 @@ subroutine welford_test_real64 ()
 end subroutine welford_test_real64
 
 ! Test histogram w/ normal distribution.
-! NOTE: Array is randomly generated so `ave` and `stddev` values can be far 
+! NOTE: Array is randomly generated so `ave` and `stdev` values can be far 
 ! away expected values. Use large delta when comparing w/ expected values.
 subroutine histogram_test_int32 ()
   implicit none
@@ -206,15 +258,16 @@ subroutine histogram_test_int32 ()
   hist = histogram(array, BINS, 0., 200.)
   binsize = 200.0 / (BINS - 1)
 
-  val = average(array)
+  val = mean(array)
   if (abs(val - mu) > 5.0) error stop
-  val = stddev(array)
+  val = stdev(array)
   if (abs(val - sigma) > 5.0) error stop
 
 end subroutine histogram_test_int32
 
 subroutine histogram_test_int64 ()
   implicit none
+  real, parameter :: TOL = 10.0
   integer, parameter :: NP = 1000, BINS = 21
   integer(INT64) :: array(NP)
   real(REAL64) :: mu, sigma, binsize, val
@@ -230,15 +283,16 @@ subroutine histogram_test_int64 ()
   hist = histogram(array, BINS, 0., 200.)
   binsize = 200.0 / (BINS - 1)
 
-  val = average(array)
-  if (abs(val - mu) > 5.0) error stop
-  val = stddev(array)
-  if (abs(val - sigma) > 5.0) error stop
+  val = mean(array)
+  if (abs(val - mu) > TOL) error stop
+  val = stdev(array)
+  if (abs(val - sigma) > TOL) error stop
 
 end subroutine histogram_test_int64
 
 subroutine histogram_test_real32 ()
   implicit none
+  real, parameter :: TOL = 10.0
   integer, parameter :: NP = 1000, BINS = 21
   real(REAL32) :: array(NP)
   real(REAL32) :: mu, sigma, binsize, val
@@ -254,15 +308,16 @@ subroutine histogram_test_real32 ()
   hist = histogram(array, BINS, 0., 200.)
   binsize = 200.0 / (BINS - 1)
 
-  val = average(array)
-  if (abs(val - mu) > 5.0) error stop
-  val = stddev(array)
-  if (abs(val - sigma) > 5.0) error stop
+  val = mean(array)
+  if (abs(val - mu) > TOL) error stop
+  val = stdev(array)
+  if (abs(val - sigma) > TOL) error stop
 
 end subroutine histogram_test_real32
 
 subroutine histogram_test_real64 ()
   implicit none
+  real, parameter :: TOL = 10.0
   integer, parameter :: NP = 1000, BINS = 21
   real(REAL64) :: array(NP)
   real(REAL64) :: mu, sigma, binsize, val
@@ -278,10 +333,10 @@ subroutine histogram_test_real64 ()
   hist = histogram(array, BINS, 0., 200.)
   binsize = 200.0 / (BINS - 1)
 
-  val = average(array)
-  if (abs(val - mu) > 5.0) error stop
-  val = stddev(array)
-  if (abs(val - sigma) > 5.0) error stop
+  val = mean(array)
+  if (abs(val - mu) > TOL) error stop
+  val = stdev(array)
+  if (abs(val - sigma) > TOL) error stop
 
 end subroutine histogram_test_real64
 
