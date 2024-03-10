@@ -20,7 +20,7 @@ module xslib_stats
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: normal, mean, stdev, variance, median, welford, welford_finalize, histogram
+  public :: normal, mean, hmean, gmean, stdev, variance, median, welford, welford_finalize, histogram
 
   ! %%%
   ! # `STATS` - Basic statistics functions
@@ -195,7 +195,7 @@ function gmean_int32 (a) result (out)
   integer(INT32), intent(in) :: a(:)
   real(REAL32) :: out
 
-  out = product(a) ** (1. / size(a)) 
+  out = exp(sum(log(real(a, REAL32))) / size(a))
 
 end function gmean_int32
 
@@ -205,7 +205,7 @@ function gmean_int64 (a) result (out)
   integer(INT64), intent(in) :: a(:)
   real(REAL64) :: out
 
-  out = product(a) ** (1.d0 / size(a)) 
+  out = exp(sum(log(real(a, REAL64))) / size(a))
 
 end function gmean_int64
 
@@ -215,7 +215,7 @@ function gmean_real32 (a) result (out)
   real(REAL32), intent(in) :: a(:)
   real(REAL32) :: out
 
-  out = product(a) ** (1. / size(a)) 
+  out = exp(sum(log(a)) / size(a))
 
 end function gmean_real32
 
@@ -225,7 +225,7 @@ function gmean_real64 (a) result (out)
   real(REAL64), intent(in) :: a(:)
   real(REAL64) :: out
 
-  out = product(a) ** (1.0d0 / size(a)) 
+  out = exp(sum(log(a)) / size(a))
 
 end function gmean_real64
 
@@ -448,7 +448,7 @@ function median_int32 (a) result (out)
   integer(INT32), allocatable :: tmp(:)
   integer :: n
 
-  tmp = a(:)
+  allocate(tmp, source=a)
   call qsort(tmp)
   n = size(a)
   if (mod(n, 2) == 0) then
@@ -468,7 +468,7 @@ function median_int64 (a) result (out)
   integer(INT64), allocatable :: tmp(:)
   integer :: n
 
-  tmp = a(:)
+  allocate(tmp, source=a)
   call qsort(tmp)
   n = size(a)
   if (mod(n, 2) == 0) then
@@ -488,7 +488,7 @@ function median_real32 (a) result (out)
   real(REAL32), allocatable :: tmp(:)
   integer :: n
 
-  tmp = a(:)
+  allocate(tmp, source=a)
   call qsort(tmp)
   n = size(a)
   if (mod(n, 2) == 0) then
@@ -508,7 +508,7 @@ function median_real64 (a) result (out)
   real(REAL64), allocatable :: tmp(:)
   integer :: n
 
-  tmp = a(:)
+  allocate(tmp, source=a)
   call qsort(tmp)
   n = size(a)
   if (mod(n, 2) == 0) then
