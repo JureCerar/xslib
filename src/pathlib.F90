@@ -25,7 +25,7 @@
 module xslib_pathlib
   implicit none
   private
-  public ::  filename, basename, dirname, extname, backup
+  public :: realpath, joinpath, filename, basename, dirname, extname, backup
 
   ! %%%
   ! # `PATHLIB` - Functions for path and file manipulation.
@@ -33,6 +33,112 @@ module xslib_pathlib
   ! %%%
 
 contains
+
+function realpath (path) result (out)
+  ! %%%
+  ! ## `REALPATH` - Get absolute name of pathname
+  ! #### DESCRIPTION
+  !   The `realpath` function shall derive, from the pathname pointed to 
+  !   by `path`, an absolute pathname that names the same file, whose resolution
+  !   does not involve `.`, `..`, or symbolic links
+  ! #### USAGE
+  !   ```Fortran
+  !   out = realpath(path)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: path`
+  !     String containing pathname.
+  !   * `character(:), allocatable :: out`
+  !     String containing absolute pathname.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > realpath(".")
+  !   "/absolute/path/to/dir"
+  !   ```
+  ! %%%
+
+
+  ! The realpath() function shall derive, from the pathname pointed to by file_name,
+  ! an absolute pathname that names the same file, whose resolution does not involve
+  ! '.', '..', or symbolic links.
+  use iso_c_binding
+  implicit none
+  character(*), intent(in) :: path
+  character(:), allocatable :: out
+  type(C_PTR) :: ptr
+  integer, parameter :: PATH_MAX = 1024 * 4
+  character(1) :: a(PATH_MAX)
+  character(PATH_MAX) :: buffer
+  integer :: i
+
+  interface
+    ! char *realpath(const char *restrict file_name, char *restrict resolved_name);
+    type(C_PTR) function c_realpath(file_name, resolved_name) bind(C, NAME="realpath")
+      use, intrinsic :: iso_c_binding
+      character(len=1, kind=c_char), intent(in) :: file_name(*)
+      character(len=1, kind=c_char), intent(out) :: resolved_name(*)
+    end function c_realpath
+  end interface
+
+  ptr = c_realpath(path // C_NULL_CHAR, a)
+  buffer = transfer(a, buffer)
+
+  ! Remove NULL character at the end
+  i = index(buffer, C_NULL_CHAR)
+  if (i == 0) error stop "No C_NULL_CHAR found!?"
+  out = buffer(:i-1)
+  
+end function realpath  
+
+
+function joinpath (path1, path2) result (out)
+  ! %%%
+  ! ## `JOINPATH` - Concatenate two path names
+  ! #### DESCRIPTION
+  !   Return concatenated pathname components, effectively constructing valid path.
+  !   It ensures cross-platform compatibility by properly joining the components.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = joinpath(path1, path2)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: path1, path2`
+  !     Strings containing pathname.
+  !   * `character(:), allocatable :: out`
+  !     String containing concatenated pathname.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > joinpath("/path/to" "file.txt")
+  !   "path/to/file.txt"
+  !   ```
+  ! %%%
+  implicit none
+  character(*), intent(in) :: path1, path2
+  character(:), allocatable :: out
+  integer, parameter :: SEP_LEN = len(DIR_SEPARATOR)
+
+  if (len_trim(path1) > 0 .and. len_trim(path2) > 0) then
+    out = trim(path1)
+    ! Check if `path1` ends with DIR_SEPARATOR
+    if (out(len_trim(path1)-SEP_LEN+1:) /= DIR_SEPARATOR) then
+      out = out // DIR_SEPARATOR
+    end if
+    ! Check if `path2` starts with DIR_SEPARATOR
+    if (path2(1:SEP_LEN) == DIR_SEPARATOR) then
+      out = out // trim(path2(SEP_LEN+1:))
+    else
+      out = out // trim(path2)
+    end if
+  else if (len_trim(path1) > 0) then
+    out = trim(path1)
+  else if (len_trim(path2) > 0) then
+    out = trim(path2)
+  else
+    out = ""
+  end if
+
+end function joinpath
+
 
 function filename (path) result (out)
   ! %%%
