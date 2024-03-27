@@ -17,16 +17,19 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib
+  use xslib_array
   use xslib_cstring
-  use xslib_xmalloc
   use xslib_errorh
-  use xslib_time
-  use xslib_vector
+  use xslib_fitting
+  use xslib_list
+  ! use xslib_logger
   use xslib_math
+  use xslib_pathlib
   use xslib_sort
   use xslib_stats
-  use xslib_list
-  use xslib_fitting
+  use xslib_time
+  use xslib_vector
+  use xslib_xmalloc
   implicit none
   
   ! Library version string

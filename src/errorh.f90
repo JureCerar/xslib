@@ -22,14 +22,40 @@ module xslib_errorh
   private
   public :: error, error_, warning, warning_, assert, assert_
 
+  ! %%%
+  ! # `ERRORH` - Error and warning handling
+  !   Module `xslib_errorh` contains functions of error and warning handling.
+  ! %%%
+
   ! Keywords for error and warning
   character(*), parameter, private :: errorKey = char(27)//"[1;91m"//"[Error]:"//char(27)//"[m"
   character(*), parameter, private :: warningKey = char(27)//"[1;95m"//"[Warning]:"//char(27)//"[m"
 
 contains
 
-! Write error message to STDERR and terminate the program.
 subroutine error (message)
+  ! %%%
+  ! ## `ERROR` - Display error and exit
+  ! #### DESCRIPTION
+  !   Write error message to STDERR and terminate the program.
+  ! #### USAGE
+  !   ```Fortran
+  !   call error(message)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: message`
+  !     Error message to display.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call error("Error message")
+  !   "[ERROR]: Error message"
+  !   ```
+  ! #### NOTES
+  !   Use with `__FILE__` and `__LINE__` macros to get extended error message.
+  !   ```Fortran
+  !   #define error(x) error_(x, __FILE__, __LINE__)
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: message
 
@@ -38,8 +64,7 @@ subroutine error (message)
 
 end subroutine error
 
-! Write extended error message to STDERR and terminate the program.
-! Hint: #define error(x) error_ (x, __FILE__, __LINE__)
+
 subroutine error_ (message, file, line)
   implicit none
   character(*), intent(in)  :: message, file
@@ -50,8 +75,30 @@ subroutine error_ (message, file, line)
 
 end subroutine error_
 
-! Write warning message to STDERR.
+
 subroutine warning (message)
+  ! %%%
+  ! ## `WARNING` - Display warning and continue
+  ! #### DESCRIPTION
+  !   Write warning message to STDERR and continue the program.
+  ! #### USAGE
+  !   ```Fortran
+  !   call warning(message)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: message`
+  !     Warning message to display.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call warning("Warning message")
+  !   "[WARNING]: Warning message"
+  !   ```
+  ! #### NOTES
+  !   Use with `__FILE__` and `__LINE__` macros to get extended warning message.
+  !   ```Fortran
+  !   #define warning(x) warning_(x, __FILE__, __LINE__)
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: message
 
@@ -59,8 +106,7 @@ subroutine warning (message)
 
 end subroutine warning
 
-! Write extended warning message to STDERR.
-! Hint: #define warning(x) warning_ (x, __FILE__, __LINE__)
+
 subroutine warning_ (message, file, line)
   implicit none
   character(*), intent(in) :: message, file
@@ -70,8 +116,30 @@ subroutine warning_ (message, file, line)
 
 end subroutine warning_
 
-! Assert logical expression and write error message on fail.
+
 subroutine assert (expression)
+  ! %%%
+  ! ## `ASSERT` - Assert logical expression
+  ! #### DESCRIPTION
+  !   Assert logical expression. On fail write error message to STDERR and terminate the program.
+  ! #### USAGE
+  !   ```Fortran
+  !   call assert(expression)
+  !   ```
+  ! #### PARAMETERS
+  !   * `logical, dimension(..), intent(IN) :: expression`
+  !     Logical expression to be evaluated.
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > call assert (array == 0)
+  !   "[ERROR]: Assertion failed at: [1,1]"
+  !   ```
+  ! #### NOTES
+  !   Use with `__FILE__` and `__LINE__` macros to get extended assertion message.
+  !   ```Fortran
+  !   #define assert(x) assert_ (x, __FILE__, __LINE__)
+  !   ```
+  ! %%%
   implicit none
   logical, intent(in) :: expression(..)
   character(128) :: message 
@@ -104,8 +172,7 @@ subroutine assert (expression)
 
 end subroutine assert
 
-! Assert logical expression and write extended error message on fail.
-! Hint: #define assert(x) assert_ (x, __FILE__, __LINE__)
+
 subroutine assert_ (expression, file, line)
   implicit none
   logical, intent(in) :: expression(..)

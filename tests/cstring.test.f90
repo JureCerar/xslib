@@ -215,10 +215,10 @@ subroutine is_test ()
   if (isAlpha("@") .neqv. .False.) error stop
   if (isAlpha(" ") .neqv. .False.) error stop
 
-  if (isNumber("A") .neqv. .False.) error stop
-  if (isNumber("1") .neqv. .True.) error stop
-  if (isNumber("@") .neqv. .False.) error stop
-  if (isNumber(" ") .neqv. .False.) error stop
+  if (isDigit("A") .neqv. .False.) error stop
+  if (isDigit("1") .neqv. .True.) error stop
+  if (isDigit("@") .neqv. .False.) error stop
+  if (isDigit(" ") .neqv. .False.) error stop
 
   if (isSpace("A") .neqv. .False.) error stop
   if (isSpace("1") .neqv. .False.) error stop
@@ -242,7 +242,7 @@ subroutine other_test ()
   buffer = replace("This is Foo", "Foo", "Bar")
   if (buffer /= "This is Bar") error stop
 
-  ! Case switch
+  ! Test case transform
   buffer = toLower("Foo")
   if (buffer /= "foo") error stop
   buffer = toUpper("Foo")
@@ -256,14 +256,6 @@ subroutine other_test ()
   buffer = strip("Foo,Bar,Foobar", ",")
   if (buffer /= "Foo") error stop
   
-  ! Test file functions
-  buffer = baseName("/path/to/file.txt")
-  if (buffer /= "file") error stop
-  buffer = pathName("/path/to/file.txt")
-  if (buffer /= "/path/to") error stop
-  buffer = extension("/path/to/file.txt")
-  if (buffer /= "txt") error stop
-
 end subroutine other_test 
 
 end program main

@@ -20,8 +20,14 @@ module xslib_cstring
   use iso_fortran_env, only: INT8, INT16, INT32, INT64, REAL32, REAL64, REAL128
   implicit none
   private
-  public :: str, smerge, toLower, toUpper, toTitle, swapCase, replace, strip, strtok, cnttok,  &
-  &  setColor, getColor, isAlpha, isNumber, isSpace, baseName, pathName, extension
+  public :: str, smerge, toLower, toUpper, toTitle, &
+  &  swapCase, replace, strip, strtok, cnttok, &
+  &  setColor, getColor, isAlpha, isDigit, isSpace
+
+  ! %%%
+  ! # `CSTRING` - Functions for string manipulation.
+  !   Module `xslib_cstring` contains function for manipulating character strings.
+  ! %%%
 
   interface str
     module procedure :: str, stra
@@ -29,8 +35,36 @@ module xslib_cstring
 
 contains
 
-! Converts argument of any kind to character.
 function str (value, fmt) result (out)
+  ! %%%
+  ! ## `STR` - Converts value to string
+  ! #### DESCRIPTION
+  !   Converts the specified SCALAR or ARRAY (of any kind) into a string. Optionally,
+  !   output format can be defined with `fmt` argument. In case input values is an ARRAY
+  !   a custom delimiter can be defined (default is whitespace).  
+  ! #### USAGE
+  !   ```fortran
+  !   out = str(value, fmt=fmt, delim=delim)
+  !   ```
+  ! #### PARAMETERS
+  !   * `class(*), dimension(..), intent(IN) :: value`  
+  !     Value of any kind or shape to be transformed into character.  
+  !   * `character(*), intent(IN), OPTIONAL :: fmt`
+  !     Valid fortran format specifier. Default is compiler representation.
+  !   * `character(*), intent(IN), OPTIONAL :: delim`
+  !     Separator to use when joining the string. Only applies for ARRAYS. Default is whitespace.
+  !   * `character(:), allocatable :: out`
+  !     Output string.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > str(1)
+  !   "1"
+  !   > str(1.0, "(f5.3)")
+  !   "1.000"
+  !   > str([1,2], DELIM=",")
+  !   "1,2"
+  !   ```
+  ! %%%
   implicit none
   character(:), allocatable :: out
   class(*), intent(in) :: value
@@ -128,7 +162,7 @@ function str (value, fmt) result (out)
 
 end function str
 
-! Converts array argument of any kind to character.
+
 function stra (value, fmt, delim) result (out)
   implicit none
   character(:), allocatable :: out
@@ -147,10 +181,34 @@ function stra (value, fmt, delim) result (out)
 
 end function stra
 
-! -------------------------------------------------
 
-! Merge two stings of arbitrary length based on logical mask.
 function smerge (tsource, fsource, mask) result (out)
+  ! %%%
+  ! ## `SMERGE` - Merge stings
+  ! #### DESCRIPTION
+  !   Select values two arbitrary length stings according to a logical mask. The result
+  !   is equal to `tsource` if `mask` is `.TRUE.`, or equal to `fsource` if it is `.FALSE.`.  
+  ! #### USAGE
+  !   ```fortran
+  !   out = smerge(tsource, fsource, mask)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: fsource`  
+  !     Return string if mask is `.TRUE.`.  
+  !   * `character(*), intent(IN) :: fsource`  
+  !     Return string if mask is `.FALSE.`.  
+  !   `logical, intent(IN) :: mask`  
+  !     Selection logical mask. 
+  !   * `character(:), allocatable :: out`  
+  !     Return string of variable length. 
+  ! #### EXAMPLE
+  !   ```fortran
+  !   > smerge("Top", "Bottom", .True.)
+  !   "Top"
+  !   > smerge("Top", "Bottom", .False.)
+  !   "Bottom"
+  !   ```
+  ! %%%
   implicit none
   character(:), allocatable :: out
   character(*), intent(in) :: tsource, fsource
@@ -164,88 +222,189 @@ function smerge (tsource, fsource, mask) result (out)
 
 end function smerge
 
-! Return string in all lower case.
+
 function toLower (string) result (out)
+  ! %%%
+  ! ## `TOLOWER` - Return lower case 
+  ! #### DESCRIPTION
+  !   Return the string with all the cased characters are converted to lowercase.
+  ! #### USAGE
+  !   ```fortran
+  !   out = toLower(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string` 
+  !     Input string.  
+  !   * `character(LEN) :: out`  
+  !     Output string. Same length as `string`.  
+  ! ###### *Example*
+  !   ```fortran
+  !   > toLower("Hello, WORLD!")
+  !   "hello world!"
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   character(len(string)) :: out
-  integer, parameter :: offset = ichar("a") - ichar("A")
+  integer, parameter :: OFFSET = ichar("a") - ichar("A")
   integer :: i
 
   out = trim(string)
   do i = 1, len_trim(out)
     select case (out(i:i))
     case ("A" : "Z")
-      out(i:i) = char( ichar(out(i:i)) + offset)
+      out(i:i) = char(ichar(out(i:i)) + OFFSET)
     end select
   end do
 
 end function toLower
 
-! Returns string in all upper case.
+
 function toUpper (string) result (out)
+  ! %%%
+  ! ## `TOUPPER` - Return upper case 
+  ! #### DESCRIPTION
+  !   Return the string with all the cased characters are converted to uppercase.
+  ! #### USAGE
+  !   ```fortran
+  !   out = toUpper(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`
+  !     Input string.
+  !   * `character(LEN) :: out`
+  !     Output string. Same length as `string`.
+  ! ###### *Example*
+  !   ```fortran
+  !   > toLower("Hello, WORLD!")
+  !   "HELLO WORLD!"
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   character(len(string)) :: out
-  integer, parameter :: offset = ichar("a") - ichar("A")
+  integer, parameter :: OFFSET = ichar("a") - ichar("A")
   integer :: i
 
   out = trim(string)
   do i = 1, len_trim(out)
     select case (out(i:i))
     case ("a" : "z")
-      out(i:i) = char(ichar(out(i:i)) - offset)
+      out(i:i) = char(ichar(out(i:i)) - OFFSET)
     end select
   end do
 
 end function toUpper
 
-! Return string where all words are capitalized.
+
 function toTitle (string) result (out)
+  ! %%%
+  ! ## `TOTITLE` - Capitalize letters
+  ! #### DESCRIPTION
+  !   Return a titlecased version of the string where words start with an
+  !   uppercase character and the remaining characters are lowercase.
+  ! #### USAGE
+  !   ```fortran
+  !   out = toTitle(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`
+  !     Input string.  
+  !   * `character(LEN) :: out`  
+  !     Output string. Same length as `string`.  
+  ! #### EXAMPLE
+  !   ```fortran
+  !   > toTitle("hello, world!")
+  !   "Hello, World!"
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   character(len(string)) :: out
-  integer, parameter :: offset = ichar("a") - ichar("A")
+  integer, parameter :: OFFSET = ichar("a") - ichar("A")
   integer :: i
 
   out = trim(string)
   select case (out(1:1))
   case ("a" : "z")
-    out(1:1) = char(ichar(out(1:1)) - offset)
+    out(1:1) = char(ichar(out(1:1)) - OFFSET)
   end select
   do i = 2, len_trim(out)
     if (out(i-1:i-1) == " ") then
       select case (out(i:i))
       case ("a" : "z")
-        out(i:i) = char(ichar(out(i:i)) - offset)
+        out(i:i) = char(ichar(out(i:i)) - OFFSET)
       end select
     end if 
   end do
 
 end function toTitle
 
-! Return string all cases have been fliped.
+
 function swapCase (string) result (out)
+  ! %%%
+  ! ## `SWAPCASE` - Swap case
+  ! #### DESCRIPTION
+  !   Return a string with uppercase characters converted to lowercase and vice versa.
+  !   Note that it is not necessarily true that `swapCase(swapCase(s)) == s`.
+  ! #### USAGE
+  !   ```fortran
+  !   out = swapCase(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `character(LEN) :: out`  
+  !     Output string. Same length as `string`.  
+  ! #### EXAMPLE
+  !   ```fortran
+  !   > swapCase("Hello, WORLD!")
+  !   "hELLO, world!"
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   character(len(string)) :: out
-  integer, parameter :: offset = ichar("a") - ichar("A")
+  integer, parameter :: OFFSET = ichar("a") - ichar("A")
   integer :: i
 
   out = trim(string)
   do i = 1, len_trim(out)
     select case (out(i:i))
     case ("a" : "z")
-      out(i:i) = char(ichar(out(i:i)) - offset)
+      out(i:i) = char(ichar(out(i:i)) - OFFSET)
     case ("A" : "Z")
-      out(i:i) = char(ichar(out(i:i)) + offset)
+      out(i:i) = char(ichar(out(i:i)) + OFFSET)
     end select
   end do
 
 end function swapCase
 
-! Removes all characters trailing sign.
+
 function strip (string, delim) result (out)
+  ! %%%
+  ! ## `STRIP` - Removes trailing characters
+  ! #### DESCRIPTION
+  !  Return a string with the leading and trailing characters removed. The `delim` argument is 
+  !  a string specifying the characters after which characters to be removed. If omitted,
+  !  the argument defaults to removing whitespace. Useful for removing "comments" from a string.
+  ! #### USAGE
+  !   ```fortran
+  !   out = strip(string, delim)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `character(*), intent(IN) :: delim`  
+  !     Separator use for delimiting a string. 
+  !   * `character(LEN) :: out `
+  !     Output string. Same length as `string`.
+  ! #### EXAMPLE
+  !   ```fortran
+  !   > strip("Hello, WORLD!", ",")
+  !   "Hello"
+  !   ```
+  ! %%% 
   implicit none
   character(*), intent(in) :: string
   character(*), intent(in) :: delim
@@ -263,8 +422,31 @@ function strip (string, delim) result (out)
 
 end function strip
 
-! Replace OLD with NEW within STRING.
+
 function replace (string, old, new) result (out)
+  ! %%%
+  ! ## `REPLACE` - Replace string
+  ! #### DESCRIPTION
+  !   Return a string with all occurrences of substring `old` replaced by `new`.
+  ! #### USAGE
+  !   ```fortran
+  !   out = replace(string, old, new)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`
+  !     Input string.  
+  !   * `character(*), intent(IN) :: old`
+  !     String to be replaced.   
+  !   * `character(*), intent(IN) :: new`  
+  !     String to be replaced with.  
+  !   * `character(:), allocatable :: out`  
+  !     Output string.  
+  ! #### EXAMPLE
+  !   ```fortran
+  !   > "Hello, World!", "World", "Universe")
+  !   "Hello, Universe!"
+  !   ```
+  ! %%%
   implicit none
   character(:), allocatable :: out
   character(*), intent(in) :: string, old, new
@@ -281,10 +463,30 @@ function replace (string, old, new) result (out)
 
 end function replace
 
-! -------------------------------------------------
 
-! Check if string is ASCII alphabetical character element wise.
 function isAlpha (string) result (out)
+  ! %%%
+  ! ## `ISALPHA` - Is alphanumeric character
+  ! #### DESCRIPTION
+  !   Return `.True.` if all characters in the string are alphabetic and
+  !   there is at least one character, `.False.` otherwise.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = isAlpha(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `logical :: out`  
+  !     Is input string an ASCII alphabetical character.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > isAlpha("ABC")
+  !   .True.
+  !   > isAlpha("123")
+  !   .False.
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   logical :: out
@@ -303,8 +505,30 @@ function isAlpha (string) result (out)
 
 end function isAlpha
 
-! heck if string is ASCII number character element wise.
-function isNumber (string) result (out)
+
+function isDigit (string) result (out)
+  ! %%%
+  ! ## `ISDIGIT` - Is digit character
+  ! #### DESCRIPTION
+  !   Return `.True.` if all characters in the string are digits and
+  !   there is at least one character, `.False.` otherwise.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = isDigit(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `logical :: out`  
+  !     Is input a digit?  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > isDigit("ABC")
+  !   .False.
+  !   > isDigit("123")
+  !   .True.
+  !   ```
+  ! %%%  
   implicit none
   character(*), intent(in) :: string
   logical :: out
@@ -321,10 +545,32 @@ function isNumber (string) result (out)
     end select
   end do
 
-end function isNumber
+end function isDigit
 
-! Check if character is space.
+
 function isSpace (string) result (out)
+  ! %%%
+  ! ## `ISSPACE` - Is whitespace character
+  ! #### DESCRIPTION
+  !   Return `.True.` if there are only whitespace characters in the string
+  !   and there is at least one character, `.False.` otherwise.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = isSpace(string)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `logical :: out`  
+  !     Is input a whitespace?  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > isSpace(" ")
+  !   .True.
+  !   > isSpace("A")
+  !   .False.
+  !   ```
+  ! %%%  
   implicit none
   character(*), intent(in) :: string
   logical :: out
@@ -340,16 +586,41 @@ function isSpace (string) result (out)
     end if
   end do
 
-
 end function isSpace
 
-! -------------------------------------------------
 
-! Add some colors in your life & set terminal color. ATTR=attribute, FG=foreground, BG=background
-! * Colors: black, red, yellow, blue, magenta, cyan, white, and light variants (e.g. lightblue)
-! * Attributes: bold, dim, underline, blink, reverse and  hidden
-! NOTE: Max len. of output string is 11; "e[*;**;***m"
 function getColor (fg, bg, attr) result (out)
+  ! %%%
+  ! ## `GETCOLOR` - Get ANSI escape color code
+  ! #### DESCRIPTION
+  !   Add some colors in your life! Get terminal ANSI escape sequences to set
+  !   terminal text background, foreground, and attribute. Available colors are:
+  !   `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light`
+  !   variants (e.g. `lightblue`). Available attributes are: `bold`, `dim`, `underline`,
+  !   `blink`, `reverse`, and `hidden`. If no input is provided function returns "reset"
+  !   escape code. Your experience may vary depending on the terminal used. For more 
+  !   information see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+  ! #### USAGE
+  !   ```fortran
+  !   out = getColor(fg=fg, bg=bg, attr=attr)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN), OPTIONAL :: fg`  
+  !     Foreground text color. Default is None.  
+  !   * `character(*), intent(IN), OPTIONAL :: bg`  
+  !     Background text color. Default is None.  
+  !   * `character(*), intent(IN), OPTIONAL :: attr`  
+  !     Text color attribute. Default is None.  
+  !   * `character(:), allocatable :: out`  
+  !     Terminal color ANSI escape code sequence.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > getColor("white", "red", "bold")
+  !   ESC[1;37;041m
+  !   ```
+  ! #### NOTE
+  !   Max length of output string is 11 i.e. `E[*;**;***m`.
+  ! %%%
   implicit none
   character(:), allocatable :: out
   character(*), intent(in), optional :: fg, bg, attr
@@ -468,8 +739,38 @@ function getColor (fg, bg, attr) result (out)
   return
 end function getColor
 
-! Wrapper for getColor().
+
 function setColor (string, attr, fg, bg) result (out)
+  ! %%%
+  ! ## `SETCOLOR` - Set string ANSI color
+  ! #### DESCRIPTION
+  !   Add some colors in your life! Set text background, foreground color, and attribute
+  !   using ANSI escape sequences. Available colors are: `black`, `red`, `green`,
+  !   `yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light` variants (e.g. `lightblue`).
+  !   Available attributes are: `bold`, `dim`, `underline`, `blink`, `reverse`, and `hidden`.
+  !   Your experience may vary depending on the terminal used. For more information
+  !   see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+  ! #### USAGE
+  !   ```fortran
+  !   out = setColor(string, fg=fg, bg=gb, attr=attr)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`
+  !     Input string. 
+  !   * `character(*), intent(IN), OPTIONAL :: fg`
+  !     Foreground text color. Default is None.  
+  !   * `character(*), intent(IN), OPTIONAL :: bg`
+  !     Background text color. Default is None.  
+  !   * `character(*), intent(IN), OPTIONAL :: attr`
+  !     Text color attribute. Default is None.  
+  !   * `character(:), allocatable :: out`
+  !     Terminal color ANSI escape code sequence.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > setColor("This string is bold and red", "red", "bold")
+  !   "This string is bold and red" ! Use your imagination
+  !   ```
+  ! %%%
   implicit none
   character(:), allocatable :: out
   character(*), intent(in) :: string
@@ -479,12 +780,46 @@ function setColor (string, attr, fg, bg) result (out)
 
 end function setColor
 
-! -------------------------------------------------
-! String tokenization
 
-! Breaks string str into a series of tokens using the delimiter delim.
-! * Works in same way as strtok in C, except instead of NULL feed `char(0)`
 function strtok (string, delim) 
+  ! %%%
+  ! ## `STRTOK` - Split string into tokens
+  ! #### DESCRIPTION
+  !   A sequence of calls to this function split string into tokens, which are sequences
+  !   of contiguous characters separated by the delimiter `delim`.
+  ! 
+  !   On a first call, the function a string as argument for str, whose first character
+  !   is used as the starting location to scan for tokens. In subsequent calls, the function
+  !   expects a null character `char(0)` and uses the position right after the end of the last
+  !   token as the new starting location for scanning.
+  ! 
+  !   Once the end character of string is found in a call to `strtok`, all subsequent calls to
+  !   this function (with a null character as the first argument) return a null character.
+  ! 
+  !   See [`strtok`](https://cplusplus.com/reference/cstring/strtok) for full reference.
+  ! #### USAGE
+  !   ```Fortran
+  !   out = strtok(string, delim)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string. Feed null character `char(0)` to get next token on precious string.  
+  !   * `character(*), intent(IN) :: delim`  
+  !     Separator use for delimiting a string.  
+  !   * `character(:), allocatable :: out`  
+  !     Next output character token.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > strtok("Hello, World!", " ")
+  !   "Hello,"
+  !   > strtok(char(0), " ")
+  !   "World!"
+  !   > strtok(char(0), " ")
+  !   NULL
+  !   ```
+  ! #### NOTES
+  !   Should be thread-safe with OpenMP.
+  ! %%%
   implicit none
   character(:), allocatable :: strtok
   character(*), intent(in) :: string, delim
@@ -495,10 +830,10 @@ function strtok (string, delim)
 
   ! SOURCE: http://fortranwiki.org/fortran/show/strtok
 
-  ! initialize stored copy of input string and pointer into input string on first call
+  ! Initialize stored copy of input string and pointer into input string on first call
   if (string(1:1) /= char(0)) then
-    saved_start = 1                 ! beginning of unprocessed data
-    saved_string = trim(string)     ! save input string from first call in series
+    saved_start = 1                 ! Beginning of unprocessed data
+    saved_string = trim(string)     ! Save input string from first call in series
   endif
 
   ! Start from where we left
@@ -535,70 +870,41 @@ function strtok (string, delim)
 
 end function strtok
 
-! Count number of tokens in string.
-integer function cnttok (string, delim)
+
+function cnttok (string, delim) result (out)
+  ! %%%
+  ! ## `CNTTOK` - Count tokens in a string
+  ! #### DESCRIPTION
+  !   Count number of tokens in a string separated by a delimiter `delim`.
+  ! #### USAGE
+  !   ```fortran
+  !   out = cnttok(string, delim)
+  !   ```
+  ! #### PARAMETERS
+  !   * `character(*), intent(IN) :: string`  
+  !     Input string.  
+  !   * `character(*), intent(IN) :: delim`  
+  !     Separator used for delimiting a string.  
+  !   * `integer :: out`
+  !     Number of tokens on the string.  
+  ! #### EXAMPLE
+  !   ```Fortran
+  !   > cnttok("Hello, World!", " ")
+  !   2 
+  !   ```
+  ! %%%
   implicit none
   character(*), intent(in) :: string
   character(*), intent(in) :: delim
-  integer :: i
+  integer :: out, i
 
-  cnttok = 0
+  out = 0
   i = len_trim(string)
   do while (i > 0)
-    cnttok = cnttok + 1
+    out = out + 1
     i = index(trim(string(:i-1)), delim, BACK=.True.)
   end do
 
 end function cnttok
-
-! -------------------------------------------------
-! File manipulation
-
-! Returns basename of file. Eg. "/path/to/file.txt" = "file"
-function basename (string) result (out)
-  implicit none
-  character(:), allocatable :: out
-  character(*), intent(in) :: string
-  integer :: i, j
-
-  i = 1 + index(string, "/", BACK=.true.)
-  j = index(string, ".", BACK=.true.)
-  j = merge(j-1, len_trim(string), j /= 0)
-  out = string(i:j)
-
-end function basename
-
-! Returns pathname of file. Eg. "/path/to/file.txt" = "/path/to"
-! TODO: Account for different OS: Windows, Linux, or iOS
-function pathname (string) result (out)
-  implicit none
-  character(:), allocatable :: out
-  character(*), intent(in) :: string
-  integer :: i
-
-  i = index( string, "/", BACK=.true. )
-  if (i < 1) then
-    out = ""
-  else
-    out = string(:i-1)
-  end if
-
-end function pathname
-
-! Returns extension of file. Eg. "/path/to/file.txt" = "txt"
-function extension (string) result (out)
-  implicit none
-  character(:), allocatable :: out
-  character(*), intent(in) :: string
-  integer :: i
-
-  i = index(string, ".", BACK=.true.)
-  if ( i == 0 ) then
-    out = ""
-  else
-    out = string(i+1:len_trim(string))
-  end if
-
-end function extension
 
 end module xslib_cstring
