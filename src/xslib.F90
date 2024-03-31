@@ -19,6 +19,7 @@
 module xslib
   use xslib_array
   use xslib_cstring
+  use xslib_dict
   use xslib_errorh
   use xslib_fitting
   use xslib_list
