@@ -3,6 +3,9 @@
   * [`LINSPACE` - Generate evenly spaced numbers](#linspace---generate-evenly-spaced-numbers)
   * [`LOGSPACE` - Generate logarithmically spaced numbers](#logspace---generate-logarithmically-spaced-numbers)
   * [`ARANGE` - Generate equally spaced values](#arange---generate-equally-spaced-values)
+  * [`DIFF` - Generate equally spaced values](#diff---generate-equally-spaced-values)
+  * [`CUMSUM` - Calculate cumulative sum](#cumsum---calculate-cumulative-sum)
+  * [`CUMPROD` - Calculate cumulative product](#cumprod---calculate-cumulative-product)
   * [`INTERP` - Descritpion](#interp---descritpion)
   * [`TRAPZ` - Trapezoidal rule integration](#trapz---trapezoidal-rule-integration)
   * [`GRADIENT` - Calculate gradient of an array](#gradient---calculate-gradient-of-an-array)
@@ -22,6 +25,18 @@
   * [`SETCOLOR` - Set string ANSI color](#setcolor---set-string-ansi-color)
   * [`STRTOK` - Split string into tokens](#strtok---split-string-into-tokens)
   * [`CNTTOK` - Count tokens in a string](#cnttok---count-tokens-in-a-string)
+* [`DICT` - Dictionary (hash table)](#dict---dictionary-hash-table)
+  * [`DICT_T` - Polymorphic dictionary (hash table)](#dictt---polymorphic-dictionary-hash-table)
+  * [`DICT%CLEAR` - Remove all items from dictionary](#dictclear---remove-all-items-from-dictionary)
+  * [`DICT%GET` - Get value from dictionary](#dictget---get-value-from-dictionary)
+  * [`DICT%ITEMS` - Get n-th item from dictionary](#dictitems---get-n-th-item-from-dictionary)
+  * [`DICT%KEYS` - Get n-th key from dictionary](#dictkeys---get-n-th-key-from-dictionary)
+  * [`DICT%LEN` - Count number of items in the dictionary](#dictlen---count-number-of-items-in-the-dictionary)
+  * [`DICT%PUT` - Add new item to dictionary](#dictput---add-new-item-to-dictionary)
+  * [`DICT%REMOVE` - Remove item from dictionary](#dictremove---remove-item-from-dictionary)
+  * [`DICT%SAME_TYPE_AS` - Check if value is the same type as reference](#dictsametypeas---check-if-value-is-the-same-type-as-reference)
+  * [`DICT%VALUES` - Get n-th value from dictionary](#dictvalues---get-n-th-value-from-dictionary)
+  * [`DICT%WRITE` - Formatted and unformatted write for dictionary](#dictwrite---formatted-and-unformatted-write-for-dictionary)
 * [`ERRORH` - Error and warning handling](#errorh---error-and-warning-handling)
   * [`ERROR` - Display error and exit](#error---display-error-and-exit)
   * [`WARNING` - Display warning and continue](#warning---display-warning-and-continue)
@@ -57,6 +72,8 @@
   * [`GCD` - Return greatest common divisor](#gcd---return-greatest-common-divisor)
   * [`LCM` - Return least common multiple](#lcm---return-least-common-multiple)
 * [`PATHLIB` - Functions for path and file manipulation.](#pathlib---functions-for-path-and-file-manipulation)
+  * [`REALPATH` - Get absolute name of pathname](#realpath---get-absolute-name-of-pathname)
+  * [`JOINPATH` - Concatenate two path names](#joinpath---concatenate-two-path-names)
   * [`FILENAME` - Get file name of pathname](#filename---get-file-name-of-pathname)
   * [`BASENAME` - Get base name of pathname](#basename---get-base-name-of-pathname)
   * [`DIRNAME` - Get base name of pathname](#dirname---get-base-name-of-pathname)
@@ -68,11 +85,14 @@
   * [`QSORT` - Sort input array using Quicksort](#qsort---sort-input-array-using-quicksort)
   * [`MSORT` - Sort input array using Merge sort](#msort---sort-input-array-using-merge-sort)
   * [`HSORT` - Sort input array using Merge sort](#hsort---sort-input-array-using-merge-sort)
-* [`STAT` - Basic statistics functions](#stat---basic-statistics-functions)
+* [`STATS` - Basic statistics functions](#stats---basic-statistics-functions)
   * [`NORMAL` - Random number on a normal distribution](#normal---random-number-on-a-normal-distribution)
   * [`MEAN` - Arithmetic mean](#mean---arithmetic-mean)
+  * [`GMEAN` - Geometric mean](#gmean---geometric-mean)
+  * [`HMEAN` - Harmonic mean](#hmean---harmonic-mean)
   * [`STDEV` - Get standard deviation](#stdev---get-standard-deviation)
   * [`VARIANCE` - Get variance of an array](#variance---get-variance-of-an-array)
+  * [`MEAN` - Median value](#mean---median-value)
   * [`WELFORD` - Welford's online variance](#welford---welfords-online-variance)
   * [`WELFORD_FINALIZE` - Correct Welford's online variance](#welfordfinalize---correct-welfords-online-variance)
   * [`HISTOGRAM` - Get histogram of an array.](#histogram---get-histogram-of-an-array)
@@ -97,605 +117,878 @@
   * [`XCALLOC` - Allocate and initialize memory](#xcalloc---allocate-and-initialize-memory)
   * [`XREALLOC` - Reallocate memory](#xrealloc---reallocate-memory)
 # `ARRAY` - Array operations
-Module `xslib_array` contains function for array operations. Supports both single and double precision (`DP`) functions.
+  Module `xslib_array` contains function for array operations. Supports both single and double precision (`DP`) functions.
 ## `LINSPACE` - Generate evenly spaced numbers
 #### DESCRIPTION
-Return evenly spaced numbers over a specified interval.
+  Return evenly spaced numbers over a specified interval.
 #### USAGE
-```Fortran
-out = linspace(start, stop, num)
-```
+  ```Fortran
+  out = linspace(start, stop, num)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: start, stop`</br>
-The starting and end value of the sequence. `start` and `stop` values are included in sequence.
-* `integer, intent(IN) :: num`</br>
-Number of samples to generate. Must be non-negative.
-* `real(ANY), dimension(num) :: out`</br>
-Equally spaced numbers in the opened interval `(start, stop)`.
+  * `real(ANY), intent(IN) :: start, stop`
+    The starting and end value of the sequence. `start` and `stop` values are included in sequence.
+  * `integer, intent(IN) :: num`
+    Number of samples to generate. Must be non-negative.
+  * `real(ANY), dimension(num) :: out`
+    Equally spaced numbers in the opened interval `(start, stop)`.
 #### EXAMPLE
-```Fortran
-> linspace(0.0, 1.0, 5)
-[0.00, 0.25, 0.50, 0.75, 1.00]
-```
+  ```Fortran
+  > linspace(0.0, 1.0, 5)
+  [0.00, 0.25, 0.50, 0.75, 1.00]
+  ```
 ## `LOGSPACE` - Generate logarithmically spaced numbers
 #### DESCRIPTION
-Return evenly spaced numbers on a logarithmic scale over a specified interval.
+  Return evenly spaced numbers on a logarithmic scale over a specified interval.
 #### USAGE
-```Fortran
-out = logspace(start, stop, num)
-```
+  ```Fortran
+  out = logspace(start, stop, num)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: start, stop`</br>
-The starting and end value of the sequence. `start` and `stop` values are included in sequence. Must be bigger than zero.
-* `integer, intent(IN) :: num`</br>
-Number of samples to generate. Must be non-negative.
-* `real(ANY), dimension(num) :: out`</br>
-Logarithmically spaced numbers in the opened interval `(start, stop)`.
+  * `real(ANY), intent(IN) :: start, stop`
+    The starting and end value of the sequence. `start` and `stop` values are included in sequence. Must be bigger than zero.
+  * `integer, intent(IN) :: num`
+    Number of samples to generate. Must be non-negative.
+  * `real(ANY), dimension(num) :: out`
+    Logarithmically spaced numbers in the opened interval `(start, stop)`.
 #### EXAMPLE
-```Fortran
-> logspace(1.0, 10000.0, 5)
-[1.0, 10.0, 100.0, 1000.0, 10000.0]
-```
+  ```Fortran
+  > logspace(1.0, 10000.0, 5)
+  [1.0, 10.0, 100.0, 1000.0, 10000.0]
+  ```
 ## `ARANGE` - Generate equally spaced values
 #### DESCRIPTION
-Return equally spaced values within a given interval.
+  Return equally spaced values within a given interval.
 #### USAGE
-```Fortran
-out = arange(start, stop, step)
-```
+  ```Fortran
+  out = arange(start, stop, step)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: start, stop`</br>
-The starting and end value of the sequence. `stop` value is not necessarily included in sequence.
-* `real(ANY), intent(IN) :: step`</br>
-Spacing between values.
-* `real(ANY), dimension(LENGTH) :: out`</br>
-Equally spaced values. The `LENGTH` of the result is equal to `int((stop - start) / step) + 1`.
+  * `real(ANY), intent(IN) :: start, stop`
+    The starting and end value of the sequence. `stop` value is not necessarily included in sequence.
+  * `real(ANY), intent(IN) :: step`
+    Spacing between values.
+  * `real(ANY), dimension(LENGTH) :: out`
+    Equally spaced values. The `LENGTH` of the result is equal to `int((stop - start) / step) + 1`.
 #### EXAMPLE
-```Fortran
-> arange(0.0, 1.0, 0.25)
-[0.00, 0.25, 0.50, 0.75, 1.00]
-```
+  ```Fortran
+  > arange(0.0, 1.0, 0.25)
+  [0.00, 0.25, 0.50, 0.75, 1.00]
+  ```
+## `DIFF` - Generate equally spaced values
+#### DESCRIPTION
+  Calculate the n-th discrete difference along the array.
+  The first difference is given by `out[i] = a[i+1] - a[i]`,
+  higher differences are calculated by using diff recursively.
+#### USAGE
+  ```Fortran
+  out = diff(a, n=n)
+  ```
+#### PARAMETERS
+  * `class(*), dimension(:), intent(IN) :: a`
+    Input array.
+  * `integer, intent(IN), OPTIONAL :: n`
+    The number of times values are differentiated. If zero, the input is returned as-is.
+  * `class(*), dimension(LENGTH) :: out`
+    The n-th differences array. Size of output array is `size(a) - n`.
+#### EXAMPLE
+  ```Fortran
+  > diff([1.0, 2.0, 4.0, 8.0])
+  [1.0, 2.0, 4.0]
+  > diff([1.0, 2.0, 4.0, 8.0], n=2)
+  [1.0, 2.0]
+  ```
+## `CUMSUM` - Calculate cumulative sum
+#### DESCRIPTION
+  Return the cumulative sum of the elements of given array.
+#### USAGE
+  ```Fortran
+  out = cumsum(a)
+  ```
+#### PARAMETERS
+  * `class(*), dimension(:), intent(IN) :: a`
+    Input array.
+  * `class(*), dimension(:) :: out`
+    Cumulative sum result. The result has the same size as `a`.
+#### EXAMPLE
+  ```Fortran
+  > cumsum([1,0, 2.0, 3.0, 4.0, 5.0])
+  [1.0, 3.0, 6.0, 10.0, 15.0]
+  ```
+## `CUMPROD` - Calculate cumulative product
+#### DESCRIPTION
+  Return the cumulative product of the elements of given array.
+#### USAGE
+  ```Fortran
+  out = cumprod(a)
+  ```
+#### PARAMETERS
+  * `class(*), dimension(:), intent(IN) :: a`
+    Input array.
+  * `class(*), dimension(:) :: out`
+    Cumulative product result. The result has the same size as `a`.
+#### EXAMPLE
+  ```Fortran
+  > cumprod([1,0, 2.0, 3.0, 4.0, 5.0])
+  [1.0, 2.0, 6.0, 24.0, 120.0]
+  ```
 ## `INTERP` - Descritpion
 #### DESCRIPTION
-One-dimensional linear interpolation for monotonically increasing sample points.
+  One-dimensional linear interpolation for monotonically increasing sample points.
 
-Returns the one-dimensional piecewise linear interpolant to a function with given
-discrete data points `(xp, fp)`, evaluated at `x`.
+  Returns the one-dimensional piecewise linear interpolant to a function with given
+  discrete data points `(xp, fp)`, evaluated at `x`.
 #### USAGE
-```Fortran
-out = interp(x, xp, yp)
-```
+  ```Fortran
+  out = interp(x, xp, yp)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(:), intent(IN) :: x`</br>
-x-coordinates at which to evaluate the interpolated values.
-* `real(ANY), dimension(:), intent(IN) :: xp, yp`</br>
-x- and y-coordinates of the data points to be interpolated. Must be same size.
-* `real(DP), dimension(:) :: out`</br>
-Interpolated values, same shape as `x`.
+  * `real(ANY), dimension(:), intent(IN) :: x`
+    x-coordinates at which to evaluate the interpolated values.
+  * `real(ANY), dimension(:), intent(IN) :: xp, yp`
+    x- and y-coordinates of the data points to be interpolated. Must be same size.
+  * `real(DP), dimension(:) :: out`
+    Interpolated values, same shape as `x`.
 #### EXAMPLE
-```Fortran
-> x = [0.00, 1.00, 1.50, 2.50, 3.50]
-> out = interp(x, [1.0, 2.0, 3.0], [3.0, 2.0, 0.0])
-[4.00, 3.00, 2.50, 1.00, -1.00]
-```
+  ```Fortran
+  > x = [0.00, 1.00, 1.50, 2.50, 3.50]
+  > out = interp(x, [1.0, 2.0, 3.0], [3.0, 2.0, 0.0])
+  [4.00, 3.00, 2.50, 1.00, -1.00]
+  ```
 ## `TRAPZ` - Trapezoidal rule integration
 #### DESCRIPTION
-Integrate along the given axis using the composite trapezoidal rule.
+  Integrate along the given axis using the composite trapezoidal rule.
 
-If `x` is provided, the integration happens in sequence along its
-elements - they are not sorted. If points are equidistant use `dx` option.
+  If `x` is provided, the integration happens in sequence along its
+  elements - they are not sorted. If points are equidistant use `dx` option.
 #### USAGE
-```Fortran
-out = trapz(y, x)
-out = trapz(y, dx)
-```
+  ```Fortran
+  out = trapz(y, x)
+  out = trapz(y, dx)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(:), intent(IN) :: y`</br>
-Input array to integrate.
-* `real(ANY), dimension(:), intent(IN) :: x`</br>
-The sample points corresponding to the `y` values. Must be same size as `y`.
-* `real(ANY), intent(IN), OPTIONAL :: dx`</br>
-The spacing between sample points. Default: 1.0.
-* `real(ANY) :: out`</br>
-Definite integral of `y`.
+  * `real(ANY), dimension(:), intent(IN) :: y`
+    Input array to integrate.
+  * `real(ANY), dimension(:), intent(IN) :: x`
+    The sample points corresponding to the `y` values. Must be same size as `y`.
+  * `real(ANY), intent(IN), OPTIONAL :: dx`
+    The spacing between sample points. Default: 1.0.
+  * `real(ANY) :: out`
+    Definite integral of `y`.
 #### EXAMPLE
-```Fortran
-> out = trapz([0.0, 1.0], [0.0, 1.0])
-0.50000
-> out = trapz([0.0, 1.0], dx=1.0)
-0.50000
-> out = trapz([0.0, 1.0])
-0.50000
-```
+  ```Fortran
+  > out = trapz([0.0, 1.0], [0.0, 1.0])
+  0.50000
+  > out = trapz([0.0, 1.0], dx=1.0)
+  0.50000
+  > out = trapz([0.0, 1.0])
+  0.50000
+  ```
 ## `GRADIENT` - Calculate gradient of an array
 #### DESCRIPTION
-Return the gradient (derivative) of an array using finite difference method.
+  Return the gradient (derivative) of an array using finite difference method.
 
-The gradient is computed using second order accurate central differences in
-the interior points and either first or second order accurate one-sides
-(forward or backwards) differences at the boundaries. The returned gradient
-hence has the same shape as the input array.
+  The gradient is computed using second order accurate central differences in
+  the interior points and either first or second order accurate one-sides
+  (forward or backwards) differences at the boundaries. The returned gradient
+  hence has the same shape as the input array.
 #### USAGE
-```Fortran
-out = gradient(y, x)
-out = gradient(y, dx=dx)
-```
+  ```Fortran
+  out = gradient(y, x)
+  out = gradient(y, dx=dx)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(:), intent(IN) :: y`</br>
-Input array to derivate.
-* `real(ANY), dimension(:), intent(IN) :: x`</br>
-The sample points corresponding to the `y` values. Must be same size as `y`.
-* `real(ANY), intent(IN), OPTIONAL :: dx`</br>
-The spacing between sample points `y`. Default: 1.0.
-* `real(ANY), dimension(:) :: out`</br>
-Derivative at each value of `y`. Is same shape as `y`.
+  * `real(ANY), dimension(:), intent(IN) :: y`
+    Input array to derivate.
+  * `real(ANY), dimension(:), intent(IN) :: x`
+    The sample points corresponding to the `y` values. Must be same size as `y`.
+  * `real(ANY), intent(IN), OPTIONAL :: dx`
+    The spacing between sample points `y`. Default: 1.0.
+  * `real(ANY), dimension(:) :: out`
+    Derivative at each value of `y`. Is same shape as `y`.
 #### EXAMPLE
-```Fortran
-> out = gradient([0.0, 1.0], [0.0, 1.0])
-[1.00000,1.00000]
-> out = gradient([0.0, 1.0], dx=1.0)
-[1.00000,1.00000]
-> out = gradient([0.0, 1.0])
-[1.00000,1.00000]
-```
+  ```Fortran
+  > out = gradient([0.0, 1.0], [0.0, 1.0])
+  [1.00000,1.00000]
+  > out = gradient([0.0, 1.0], dx=1.0)
+  [1.00000,1.00000]
+  > out = gradient([0.0, 1.0])
+  [1.00000,1.00000]
+  ```
 --------------------------------------------------------------------------------
 # `CSTRING` - Functions for string manipulation.
-Module `xslib_cstring` contains function for manipulating character strings.
+  Module `xslib_cstring` contains function for manipulating character strings.
 ## `STR` - Converts value to string
 #### DESCRIPTION
-Converts the specified SCALAR or ARRAY (of any kind) into a string. Optionally,
-output format can be defined with `fmt` argument. In case input values is an ARRAY
-a custom delimiter can be defined (default is whitespace).
+  Converts the specified SCALAR or ARRAY (of any kind) into a string. Optionally,
+  output format can be defined with `fmt` argument. In case input values is an ARRAY
+  a custom delimiter can be defined (default is whitespace).
 #### USAGE
-```fortran
-out = str(value, fmt=fmt, delim=delim)
-```
+  ```fortran
+  out = str(value, fmt=fmt, delim=delim)
+  ```
 #### PARAMETERS
-* `class(*), dimension(..), intent(IN) :: value`</br>
-Value of any kind or shape to be transformed into character.
-* `character(*), intent(IN), OPTIONAL :: fmt`</br>
-Valid fortran format specifier. Default is compiler representation.
-* `character(*), intent(IN), OPTIONAL :: delim`</br>
-Separator to use when joining the string. Only applies for ARRAYS. Default is whitespace.
-* `character(:), allocatable :: out`</br>
-Output string.
+  * `class(*), dimension(..), intent(IN) :: value`
+    Value of any kind or shape to be transformed into character.
+  * `character(*), intent(IN), OPTIONAL :: fmt`
+    Valid fortran format specifier. Default is compiler representation.
+  * `character(*), intent(IN), OPTIONAL :: delim`
+    Separator to use when joining the string. Only applies for ARRAYS. Default is whitespace.
+  * `character(:), allocatable :: out`
+    Output string.
 #### EXAMPLE
-```Fortran
-> str(1)
-"1"
-> str(1.0, "(f5.3)")
-"1.000"
-> str([1,2], DELIM=",")
-"1,2"
-```
+  ```Fortran
+  > str(1)
+  "1"
+  > str(1.0, "(f5.3)")
+  "1.000"
+  > str([1,2], DELIM=",")
+  "1,2"
+  ```
 ## `SMERGE` - Merge stings
 #### DESCRIPTION
-Select values two arbitrary length stings according to a logical mask. The result
-is equal to `tsource` if `mask` is `.TRUE.`, or equal to `fsource` if it is `.FALSE.`.
+  Select values two arbitrary length stings according to a logical mask. The result
+  is equal to `tsource` if `mask` is `.TRUE.`, or equal to `fsource` if it is `.FALSE.`.
 #### USAGE
-```fortran
-out = smerge(tsource, fsource, mask)
-```
+  ```fortran
+  out = smerge(tsource, fsource, mask)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: fsource`</br>
-Return string if mask is `.TRUE.`.
-* `character(*), intent(IN) :: fsource`</br>
-Return string if mask is `.FALSE.`.
-`logical, intent(IN) :: mask`
-Selection logical mask.
-* `character(:), allocatable :: out`</br>
-Return string of variable length.
+  * `character(*), intent(IN) :: fsource`
+    Return string if mask is `.TRUE.`.
+  * `character(*), intent(IN) :: fsource`
+    Return string if mask is `.FALSE.`.
+  `logical, intent(IN) :: mask`
+    Selection logical mask.
+  * `character(:), allocatable :: out`
+    Return string of variable length.
 #### EXAMPLE
-```fortran
-> smerge("Top", "Bottom", .True.)
-"Top"
-> smerge("Top", "Bottom", .False.)
-"Bottom"
-```
+  ```fortran
+  > smerge("Top", "Bottom", .True.)
+  "Top"
+  > smerge("Top", "Bottom", .False.)
+  "Bottom"
+  ```
 ## `TOLOWER` - Return lower case
 #### DESCRIPTION
-Return the string with all the cased characters are converted to lowercase.
+  Return the string with all the cased characters are converted to lowercase.
 #### USAGE
-```fortran
-out = toLower(string)
-```
+  ```fortran
+  out = toLower(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(LEN) :: out`</br>
-Output string. Same length as `string`.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(LEN) :: out`
+    Output string. Same length as `string`.
 ###### *Example*
-```fortran
-> toLower("Hello, WORLD!")
-"hello world!"
-```
+  ```fortran
+  > toLower("Hello, WORLD!")
+  "hello world!"
+  ```
 ## `TOUPPER` - Return upper case
 #### DESCRIPTION
-Return the string with all the cased characters are converted to uppercase.
+  Return the string with all the cased characters are converted to uppercase.
 #### USAGE
-```fortran
-out = toUpper(string)
-```
+  ```fortran
+  out = toUpper(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(LEN) :: out`</br>
-Output string. Same length as `string`.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(LEN) :: out`
+    Output string. Same length as `string`.
 ###### *Example*
-```fortran
-> toLower("Hello, WORLD!")
-"HELLO WORLD!"
-```
+  ```fortran
+  > toLower("Hello, WORLD!")
+  "HELLO WORLD!"
+  ```
 ## `TOTITLE` - Capitalize letters
 #### DESCRIPTION
-Return a titlecased version of the string where words start with an
-uppercase character and the remaining characters are lowercase.
+  Return a titlecased version of the string where words start with an
+  uppercase character and the remaining characters are lowercase.
 #### USAGE
-```fortran
-out = toTitle(string)
-```
+  ```fortran
+  out = toTitle(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(LEN) :: out`</br>
-Output string. Same length as `string`.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(LEN) :: out`
+    Output string. Same length as `string`.
 #### EXAMPLE
-```fortran
-> toTitle("hello, world!")
-"Hello, World!"
-```
+  ```fortran
+  > toTitle("hello, world!")
+  "Hello, World!"
+  ```
 ## `SWAPCASE` - Swap case
 #### DESCRIPTION
-Return a string with uppercase characters converted to lowercase and vice versa.
-Note that it is not necessarily true that `swapCase(swapCase(s)) == s`.
+  Return a string with uppercase characters converted to lowercase and vice versa.
+  Note that it is not necessarily true that `swapCase(swapCase(s)) == s`.
 #### USAGE
-```fortran
-out = swapCase(string)
-```
+  ```fortran
+  out = swapCase(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(LEN) :: out`</br>
-Output string. Same length as `string`.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(LEN) :: out`
+    Output string. Same length as `string`.
 #### EXAMPLE
-```fortran
-> swapCase("Hello, WORLD!")
-"hELLO, world!"
-```
+  ```fortran
+  > swapCase("Hello, WORLD!")
+  "hELLO, world!"
+  ```
 ## `STRIP` - Removes trailing characters
 #### DESCRIPTION
-Return a string with the leading and trailing characters removed. The `delim` argument is
-a string specifying the characters after which characters to be removed. If omitted,
-the argument defaults to removing whitespace. Useful for removing "comments" from a string.
+ Return a string with the leading and trailing characters removed. The `delim` argument is
+ a string specifying the characters after which characters to be removed. If omitted,
+ the argument defaults to removing whitespace. Useful for removing "comments" from a string.
 #### USAGE
-```fortran
-out = strip(string, delim)
-```
+  ```fortran
+  out = strip(string, delim)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(*), intent(IN) :: delim`</br>
-Separator use for delimiting a string.
-* `character(LEN) :: out `</br>
-Output string. Same length as `string`.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(*), intent(IN) :: delim`
+    Separator use for delimiting a string.
+  * `character(LEN) :: out `
+    Output string. Same length as `string`.
 #### EXAMPLE
-```fortran
-> strip("Hello, WORLD!", ",")
-"Hello"
-```
+  ```fortran
+  > strip("Hello, WORLD!", ",")
+  "Hello"
+  ```
 ## `REPLACE` - Replace string
 #### DESCRIPTION
-Return a string with all occurrences of substring `old` replaced by `new`.
+  Return a string with all occurrences of substring `old` replaced by `new`.
 #### USAGE
-```fortran
-out = replace(string, old, new)
-```
+  ```fortran
+  out = replace(string, old, new)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(*), intent(IN) :: old`</br>
-String to be replaced.
-* `character(*), intent(IN) :: new`</br>
-String to be replaced with.
-* `character(:), allocatable :: out`</br>
-Output string.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(*), intent(IN) :: old`
+    String to be replaced.
+  * `character(*), intent(IN) :: new`
+    String to be replaced with.
+  * `character(:), allocatable :: out`
+    Output string.
 #### EXAMPLE
-```fortran
-> "Hello, World!", "World", "Universe")
-"Hello, Universe!"
-```
+  ```fortran
+  > "Hello, World!", "World", "Universe")
+  "Hello, Universe!"
+  ```
 ## `ISALPHA` - Is alphanumeric character
 #### DESCRIPTION
-Return `.True.` if all characters in the string are alphabetic and
-there is at least one character, `.False.` otherwise.
+  Return `.True.` if all characters in the string are alphabetic and
+  there is at least one character, `.False.` otherwise.
 #### USAGE
-```Fortran
-out = isAlpha(string)
-```
+  ```Fortran
+  out = isAlpha(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `logical :: out`</br>
-Is input string an ASCII alphabetical character.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `logical :: out`
+    Is input string an ASCII alphabetical character.
 #### EXAMPLE
-```Fortran
-> isAlpha("ABC")
-.True.
-> isAlpha("123")
-.False.
-```
+  ```Fortran
+  > isAlpha("ABC")
+  .True.
+  > isAlpha("123")
+  .False.
+  ```
 ## `ISDIGIT` - Is digit character
 #### DESCRIPTION
-Return `.True.` if all characters in the string are digits and
-there is at least one character, `.False.` otherwise.
+  Return `.True.` if all characters in the string are digits and
+  there is at least one character, `.False.` otherwise.
 #### USAGE
-```Fortran
-out = isDigit(string)
-```
+  ```Fortran
+  out = isDigit(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `logical :: out`</br>
-Is input a digit?
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `logical :: out`
+    Is input a digit?
 #### EXAMPLE
-```Fortran
-> isDigit("ABC")
-.False.
-> isDigit("123")
-.True.
-```
+  ```Fortran
+  > isDigit("ABC")
+  .False.
+  > isDigit("123")
+  .True.
+  ```
 ## `ISSPACE` - Is whitespace character
 #### DESCRIPTION
-Return `.True.` if there are only whitespace characters in the string
-and there is at least one character, `.False.` otherwise.
+  Return `.True.` if there are only whitespace characters in the string
+  and there is at least one character, `.False.` otherwise.
 #### USAGE
-```Fortran
-out = isSpace(string)
-```
+  ```Fortran
+  out = isSpace(string)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `logical :: out`</br>
-Is input a whitespace?
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `logical :: out`
+    Is input a whitespace?
 #### EXAMPLE
-```Fortran
-> isSpace(" ")
-.True.
-> isSpace("A")
-.False.
-```
+  ```Fortran
+  > isSpace(" ")
+  .True.
+  > isSpace("A")
+  .False.
+  ```
 ## `GETCOLOR` - Get ANSI escape color code
 #### DESCRIPTION
-Add some colors in your life! Get terminal ANSI escape sequences to set
-terminal text background, foreground, and attribute. Available colors are:
-`black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light`
-variants (e.g. `lightblue`). Available attributes are: `bold`, `dim`, `underline`,
-`blink`, `reverse`, and `hidden`. If no input is provided function returns "reset"
-escape code. Your experience may vary depending on the terminal used. For more
-information see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+  Add some colors in your life! Get terminal ANSI escape sequences to set
+  terminal text background, foreground, and attribute. Available colors are:
+  `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light`
+  variants (e.g. `lightblue`). Available attributes are: `bold`, `dim`, `underline`,
+  `blink`, `reverse`, and `hidden`. If no input is provided function returns "reset"
+  escape code. Your experience may vary depending on the terminal used. For more
+  information see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
 #### USAGE
-```fortran
-out = getColor(fg=fg, bg=bg, attr=attr)
-```
+  ```fortran
+  out = getColor(fg=fg, bg=bg, attr=attr)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN), OPTIONAL :: fg`</br>
-Foreground text color. Default is None.
-* `character(*), intent(IN), OPTIONAL :: bg`</br>
-Background text color. Default is None.
-* `character(*), intent(IN), OPTIONAL :: attr`</br>
-Text color attribute. Default is None.
-* `character(:), allocatable :: out`</br>
-Terminal color ANSI escape code sequence.
+  * `character(*), intent(IN), OPTIONAL :: fg`
+    Foreground text color. Default is None.
+  * `character(*), intent(IN), OPTIONAL :: bg`
+    Background text color. Default is None.
+  * `character(*), intent(IN), OPTIONAL :: attr`
+    Text color attribute. Default is None.
+  * `character(:), allocatable :: out`
+    Terminal color ANSI escape code sequence.
 #### EXAMPLE
-```Fortran
-> getColor("white", "red", "bold")
-ESC[1;37;041m
-```
+  ```Fortran
+  > getColor("white", "red", "bold")
+  ESC[1;37;041m
+  ```
 #### NOTE
-Max length of output string is 11 i.e. `E[*;**;***m`.
+  Max length of output string is 11 i.e. `E[*;**;***m`.
 ## `SETCOLOR` - Set string ANSI color
 #### DESCRIPTION
-Add some colors in your life! Set text background, foreground color, and attribute
-using ANSI escape sequences. Available colors are: `black`, `red`, `green`,
-`yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light` variants (e.g. `lightblue`).
-Available attributes are: `bold`, `dim`, `underline`, `blink`, `reverse`, and `hidden`.
-Your experience may vary depending on the terminal used. For more information
-see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+  Add some colors in your life! Set text background, foreground color, and attribute
+  using ANSI escape sequences. Available colors are: `black`, `red`, `green`,
+  `yellow`, `blue`, `magenta`, `cyan`, `white`, and their `light` variants (e.g. `lightblue`).
+  Available attributes are: `bold`, `dim`, `underline`, `blink`, `reverse`, and `hidden`.
+  Your experience may vary depending on the terminal used. For more information
+  see [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
 #### USAGE
-```fortran
-out = setColor(string, fg=fg, bg=gb, attr=attr)
-```
+  ```fortran
+  out = setColor(string, fg=fg, bg=gb, attr=attr)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(*), intent(IN), OPTIONAL :: fg`</br>
-Foreground text color. Default is None.
-* `character(*), intent(IN), OPTIONAL :: bg`</br>
-Background text color. Default is None.
-* `character(*), intent(IN), OPTIONAL :: attr`</br>
-Text color attribute. Default is None.
-* `character(:), allocatable :: out`</br>
-Terminal color ANSI escape code sequence.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(*), intent(IN), OPTIONAL :: fg`
+    Foreground text color. Default is None.
+  * `character(*), intent(IN), OPTIONAL :: bg`
+    Background text color. Default is None.
+  * `character(*), intent(IN), OPTIONAL :: attr`
+    Text color attribute. Default is None.
+  * `character(:), allocatable :: out`
+    Terminal color ANSI escape code sequence.
 #### EXAMPLE
-```Fortran
-> setColor("This string is bold and red", "red", "bold")
-"This string is bold and red" ! Use your imagination
-```
+  ```Fortran
+  > setColor("This string is bold and red", "red", "bold")
+  "This string is bold and red" ! Use your imagination
+  ```
 ## `STRTOK` - Split string into tokens
 #### DESCRIPTION
-A sequence of calls to this function split string into tokens, which are sequences
-of contiguous characters separated by the delimiter `delim`.
+  A sequence of calls to this function split string into tokens, which are sequences
+  of contiguous characters separated by the delimiter `delim`.
 
-On a first call, the function a string as argument for str, whose first character
-is used as the starting location to scan for tokens. In subsequent calls, the function
-expects a null character `char(0)` and uses the position right after the end of the last
-token as the new starting location for scanning.
+  On a first call, the function a string as argument for str, whose first character
+  is used as the starting location to scan for tokens. In subsequent calls, the function
+  expects a null character `char(0)` and uses the position right after the end of the last
+  token as the new starting location for scanning.
 
-Once the end character of string is found in a call to `strtok`, all subsequent calls to
-this function (with a null character as the first argument) return a null character.
+  Once the end character of string is found in a call to `strtok`, all subsequent calls to
+  this function (with a null character as the first argument) return a null character.
 
-See [`strtok`](https://cplusplus.com/reference/cstring/strtok) for full reference.
+  See [`strtok`](https://cplusplus.com/reference/cstring/strtok) for full reference.
 #### USAGE
-```Fortran
-out = strtok(string, delim)
-```
+  ```Fortran
+  out = strtok(string, delim)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string. Feed null character `char(0)` to get next token on precious string.
-* `character(*), intent(IN) :: delim`</br>
-Separator use for delimiting a string.
-* `character(:), allocatable :: out`</br>
-Next output character token.
+  * `character(*), intent(IN) :: string`
+    Input string. Feed null character `char(0)` to get next token on precious string.
+  * `character(*), intent(IN) :: delim`
+    Separator use for delimiting a string.
+  * `character(:), allocatable :: out`
+    Next output character token.
 #### EXAMPLE
-```Fortran
-> strtok("Hello, World!", " ")
-"Hello,"
-> strtok(char(0), " ")
-"World!"
-> strtok(char(0), " ")
-NULL
-```
+  ```Fortran
+  > strtok("Hello, World!", " ")
+  "Hello,"
+  > strtok(char(0), " ")
+  "World!"
+  > strtok(char(0), " ")
+  NULL
+  ```
 #### NOTES
-Should be thread-safe with OpenMP.
+  Should be thread-safe with OpenMP.
 ## `CNTTOK` - Count tokens in a string
 #### DESCRIPTION
-Count number of tokens in a string separated by a delimiter `delim`.
+  Count number of tokens in a string separated by a delimiter `delim`.
 #### USAGE
-```fortran
-out = cnttok(string, delim)
-```
+  ```fortran
+  out = cnttok(string, delim)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: string`</br>
-Input string.
-* `character(*), intent(IN) :: delim`</br>
-Separator used for delimiting a string.
-* `integer :: out`</br>
-Number of tokens on the string.
+  * `character(*), intent(IN) :: string`
+    Input string.
+  * `character(*), intent(IN) :: delim`
+    Separator used for delimiting a string.
+  * `integer :: out`
+    Number of tokens on the string.
 #### EXAMPLE
-```Fortran
-> cnttok("Hello, World!", " ")
-2
-```
+  ```Fortran
+  > cnttok("Hello, World!", " ")
+  2
+  ```
+--------------------------------------------------------------------------------
+# `DICT` - Dictionary (hash table)
+  Module `xslib_dict` contains primitive of unlimited polymorphic dictionary (hash table). It supports
+  `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER(*)` variable types (single or double precision).
+  To add new custom derived TYPE support you only have to write extension to `hash_function` and `copy` functions.
+## `DICT_T` - Polymorphic dictionary (hash table)
+#### DESCRIPTION
+  Implementation of unlimited polymorphic dictionary (hash table) derived type variable. Supports `INTEGER`, `REAL`,
+  `COMPLEX`, `LOGICAL`, and `CHARACTER(*)` variable types (single or double precision). Values and keys cannot be
+  directly accessed, only via `put`, `get`, `keys`, `values` or `items` functionality.
+#### USAGE
+  ```Fortran
+  > type(dict_t) :: dict
+  ```
+## `DICT%CLEAR` - Remove all items from dictionary
+#### DESCRIPTION
+  Removes ALL items from dictionary.
+#### USAGE
+  ```Fortran
+  call dict%clear()
+  ```
+#### EXAMPLE
+  ```Fortran
+  > call dict%clear()
+  > print *, dict
+  {}
+  ```
+## `DICT%GET` - Get value from dictionary
+#### DESCRIPTION
+  Get the value of the item with the specified key. Returns default value if item is not
+  in the dictionary if present, other raises an error.
+#### USAGE
+  ```Fortran
+  call list%get(key, value, default=default)
+  ```
+#### PARAMETERS
+  * `class(*), intent(IN) :: key`
+    The key of the item you want to return the value from.
+  * `class(*), intent(OUT) :: value`
+    A value of specified key.
+  * `class(*), intent(IN), OPTIONAL :: default`
+    A value to return if the specified key does not exist.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%get("one", value)
+  > print *, value
+  1
+  > call dict%get("one", value, default=0)
+  > print *, value
+  0
+  ```
+## `DICT%ITEMS` - Get n-th item from dictionary
+#### DESCRIPTION
+  Get the key-value item pair from `pos`-th position in dictionary. Raises error
+  if index is out of range. Order of items in dictionary is not the same as order
+  they were put in.
+#### USAGE
+  ```Fortran
+  call list%items(pos, key, value)
+  ```
+#### PARAMETERS
+  * `integer, intent(IN) :: pos`
+     A number specifying at which position to get element.
+  * `class(*), intent(OUT) :: key`
+    Corresponding key from to the dictionary.
+  * `class(*), intent(OUT) :: value`
+    Corresponding value from to the dictionary.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%items(1, key, value)
+  > print *, key, value
+  "one", 1
+  ```
+## `DICT%KEYS` - Get n-th key from dictionary
+#### DESCRIPTION
+  Get the key from `pos`-th position in dictionary. Raises error if index is out
+  of range. Order of items in dictionary is not the same as order they were put in.
+  __NOTE:__ Variable `key` must be exactly same type as dictionary key.
+#### USAGE
+  ```Fortran
+  call list%keys(pos, key)
+  ```
+#### PARAMETERS
+  * `integer, intent(IN) :: pos`
+     A number specifying at which position to get element.
+  * `class(*), intent(OUT) :: key`
+    Corresponding key from to the dictionary.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%keys(1, key)
+  > print *, key
+  "one"
+  ```
+## `DICT%LEN` - Count number of items in the dictionary
+#### DESCRIPTION
+  Count number of items in the dictionary
+#### USAGE
+  ```Fortran
+  out = list%len()
+  ```
+#### PARAMETERS
+  * `integer :: out`
+    Number of items in the dictionary.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > print *, dict%len()
+  1
+  > call dict%put("two", 2)
+  > print *, dict%len()
+  2
+  ```
+## `DICT%PUT` - Add new item to dictionary
+#### DESCRIPTION
+  Add the value of the item with the specified key. If key already exists,
+  value will be replaced.
+#### USAGE
+  ```Fortran
+  call list%put(key, value)
+  ```
+#### PARAMETERS
+  * `class(*), intent(IN) :: key`
+    The key of the item you want to store.
+  * `class(*), intent(IN) :: value`
+    The value of the item you want to store.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%put("two", 2)
+  > print *, dict
+  {'one':1, 'two':2}
+  > call dict%put("one", 0)
+  > print *, dict
+  {'one':0, 'two':2}
+  ```
+## `DICT%REMOVE` - Remove item from dictionary
+#### DESCRIPTION
+  Removes the element with the specified key from dictionary
+#### USAGE
+  ```Fortran
+  call dict%remove(key)
+  ```
+#### PARAMETERS
+  * `class(*), intent(IN) :: key`
+    The key of the item you want to remove.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%put("two", 2)
+  > call list%remove("one")
+  > print *, dict
+  {'two':2}
+  ```
+## `DICT%SAME_TYPE_AS` - Check if value is the same type as reference
+#### DESCRIPTION
+  Returns `.True.` if the dynamic type of key value is the same as the dynamic
+  type of `elem`. Returns `.False.` if key value is empty.
+#### USAGE
+  ```Fortran
+  result = list%key_same_type_as(key, elem)
+  ```
+#### PARAMETERS
+  * `logical :: result`
+     A number specifying at which position to get element.
+  * `class(*), intent(IN) :: key`
+    Corresponding key from to the dictionary.
+  * `class(*), intent(IN) :: elem`
+    Corresponding value from to the dictionary.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > print *, dict%same_type_as("one", 1)
+  .True.
+  > print *, dict%same_type_as("one", 1.0)
+  .False.
+  ```
+## `DICT%VALUES` - Get n-th value from dictionary
+#### DESCRIPTION
+  Get value from the `pos`-th position in dictionary. Raises error if index is out
+  of range. Order of items in dictionary is not the same as order they were put in.
+#### USAGE
+  ```Fortran
+  call list%values(pos, value)
+  ```
+#### PARAMETERS
+  * `integer, intent(IN) :: pos`
+     A number specifying at which position to get element.
+  * `class(*), intent(OUT) :: value`
+    Corresponding value from to the dictionary.
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%values(1, value)
+  > print *, value
+  1
+  ```
+## `DICT%WRITE` - Formatted and unformatted write for dictionary
+#### DESCRIPTION
+  Allows for formatted and unformatted write of `dict_t`.
+#### USAGE
+  ```Fortran
+  print *, dict_t
+  write (*, *) dict_t
+  ```
+#### EXAMPLE
+  ```Fortran
+  > call dict%put("one", 1)
+  > call dict%put("two", 2)
+  > print *, dict
+  {'one':1, 'two':2}
+  > write (*, *) dict
+  {'one':1, 'two':2}
+  ```
 --------------------------------------------------------------------------------
 # `ERRORH` - Error and warning handling
-Module `xslib_errorh` contains functions of error and warning handling.
+  Module `xslib_errorh` contains functions of error and warning handling.
 ## `ERROR` - Display error and exit
 #### DESCRIPTION
-Write error message to STDERR and terminate the program.
+  Write error message to STDERR and terminate the program.
 #### USAGE
-```Fortran
-call error(message)
-```
+  ```Fortran
+  call error(message)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: message`</br>
-Error message to display.
+  * `character(*), intent(IN) :: message`
+    Error message to display.
 #### EXAMPLE
-```Fortran
-> call error("Error message")
-"[ERROR]: Error message"
-```
+  ```Fortran
+  > call error("Error message")
+  "[ERROR]: Error message"
+  ```
 #### NOTES
-Use with `__FILE__` and `__LINE__` macros to get extended error message.
-```Fortran
-#define error(x) error_(x, __FILE__, __LINE__)
-```
+  Use with `__FILE__` and `__LINE__` macros to get extended error message.
+  ```Fortran
+  #define error(x) error_(x, __FILE__, __LINE__)
+  ```
 ## `WARNING` - Display warning and continue
 #### DESCRIPTION
-Write warning message to STDERR and continue the program.
+  Write warning message to STDERR and continue the program.
 #### USAGE
-```Fortran
-call warning(message)
-```
+  ```Fortran
+  call warning(message)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: message`</br>
-Warning message to display.
+  * `character(*), intent(IN) :: message`
+    Warning message to display.
 #### EXAMPLE
-```Fortran
-> call warning("Warning message")
-"[WARNING]: Warning message"
-```
+  ```Fortran
+  > call warning("Warning message")
+  "[WARNING]: Warning message"
+  ```
 #### NOTES
-Use with `__FILE__` and `__LINE__` macros to get extended warning message.
-```Fortran
-#define warning(x) warning_(x, __FILE__, __LINE__)
-```
+  Use with `__FILE__` and `__LINE__` macros to get extended warning message.
+  ```Fortran
+  #define warning(x) warning_(x, __FILE__, __LINE__)
+  ```
 ## `ASSERT` - Assert logical expression
 #### DESCRIPTION
-Assert logical expression. On fail write error message to STDERR and terminate the program.
+  Assert logical expression. On fail write error message to STDERR and terminate the program.
 #### USAGE
-```Fortran
-call assert(expression)
-```
+  ```Fortran
+  call assert(expression)
+  ```
 #### PARAMETERS
-* `logical, dimension(..), intent(IN) :: expression`</br>
-Logical expression to be evaluated.
+  * `logical, dimension(..), intent(IN) :: expression`
+    Logical expression to be evaluated.
 #### EXAMPLE
-```Fortran
-> call assert (array == 0)
-"[ERROR]: Assertion failed at: [1,1]"
-```
+  ```Fortran
+  > call assert (array == 0)
+  "[ERROR]: Assertion failed at: [1,1]"
+  ```
 #### NOTES
-Use with `__FILE__` and `__LINE__` macros to get extended assertion message.
-```Fortran
-#define assert(x) assert_ (x, __FILE__, __LINE__)
-```
+  Use with `__FILE__` and `__LINE__` macros to get extended assertion message.
+  ```Fortran
+  #define assert(x) assert_ (x, __FILE__, __LINE__)
+  ```
 --------------------------------------------------------------------------------
 # `FITTING` - Function fitting
-Module `xslib_fitting` contains basic regression functions. Supports both single and double precision (`DP`).
+  Module `xslib_fitting` contains basic regression functions. Supports both single and double precision (`DP`).
 ## `LINFIT` - Least squares linear fit
 #### DESCRIPTION
-Calculate a linear least-squares regression for two sets of data.
+  Calculate a linear least-squares regression for two sets of data.
 #### USAGE
-```fortran
-out = linfit(x, y)
-```
+  ```fortran
+  out = linfit(x, y)
+  ```
 #### PARAMETERS
 * `real(ANY), dimension(:), intent(IN) :: x, y`</br>
-Two sets of data points to be fitted. Both arrays must have the same length.
+  Two sets of data points to be fitted. Both arrays must have the same length.
 * `real(ANY), dimension(2) :: out`</br>
-Linear coefficients: slope, and intercept (highest power first).
+  Linear coefficients: slope, and intercept (highest power first).
 #### EXAMPLE
 ```Fortran
 > linfit([1.0, 2.0, 3.0], [2.0, 3.0, 4.0])
 [1.0, 2.0]
 ```
 #### NOTE
-For large array sizes use [LAPACK](https://www.netlib.org/lapack/).
+  For large array sizes use [LAPACK](https://www.netlib.org/lapack/).
 ## `POLYFIT` - Least squares polynomial fit
 #### DESCRIPTION
-Calculate a polynomial least-squares regression for two sets of data.
+  Calculate a polynomial least-squares regression for two sets of data.
 #### USAGE
-```fortran
-out = polyfit(x, y, deg)
-```
+  ```fortran
+  out = polyfit(x, y, deg)
+  ```
 #### PARAMETERS
 * `real(ANY), dimension(:), intent(IN) :: x, y`</br>
-Two sets of data points to be fitted. Both arrays must have the same length.
+  Two sets of data points to be fitted. Both arrays must have the same length.
 * `integer, intent(IN) :: deg`</br>
-Degree of the fitting polynomial.
+  Degree of the fitting polynomial.
 * `real(ANY), dimension(DEG) :: out`</br>
-Polynomial coefficients: highest powers first.
+  Polynomial coefficients: highest powers first.
 #### EXAMPLE
 ```Fortran
 > polyfit([1.0, 2.0, 3.0], [6.0, 11.0, 18.0], 2)
 [1.0, 2.0, 3.0]
 ```
 #### NOTE
-For large arrays use [LAPACK](https://rosettacode.org/wiki/Polynomial_regression#Fortran).
+  For large arrays use [LAPACK](https://rosettacode.org/wiki/Polynomial_regression#Fortran).
 ## `POLYVAL` - Evaluate a polynomial
 #### DESCRIPTION
-Evaluate a polynomial at specific values.
+  Evaluate a polynomial at specific values.
 #### USAGE
-```fortran
-out = polyval(p, x)
-```
+  ```fortran
+  out = polyval(p, x)
+  ```
 #### PARAMETERS
 * `real(ANY), dimension(:), intent(IN) :: p`</br>
-Polynomial coefficients: highest powers first.
+  Polynomial coefficients: highest powers first.
 * `real(ANY), dimension(..), intent(IN) :: x`</br>
-Value or array at which to evaluate the polynomial.
+  Value or array at which to evaluate the polynomial.
 * `real(ANY), dimension(..) :: out`</br>
-Value or array of polynomial.
+  Value or array of polynomial.
 #### EXAMPLE
 ```Fortran
 > polyval([1.0, 2.0, 3.0], 1.0)
@@ -705,325 +998,324 @@ Value or array of polynomial.
 ```
 --------------------------------------------------------------------------------
 #  `LIST` - Linked list functions
-Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
-List currently supports only `INT32`, `INT64`, `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)`
-variable types. To add new derived TYPE support you only have write extension to `equal`, `copy`,
-and (optional) `write` functions.
+  Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
+  List currently supports only `INT32`, `INT64`, `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)`
+  variable types. To add new derived TYPE support you only have write extension to `equal`, `copy`,
+  and (optional) `write` functions.
 ## `LIST_T` - Polymorphic linked list
 #### DESCRIPTION
-Implementation of unlimited polymorphic linked list derived type variable. Supports `INT32`, `INT64`,
-`REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)` variable types. Variables on list cannot be directly
-accessed and can be set via `append`, `extend`, and `set` functionality or retrieved via `get` functionality.
+  Implementation of unlimited polymorphic linked list derived type variable. Supports `INT32`, `INT64`,
+  `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)` variable types. Variables on list cannot be directly
+  accessed and can be set via `append`, `extend`, and `set` functionality or retrieved via `get` functionality.
 #### USAGE
-```Fortran
-> type(list_t) :: list
-```
+  ```Fortran
+  > type(list_t) :: list
+  ```
 ## `LIST%APPEND` - Append element to the list
 #### DESCRIPTION
-Append new element to the end of the list.
+  Append new element to the end of the list.
 #### USAGE
-```Fortran
-call list%append(elem)
-```
+  ```Fortran
+  call list%append(elem)
+  ```
 #### PARAMETERS
-* `class(*), intent(IN) :: elem`</br>
-Element to be added end of the list.
+  * `class(*), intent(IN) :: elem`
+    Element to be added end of the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> call list%append(4])
-[1, 2, 3, 4]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%append(4])
+  [1, 2, 3, 4]
+  ```
 ## `LIST%CLEAR` - Removes all elements from the list
 #### DESCRIPTION
-Remove ALL elements from the list.
+  Remove ALL elements from the list.
 #### USAGE
-```Fortran
-call list%clear()
-```
+  ```Fortran
+  call list%clear()
+  ```
 #### EXAMPLE
-```Fortran
-> type(lit_t) :: list
-> list = list_t([1, 2, 3])
-> call list%clear()
-[]
-```
+  ```Fortran
+  > type(lit_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%clear()
+  []
+  ```
 ## `LIST%COUNT` - Count elements on the list
 #### DESCRIPTION
-Returns the number of `elem` elements (with the specified value) on the list.
+  Returns the number of `elem` elements (with the specified value) on the list.
 #### USAGE
-```Fortran
-out = list%count(elem)
-```
+  ```Fortran
+  out = list%count(elem)
+  ```
 #### PARAMETERS
-* `class(*), intent(IN) :: elem`</br>
-Value of elements to search on the list.
-* `integer :: out`</br>
-Number of elements with specified value on the list.
+  * `class(*), intent(IN) :: elem`
+    Value of elements to search on the list.
+  * `integer :: out`
+    Number of elements with specified value on the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 1])
-> list%count(1)
-2
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 1])
+  > list%count(1)
+  2
+  ```
 ## `LIST%EXTEND` - Append array of elements to the list
 #### DESCRIPTION
-Append array of elements to the end of the list.
+  Append array of elements to the end of the list.
 #### USAGE
-```Fortran
-call list%append(array)
-```
+  ```Fortran
+  call list%append(array)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(IN) :: array`</br>
-Array of elements to be added to the list.
+  * `class(*), dimension(:), intent(IN) :: array`
+    Array of elements to be added to the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2])
-> call list%extend([3, 4, 5])
-[1, 2, 3, 4, 5]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2])
+  > call list%extend([3, 4, 5])
+  [1, 2, 3, 4, 5]
+  ```
 ## `LIST%INDEX` - Return index of element on the list
 #### DESCRIPTION
-Returns the index of the first element on list with `elem` value.
+  Returns the index of the first element on list with `elem` value.
 #### USAGE
-```Fortran
-out = list%index(elem)
-```
+  ```Fortran
+  out = list%index(elem)
+  ```
 #### PARAMETERS
-* `class(*), intent(IN) :: elem`</br>
-Value of element to index.
-* `integer :: out`</br>
-Index of element on the list. Returns zero if element is not present.
+  * `class(*), intent(IN) :: elem`
+    Value of element to index.
+  * `integer :: out`
+    Index of element on the list. Returns zero if element is not present.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> list%index(1)
-1
-> list%index(4)
-0
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > list%index(1)
+  1
+  > list%index(4)
+  0
+  ```
 ## `LIST%INSERT` - Append element to the list at specified position
 #### DESCRIPTION
-Adds an element `elem` at the specified `pos` position on the list. If position index is outside the list range
-it is either appended to the list if the index is larger than the list or prepended in index is smaller than one.
+  Adds an element `elem` at the specified `pos` position on the list. If position index is outside the list range
+  it is either appended to the list if the index is larger than the list or prepended in index is smaller than one.
 #### USAGE
-```Fortran
-call list%insert(pos, elem)
-```
+  ```Fortran
+  call list%insert(pos, elem)
+  ```
 #### PARAMETERS
-* `integer, intent(IN) :: pos`</br>
-A number specifying in which position to insert the element.
-* `class(*), intent(IN) :: elem`</br>
-Element to be added to the list.
+  * `integer, intent(IN) :: pos`
+    A number specifying in which position to insert the element.
+  * `class(*), intent(IN) :: elem`
+    Element to be added to the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> list%insert(2, 1.5)
-[1, 1.5, 2, 3]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > list%insert(2, 1.5)
+  [1, 1.5, 2, 3]
+  ```
 ## `LIST%LEN` - Count number of elements on the list
 #### DESCRIPTION
-Get number of ALL elements on the list.
+  Get number of ALL elements on the list.
 #### USAGE
-```Fortran
-out = list%len()
-```
+  ```Fortran
+  out = list%len()
+  ```
 #### PARAMETERS
-* `integer :: out`</br>
-Number of all elements on the list.
+  * `integer :: out`
+    Number of all elements on the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> list%len()
-3
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > list%len()
+  3
+  ```
 ## `LIST%GET` - Get an element from the list
 #### DESCRIPTION
-Get element at `pos` index from the list. Raises error if `pos` index
-is out of range.
+  Get element at `pos` index from the list. Raises error if `pos` index
+  is out of range.
 #### USAGE
-```Fortran
-call list%get(pos, elem)
-```
+  ```Fortran
+  call list%get(pos, elem)
+  ```
 #### PARAMETERS
-* `integer, intent(IN) :: pos`</br>
-A number specifying at which position to get element.
-* `class(*), intent(IN) :: elem`</br>
-Corresponding element from to the list.
+  * `integer, intent(IN) :: pos`
+    A number specifying at which position to get element.
+  * `class(*), intent(IN) :: elem`
+    Corresponding element from to the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> call list%get(1, val)
-> print *, val
-1
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%get(1, val)
+  > print *, val
+  1
+  ```
 ## `LIST%POP` - Removes element at the specified position from the list
 #### DESCRIPTION
-Removes the element at the specified position `pos`. Last element is removed if
-`pos` is not specified.
+  Removes the element at the specified position `pos`. Last element is removed if
+  `pos` is not specified.
 #### USAGE
-```Fortran
-call list%pop(pos=pos)
-```
+  ```Fortran
+  call list%pop(pos=pos)
+  ```
 #### PARAMETERS
-* `integer, intent(IN), OPTIONAL :: pos`</br>
-A number specifying the position of the element you want to remove.
-Last element is removed if not specified.
+  * `integer, intent(IN), OPTIONAL :: pos`
+    A number specifying the position of the element you want to remove.
+    Last element is removed if not specified.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3, 4])
-> call list%pop()
-[1, 2, 3]
-> call list%pop(1)
-[2, 3]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3, 4])
+  > call list%pop()
+  [1, 2, 3]
+  > call list%pop(1)
+  [2, 3]
+  ```
 ## `LIST%REMOVE` - Remove element from the list
 #### DESCRIPTION
-Removes the first occurrence of `elem` from the list.
+  Removes the first occurrence of `elem` from the list.
 #### USAGE
-```Fortran
-call list%remove(value)
-```
+  ```Fortran
+  call list%remove(value)
+  ```
 #### PARAMETERS
-* `class(*), intent(IN) :: elem`</br>
-Element to be removed from the list.
+  * `class(*), intent(IN) :: elem`
+    Element to be removed from the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> call list%remove(2)
-[1, 3]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%remove(2)
+  [1, 3]
+  ```
 ## `LIST%REVERSE` - Reverse element order on the list
 #### DESCRIPTION
-Reverse element order on the list.
+  Reverse element order on the list.
 #### USAGE
-```Fortran
-call list%reverse()
-```
+  ```Fortran
+  call list%reverse()
+  ```
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> call list%reverse()
-[3, 2, 1]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%reverse()
+  [3, 2, 1]
+  ```
 ## `LIST%SAME_TYPE_AS` - Check if element on list is same type as reference
 #### DESCRIPTION
-Returns `.True.` if the dynamic type of element at index `pos` is the same as the dynamic type of `elem`.
+  Returns `.True.` if the dynamic type of element at index `pos` is the same as the dynamic type of `elem`.
 #### USAGE
-```Fortran
-out = list%same_type_as(pos, elem)
-```
+  ```Fortran
+  out = list%same_type_as(pos, elem)
+  ```
 #### PARAMETERS
-* `integer, intent(IN) :: pos`</br>
-A number specifying at which position to check the element.
-* `class(*), intent(IN) :: elem`</br>
-Element against which to compare the type.
-* `logical :: out`</br>
-Returns `.True.` if evaluated elements are of same type.
+  * `integer, intent(IN) :: pos`
+    A number specifying at which position to check the element.
+  * `class(*), intent(IN) :: elem`
+    Element against which to compare the type.
+  * `logical :: out`
+    Returns `.True.` if evaluated elements are of same type.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> call list%extend([1, 2])
-> list%same_type_as(1, 0)
-.True.
-> list%same_type_as(1, "one")
-.False.
-```
+  ```Fortran
+  > type(list_t) :: list
+  > call list%extend([1, 2])
+  > list%same_type_as(1, 0)
+  .True.
+  > list%same_type_as(1, "one")
+  .False.
+  ```
 ## `LIST%SET` - Change element on the list
 #### DESCRIPTION
-Change value of element at index `pos` on the list. Raises error if `pos` index
-is out of list range.
+  Change value of element at index `pos` on the list. Raises error if `pos` index
+  is out of list range.
 #### USAGE
-```Fortran
-call list%set(pos, elem)
-```
+  ```Fortran
+  call list%set(pos, elem)
+  ```
 #### PARAMETERS
-* `integer, intent(IN) :: pos`</br>
-A number specifying at which position to set element.
-* `class(*), intent(IN) :: elem`</br>
-Element to be replaced on the list.
+  * `integer, intent(IN) :: pos`
+    A number specifying at which position to set element.
+  * `class(*), intent(IN) :: elem`
+    Element to be replaced on the list.
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([1, 2, 3])
-> call list%set(1, 0)
-[0, 2, 3]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([1, 2, 3])
+  > call list%set(1, 0)
+  [0, 2, 3]
+  ```
 ## `LIST%SORT` - Sort elements on the list
 #### DESCRIPTION
-Sort elements on the list in ascending order.
-__WARING:__ Implementation pending!
+  Sort elements on the list in ascending order.
+  __WARING:__ Implementation pending!
 #### USAGE
-```Fortran
-call list%sort()
-```
+  ```Fortran
+  call list%sort()
+  ```
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_t([3, 1, 2, 4])
-> call list%sort()
-[1, 2, 3, 4]
-```
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_t([3, 1, 2, 4])
+  > call list%sort()
+  [1, 2, 3, 4]
+  ```
 ## `LIST%WRITE` - Formatted and unformatted write
 #### DESCRIPTION
-Allows for formatted and unformatted write of `list_t`.
+  Allows for formatted and unformatted write of `list_t`.
 #### USAGE
-```Fortran
-print *, list_t
-write (*, *) list_t
-```
+  ```Fortran
+  print *, list_t
+  write (*, *) list_t
+  ```
 #### EXAMPLE
-```Fortran
-> type(list_t) :: list
-> list = list_T([1, 2, 3])
-> print *, list
-[1, 2, 3]
-> write (*, *) list_t
-[1, 2, 3]
-```
---------------------------------------------------------------------------------
+  ```Fortran
+  > type(list_t) :: list
+  > list = list_T([1, 2, 3])
+  > print *, list
+  [1, 2, 3]
+  > write (*, *) list_t
+  [1, 2, 3]
+  ```
 --------------------------------------------------------------------------------
 # `MATH` - Basic mathematical functions
-Module `xslib_math` contains basic mathematical functions. Supports both single and double precision (`DP`).
+  Module `xslib_math` contains basic mathematical functions. Supports both single and double precision (`DP`).
 ## `FACTORIAL` - Return factorial of an integer
 #### DESCRIPTION
-Return factorial of an integer `n`. Returns error if `n` is not integral or is negative.
+  Return factorial of an integer `n`. Returns error if `n` is not integral or is negative.
 #### USAGE
-```Fortran
-out = factorial(n)
-```
+  ```Fortran
+  out = factorial(n)
+  ```
 #### PARAMETERS
-* `integer(ANY), intent(IN) :: n`</br>
-Input value.
-* `integer(ANY) :: out`</br>
-Factorial of an input value.
+  * `integer(ANY), intent(IN) :: n`
+    Input value.
+  * `integer(ANY) :: out`
+    Factorial of an input value.
 #### EXAMPLE
-```Fortran
-> factorial(5)
-120
-```
+  ```Fortran
+  > factorial(5)
+  120
+  ```
 ## `PERM` - Permutation of two numbers
 #### DESCRIPTION
-Return the number of ways to choose `k` items from `n` items without repetition and with order.
+  Return the number of ways to choose `k` items from `n` items without repetition and with order.
 #### USAGE
-```Fortran
-out = perm(n, k)
-```
+  ```Fortran
+  out = perm(n, k)
+  ```
 #### PARAMETERS
-* `integer(ANY), intent(IN) :: k, n`</br>
-...
-* `integer(ANY) :: out`</br>
-...
+  * `integer(ANY), intent(IN) :: k, n`
+    ...
+  * `integer(ANY) :: out`
+    ...
 #### EXAMPLE
 ```Fortran
 > perm(6, 4)
@@ -1031,16 +1323,16 @@ out = perm(n, k)
 ```
 ## `COMB` - Combination of two numbers
 #### DESCRIPTION
-Return the number of ways to choose `k` items from `n` items without repetition and without order.
+  Return the number of ways to choose `k` items from `n` items without repetition and without order.
 #### USAGE
-```Fortran
-out = comb(n, k)
-```
+  ```Fortran
+  out = comb(n, k)
+  ```
 #### PARAMETERS
-* `integer(ANY), intent(IN) :: k, n`</br>
-...
-* `integer(ANY) :: out`</br>
-...
+  * `integer(ANY), intent(IN) :: k, n`
+    ...
+  * `integer(ANY) :: out`
+    ...
 #### EXAMPLE
 ```Fortran
 > comb(6, 4)
@@ -1048,787 +1340,877 @@ out = comb(n, k)
 ```
 ## `MIX` - Linear interpolation of two numbers
 #### DESCRIPTION
-Return mix *i.e.* fractional linear interpolation between two values. If `x = 0.0` then
-return `a` if `x = 1.0` return `b` otherwise return linear interpolation of `a` and `b`.
+  Return mix *i.e.* fractional linear interpolation between two values. If `x = 0.0` then
+  return `a` if `x = 1.0` return `b` otherwise return linear interpolation of `a` and `b`.
 #### USAGE
-```Fortran
-out = mix(a, b, x)
-```
+  ```Fortran
+  out = mix(a, b, x)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: a, b`</br>
-Two input values to mix.
-* `real(ANY), intent(IN) :: x`</br>
-Fraction of the mixture: form 0.0 to 1.0.
-* `real(ANY) :: out`</br>
-Output value.
+  * `real(ANY), intent(IN) :: a, b`
+    Two input values to mix.
+  * `real(ANY), intent(IN) :: x`
+    Fraction of the mixture: form 0.0 to 1.0.
+  * `real(ANY) :: out`
+    Output value.
 #### EXAMPLE
-```Fortran
-> mix(0.0, 5.0, 0.25)
-1.25
-```
+  ```Fortran
+  > mix(0.0, 5.0, 0.25)
+  1.25
+  ```
 ## `CLIP` - Limit the values in an array.
 #### DESCRIPTION
-Clip (limit) the values in an array.
+  Clip (limit) the values in an array.
 
-Given an interval, values outside the interval are clipped to the interval edges.
-For example, if an interval of `[0, 1]` is specified, values smaller than 0 become `0`,
-and values larger than 1 become `1`.
+  Given an interval, values outside the interval are clipped to the interval edges.
+  For example, if an interval of `[0, 1]` is specified, values smaller than 0 become `0`,
+  and values larger than 1 become `1`.
 #### USAGE
-```Fortran
-out = clip(a, lower, upper)
-```
+  ```Fortran
+  out = clip(a, lower, upper)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: a`</br>
-Input value
-* `real(ANY), intent(IN) :: lower, upper`</br>
-Upper and lower bounds.
-* `real(ANY) :: out`</br>
-Output value.
+  * `real(ANY), intent(IN) :: a`
+    Input value
+  * `real(ANY), intent(IN) :: lower, upper`
+    Upper and lower bounds.
+  * `real(ANY) :: out`
+    Output value.
 #### EXAMPLE
-```Fortran
-> clip(0.9, 1., 2.)
-1.00000
-> clip(1.1, 1., 2.)
-1.10000
-> clip(2.1, 1., 2.)
-2.00000
-```
+  ```Fortran
+  > clip(0.9, 1., 2.)
+  1.00000
+  > clip(1.1, 1., 2.)
+  1.10000
+  > clip(2.1, 1., 2.)
+  2.00000
+  ```
 ## `ISCLOSE` - Checks if two values are within a tolerance
 #### DESCRIPTION
-Checks if two values are within a tolerance. The tolerance values are positive,
-typically very small numbers. The relative difference `(rtol * abs(b))` and the
-absolute difference `atol` are added together to compare against the absolute
-difference between `a` and `b`.
+  Checks if two values are within a tolerance. The tolerance values are positive,
+  typically very small numbers. The relative difference `(rtol * abs(b))` and the
+  absolute difference `atol` are added together to compare against the absolute
+  difference between `a` and `b`.
 #### USAGE
-```Fortran
-out = isClose(a, b, rtol=rtol, atol=atol)
-```
+  ```Fortran
+  out = isClose(a, b, rtol=rtol, atol=atol)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: a, b`</br>
-Input values to compare.
-* `real(ANY), intent(IN), OPTIONAL :: rtol`</br>
-The relative tolerance parameter. Default: 1.0e-05
-* `real(ANY), intent(IN), OPTIONAL :: rtol`</br>
-The absolute tolerance parameter. Default: 1.0e-08
-* `logical :: out`</br>
-Output value.
+  * `real(ANY), intent(IN) :: a, b`
+    Input values to compare.
+  * `real(ANY), intent(IN), OPTIONAL :: rtol`
+    The relative tolerance parameter. Default: 1.0e-05
+  * `real(ANY), intent(IN), OPTIONAL :: rtol`
+    The absolute tolerance parameter. Default: 1.0e-08
+  * `logical :: out`
+    Output value.
 #### EXAMPLE
-```Fortran
-> isclose(1.1, 1.0, atol=1.0)
-.True.
-> isclose(1.5, 1.0, RTOL=1.0)
-.False.
-```
+  ```Fortran
+  > isclose(1.1, 1.0, atol=1.0)
+  .True.
+  > isclose(1.5, 1.0, RTOL=1.0)
+  .False.
+  ```
 ## `GCD` - Return greatest common divisor
 #### DESCRIPTION
-Return the greatest common divisor (GCD) of the specified integer arguments.
-If any of the arguments is nonzero, then the returned value is the largest
-positive integer that is a divisor of all arguments. If all arguments are
-zero, then the returned value is 0.
+  Return the greatest common divisor (GCD) of the specified integer arguments.
+  If any of the arguments is nonzero, then the returned value is the largest
+  positive integer that is a divisor of all arguments. If all arguments are
+  zero, then the returned value is 0.
 #### USAGE
-```Fortran
-out = gcd (a, b)
-```
+  ```Fortran
+  out = gcd (a, b)
+  ```
 #### PARAMETERS
-* `integer(ANY), intent(IN) :: a, b`</br>
-Input values.
-* `integer(ANY) :: out`</br>
-Output value.
+  * `integer(ANY), intent(IN) :: a, b`
+    Input values.
+  * `integer(ANY) :: out`
+    Output value.
 #### EXAMPLE
-```Fortran
-> gcd(106, 901)
-53
-```
+  ```Fortran
+  > gcd(106, 901)
+  53
+  ```
 ## `LCM` - Return least common multiple
 #### DESCRIPTION
-Return the least common multiple (LCM) of the specified integer arguments.
-If all arguments are nonzero, then the returned value is the smallest
-positive integer that is a multiple of all arguments. If any of the arguments
-is zero, then the returned value is 0.
+  Return the least common multiple (LCM) of the specified integer arguments.
+  If all arguments are nonzero, then the returned value is the smallest
+  positive integer that is a multiple of all arguments. If any of the arguments
+  is zero, then the returned value is 0.
 #### USAGE
-```Fortran
-out = lcm(a, b)
-```
+  ```Fortran
+  out = lcm(a, b)
+  ```
 #### PARAMETERS
-* `integer(ANY), intent(IN) :: a, b`</br>
-Input values.
-* `integer(ANY) :: out`</br>
-Output value.
+  * `integer(ANY), intent(IN) :: a, b`
+    Input values.
+  * `integer(ANY) :: out`
+    Output value.
 #### EXAMPLE
-```Fortran
-> out = lcm(12, 17)
-204
-```
+  ```Fortran
+  > out = lcm(12, 17)
+  204
+  ```
 --------------------------------------------------------------------------------
 # `PATHLIB` - Functions for path and file manipulation.
-Module `xslib_pathlib` contains function for path and file manipulation.
+  Module `xslib_pathlib` contains function for path and file manipulation.
+## `REALPATH` - Get absolute name of pathname
+#### DESCRIPTION
+  The `realpath` function shall derive, from the pathname pointed to
+  by `path`, an absolute pathname that names the same file, whose resolution
+  does not involve `.`, `..`, or symbolic links
+#### USAGE
+  ```Fortran
+  out = realpath(path)
+  ```
+#### PARAMETERS
+  * `character(*), intent(IN) :: path`
+    String containing pathname.
+  * `character(:), allocatable :: out`
+    String containing absolute pathname.
+#### EXAMPLE
+  ```Fortran
+  > realpath(".")
+  "/absolute/path/to/dir"
+  ```
+## `JOINPATH` - Concatenate two path names
+#### DESCRIPTION
+  Return concatenated pathname components, effectively constructing valid path.
+  It ensures cross-platform compatibility by properly joining the components.
+#### USAGE
+  ```Fortran
+  out = joinpath(path1, path2)
+  ```
+#### PARAMETERS
+  * `character(*), intent(IN) :: path1, path2`
+    Strings containing pathname.
+  * `character(:), allocatable :: out`
+    String containing concatenated pathname.
+#### EXAMPLE
+  ```Fortran
+  > joinpath("/path/to" "file.txt")
+  "path/to/file.txt"
+  ```
 ## `FILENAME` - Get file name of pathname
 #### DESCRIPTION
-Return the file name of pathname `path`. If pathname is a folder it will return an empty string.
+  Return the file name of pathname `path`. If pathname is a folder it will return an empty string.
 #### USAGE
-```Fortran
-out = filename(path)
-```
+  ```Fortran
+  out = filename(path)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: path`</br>
-String containing pathname.
-* `character(:), allocatable :: out`</br>
-String containing pathname file name.
+  * `character(*), intent(IN) :: path`
+    String containing pathname.
+  * `character(:), allocatable :: out`
+    String containing pathname file name.
 #### EXAMPLE
-```Fortran
-> filename("/path/to/file.txt")
-"file.txt"
-> filename("/path/to/")
-""
-```
+  ```Fortran
+  > filename("/path/to/file.txt")
+  "file.txt"
+  > filename("/path/to/")
+  ""
+  ```
 ## `BASENAME` - Get base name of pathname
 #### DESCRIPTION
-Return the base name of pathname `path`. If pathname is folder it will return an empty string.
+  Return the base name of pathname `path`. If pathname is folder it will return an empty string.
 #### USAGE
-```Fortran
-out = basename(path)
-```
+  ```Fortran
+  out = basename(path)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: path`</br>
-String containing pathname.
-* `character(:), allocatable :: out`</br>
-String containing pathname base name.
+  * `character(*), intent(IN) :: path`
+    String containing pathname.
+  * `character(:), allocatable :: out`
+    String containing pathname base name.
 #### EXAMPLE
-```Fortran
-> basename("/path/to/file.txt")
-"file"
-> basename("/path/to/")
-""
-```
+  ```Fortran
+  > basename("/path/to/file.txt")
+  "file"
+  > basename("/path/to/")
+  ""
+  ```
 ## `DIRNAME` - Get base name of pathname
 #### DESCRIPTION
-Return the directory name of pathname `path`. If pathname is file it will return an empty string.
+  Return the directory name of pathname `path`. If pathname is file it will return an empty string.
 #### USAGE
-```Fortran
-out = dirname(path)
-```
+  ```Fortran
+  out = dirname(path)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: path`</br>
-String containing pathname.
-* `character(:), allocatable :: out`</br>
-String containing pathname directory name.
+  * `character(*), intent(IN) :: path`
+    String containing pathname.
+  * `character(:), allocatable :: out`
+    String containing pathname directory name.
 #### EXAMPLE
-```Fortran
-> dirname("/path/to/file.txt")
-"/path/to/"
-> dirname("file.txt")
-""
-```
+  ```Fortran
+  > dirname("/path/to/file.txt")
+  "/path/to/"
+  > dirname("file.txt")
+  ""
+  ```
 ## `EXTNAME` - Get extension name of pathname
 #### DESCRIPTION
-Return the extension name of pathname `path`. If pathname is not a file it will return an empty string.
+  Return the extension name of pathname `path`. If pathname is not a file it will return an empty string.
 #### USAGE
-```Fortran
-out = extname(path)
-```
+  ```Fortran
+  out = extname(path)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: path`</br>
-String containing pathname.
-* `character(:), allocatable :: out`</br>
-String containing pathname extension name.
+  * `character(*), intent(IN) :: path`
+    String containing pathname.
+  * `character(:), allocatable :: out`
+    String containing pathname extension name.
 #### EXAMPLE
-```Fortran
-> extname("/path/to/file.txt")
-"txt"
-> extname("/path/to/")
-""
-```
+  ```Fortran
+  > extname("/path/to/file.txt")
+  "txt"
+  > extname("/path/to/")
+  ""
+  ```
 ## `BACKUP` - Backup existing file
 #### DESCRIPTION
-Backup a existing file i.e. checks if `file` already exists and renames it to `#file.{n}#` where.
+  Backup a existing file i.e. checks if `file` already exists and renames it to `#file.{n}#` where.
 #### USAGE
-```Fortran
-call backup(file, status=status)
-```
+  ```Fortran
+  call backup(file, status=status)
+  ```
 #### PARAMETERS
-* `character(*), intent(IN) :: file`</br>
-File name to backup.
-* `integer, intent(OUT), OPTIONAL :: status`</br>
-Return status returns 0 on success and nonzero otherwise.
+  * `character(*), intent(IN) :: file`
+    File name to backup.
+  * `integer, intent(OUT), OPTIONAL :: status`
+    Return status returns 0 on success and nonzero otherwise.
 #### EXAMPLE
-```Fortran
-call backup("file.txt", status)
-if (status != 0) error stop "Backup failed."
-```
+  ```Fortran
+  call backup("file.txt", status)
+  if (status != 0) error stop "Backup failed."
+  ```
 --------------------------------------------------------------------------------
 # `SORT` - Sorting functions
-Module `xslib_sort` contains function sorting arrays.
-Supports `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER` input arrays.
+  Module `xslib_sort` contains function sorting arrays.
+  Supports `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER` input arrays.
 ## `SWAP` - Swap input values
 #### DESCRIPTION
-Swap values of `a` and `b`.
+  Swap values of `a` and `b`.
 #### USAGE
-```Fortran
-call swap (a, b)
-```
+  ```Fortran
+  call swap (a, b)
+  ```
 #### PARAMETERS
-* `class(*), intent(INOUT) :: a, b`</br>
-Values to be swapped. Must be same KIND.
+  * `class(*), intent(INOUT) :: a, b`
+    Values to be swapped. Must be same KIND.
 #### EXAMPLE
-```Fortran
-> print *, a, b
-1.0, 2.0
-> call swap(a, b)
-> print *, a, b
-2.0, 1.0
-```
+  ```Fortran
+  > print *, a, b
+  1.0, 2.0
+  > call swap(a, b)
+  > print *, a, b
+  2.0, 1.0
+  ```
 ## `SORT` - Sort input array
 #### DESCRIPTION
-Sort input array in ascending order. Different sorting algorithm can be
-selected: `quicksort`, `mergesort`, or `heapsort`. Default is `quicksort`.
-Order contains argument sort order from original array.
+  Sort input array in ascending order. Different sorting algorithm can be
+  selected: `quicksort`, `mergesort`, or `heapsort`. Default is `quicksort`.
+  Order contains argument sort order from original array.
 #### USAGE
-```Fortran
-call sort(array, kind=kind, order=order)
-```
+  ```Fortran
+  call sort(array, kind=kind, order=order)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(INOUT) :: array`</br>
-Input array to be sorted. Supports array of any KIND.
-* `character(*), intent(IN), OPTIONAL :: kind`</br>
-Sorting algorithm: `quicksort` (default), `mergesort`, or `heapsort`.
-* `integer, dimension(:), intent(OUT), OPTIONAL :: order`</br>
-Value order in sorted array in respect to original. Same size as `array`.
+  * `class(*), dimension(:), intent(INOUT) :: array`
+    Input array to be sorted. Supports array of any KIND.
+  * `character(*), intent(IN), OPTIONAL :: kind`
+    Sorting algorithm: `quicksort` (default), `mergesort`, or `heapsort`.
+  * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+    Value order in sorted array in respect to original. Same size as `array`.
 #### EXAMPLE
-```Fortran
-> array = [1.0, 4.0, 3.0, 2.0]
-> call sort (array, kind="quicksort", kind=order)
-> print *, array
-1.0, 2.0, 3.0, 4.0
-> print *, order
-1, 4, 3, 2
-```
+  ```Fortran
+  > array = [1.0, 4.0, 3.0, 2.0]
+  > call sort (array, kind="quicksort", kind=order)
+  > print *, array
+  1.0, 2.0, 3.0, 4.0
+  > print *, order
+  1, 4, 3, 2
+  ```
 ## `QSORT` - Sort input array using Quicksort
 #### DESCRIPTION
-Sort input array in ascending order using using [Quicksort](https://en.wikipedia.org/wiki/Quicksort)
-algorithm. Order contains argument sort order from original array.
+  Sort input array in ascending order using using [Quicksort](https://en.wikipedia.org/wiki/Quicksort)
+  algorithm. Order contains argument sort order from original array.
 #### USAGE
-```Fortran
-call qsort(array, order=order)
-```
+  ```Fortran
+  call qsort(array, order=order)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(INOUT) :: array`</br>
-Input array to be sorted. Supports array of any KIND.
-* `integer, dimension(:), intent(OUT), OPTIONAL :: order`</br>
-Value order in sorted array in respect to original. Same size as `array`.
+  * `class(*), dimension(:), intent(INOUT) :: array`
+    Input array to be sorted. Supports array of any KIND.
+  * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+    Value order in sorted array in respect to original. Same size as `array`.
 #### EXAMPLE
-```Fortran
-> array = [1.0, 4.0, 3.0, 2.0]
-> call qsort(array, kind=order)
-> print *, array
-1.0, 2.0, 3.0, 4.0
-> print *, order
-1, 4, 3, 2
-```
+  ```Fortran
+  > array = [1.0, 4.0, 3.0, 2.0]
+  > call qsort(array, kind=order)
+  > print *, array
+  1.0, 2.0, 3.0, 4.0
+  > print *, order
+  1, 4, 3, 2
+  ```
 ## `MSORT` - Sort input array using Merge sort
 #### DESCRIPTION
-Sort input array in ascending order using using [Merge sort](https://en.wikipedia.org/wiki/Merge_sort)
-algorithm. Order contains argument sort order from original array.
+  Sort input array in ascending order using using [Merge sort](https://en.wikipedia.org/wiki/Merge_sort)
+  algorithm. Order contains argument sort order from original array.
 #### USAGE
-```Fortran
-call msort(array, order=order)
-```
+  ```Fortran
+  call msort(array, order=order)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(INOUT) :: array`</br>
-Input array to be sorted. Supports array of any KIND.
-* `integer, dimension(:), intent(OUT), OPTIONAL :: order`</br>
-Value order in sorted array in respect to original. Same size as `array`.
+  * `class(*), dimension(:), intent(INOUT) :: array`
+    Input array to be sorted. Supports array of any KIND.
+  * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+    Value order in sorted array in respect to original. Same size as `array`.
 #### EXAMPLE
-```Fortran
-> array = [1.0, 4.0, 3.0, 2.0]
-> call msort(array, kind=order)
-> print *, array
-1.0, 2.0, 3.0, 4.0
-> print *, order
-1, 4, 3, 2
-```
+  ```Fortran
+  > array = [1.0, 4.0, 3.0, 2.0]
+  > call msort(array, kind=order)
+  > print *, array
+  1.0, 2.0, 3.0, 4.0
+  > print *, order
+  1, 4, 3, 2
+  ```
 ## `HSORT` - Sort input array using Merge sort
 #### DESCRIPTION
-Sort input array in ascending order using using [Heapsort](https://en.wikipedia.org/wiki/Heapsort)
-algorithm. Order contains argument sort order from original array.
+  Sort input array in ascending order using using [Heapsort](https://en.wikipedia.org/wiki/Heapsort)
+  algorithm. Order contains argument sort order from original array.
 #### USAGE
-```Fortran
-call hsort(array, order=order)
-```
+  ```Fortran
+  call hsort(array, order=order)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(INOUT) :: array`</br>
-Input array to be sorted. Supports array of any KIND.
-* `integer, dimension(:), intent(OUT), OPTIONAL :: order`</br>
-Value order in sorted array in respect to original. Same size as `array`.
+  * `class(*), dimension(:), intent(INOUT) :: array`
+    Input array to be sorted. Supports array of any KIND.
+  * `integer, dimension(:), intent(OUT), OPTIONAL :: order`
+    Value order in sorted array in respect to original. Same size as `array`.
 #### EXAMPLE
-```Fortran
-> array = [1.0, 4.0, 3.0, 2.0]
-> call hsort(array, kind=order)
-> print *, array
-1.0, 2.0, 3.0, 4.0
-> print *, order
-1, 4, 3, 2
-```
+  ```Fortran
+  > array = [1.0, 4.0, 3.0, 2.0]
+  > call hsort(array, kind=order)
+  > print *, array
+  1.0, 2.0, 3.0, 4.0
+  > print *, order
+  1, 4, 3, 2
+  ```
 --------------------------------------------------------------------------------
-# `STAT` - Basic statistics functions
-Module `xslib_stats` contains basic statistics functions. Supports both single and double precision (`DP`).
+# `STATS` - Basic statistics functions
+  Module `xslib_stats` contains basic statistics functions. Supports both single and double precision (`DP`).
 ## `NORMAL` - Random number on a normal distribution
 #### DESCRIPTION
-Return random samples from a normal (Gaussian) distribution. Random number sequence
-can be initialized with [`srand`](https://gcc.gnu.org/onlinedocs/gfortran/SRAND.html) function.
+  Return random samples from a normal (Gaussian) distribution. Random number sequence
+  can be initialized with [`srand`](https://gcc.gnu.org/onlinedocs/gfortran/SRAND.html) function.
 #### USAGE
-```Fortran
-out = normal(mu, sigma)
-```
+  ```Fortran
+  out = normal(mu, sigma)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: mu, sigma`</br>
-The mean `mu` and variance `sigma` values of normal distribution.
-* `real(ANY) :: out`</br>
-Random value on a normal distribution.
+  * `real(ANY), intent(IN) :: mu, sigma`
+    The mean `mu` and variance `sigma` values of normal distribution.
+  * `real(ANY) :: out`
+    Random value on a normal distribution.
 #### EXAMPLE
-```Fortran
-> normal(0.0, 1.0)
-0.123456
-```
+  ```Fortran
+  > normal(0.0, 1.0)
+  0.123456
+  ```
 ## `MEAN` - Arithmetic mean
 #### DESCRIPTION
-Return mean (average) value of an array.
+  Return arithmetic mean value of an array.
 #### USAGE
-```Fortran
-out = mean(array)
-```
+  ```Fortran
+  out = mean(array)
+  ```
 #### PARAMETERS
-* `class(*) dimension(:), intent(IN) :: array`</br>
-Input array of `REAL` or `INT` kind.
-* `real(ANY) :: out`</br>
-Average value of array.
+  * `class(*) dimension(:), intent(IN) :: array`
+    Input array of `REAL` or `INT` kind.
+  * `real(ANY) :: out`
+    Arithmetic mean of an array.
 #### EXAMPLE
-```Fortran
-> mean([1, 2, 3, 4, 5])
-3.0
-```
+  ```Fortran
+  > mean([1, 2, 3, 4, 5])
+  3.0
+  ```
+## `GMEAN` - Geometric mean
+#### DESCRIPTION
+  Return geometric mean value of an array.
+#### USAGE
+  ```Fortran
+  out = gmean(array)
+  ```
+#### PARAMETERS
+  * `class(*) dimension(:), intent(IN) :: array`
+    Input array of `REAL` or `INT` kind.
+  * `real(ANY) :: out`
+    Geometric mean of an array.
+#### EXAMPLE
+  ```Fortran
+  > gmean([1, 2, 3, 4, 5])
+  2.60517120
+  ```
+## `HMEAN` - Harmonic mean
+#### DESCRIPTION
+  Return harmonic mean value of an array.
+#### USAGE
+  ```Fortran
+  out = hmean(array)
+  ```
+#### PARAMETERS
+  * `class(*) dimension(:), intent(IN) :: array`
+    Input array of `REAL` or `INT` kind.
+  * `real(ANY) :: out`
+    Harmonic mean of an array.
+#### EXAMPLE
+  ```Fortran
+  > hmean([1, 2, 3, 4, 5])
+  2.60517120
+  ```
 ## `STDEV` - Get standard deviation
 #### DESCRIPTION
-Return standard deviation of an array.
+  Return standard deviation of an array.
 #### USAGE
-```Fortran
-out = stdev(array)
-```
+  ```Fortran
+  out = stdev(array)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(IN) :: array`</br>
-Input array of `REAL` or `INT` kind.
-* `real(ANY) :: out`</br>
-Standard deviation of array values.
+  * `class(*), dimension(:), intent(IN) :: array`
+    Input array of `REAL` or `INT` kind.
+  * `real(ANY) :: out`
+    Standard deviation of array values.
 #### EXAMPLE
-```Fortran
-> stdev([1, 2, 3, 4, 5])
-1.58114
-```
+  ```Fortran
+  > stdev([1, 2, 3, 4, 5])
+  1.58114
+  ```
 ## `VARIANCE` - Get variance of an array
 #### DESCRIPTION
-Calculate variance of an array.
+  Calculate variance of an array.
 #### USAGE
-```Fortran
-out = variance(array)
-```
+  ```Fortran
+  out = variance(array)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(IN) :: array`</br>
-Input array of kind `INT` or `REAL`.
-* `real(ANY) :: out`</br>
-Variance of array values.
+  * `class(*), dimension(:), intent(IN) :: array`
+    Input array of kind `INT` or `REAL`.
+  * `real(ANY) :: out`
+    Variance of array values.
 #### EXAMPLE
-```Fortran
-> variance([1, 2, 3, 4, 5])
-2.5
-```
+  ```Fortran
+  > variance([1, 2, 3, 4, 5])
+  2.5
+  ```
+## `MEAN` - Median value
+#### DESCRIPTION
+  Return the median (middle value) of numeric data, using the common _mean of middle two_ method.
+#### USAGE
+  ```Fortran
+  out = median(array)
+  ```
+#### PARAMETERS
+  * `class(*) dimension(:), intent(IN) :: a`
+    Input array of `REAL` or `INT` kind.
+  * `real(ANY) :: out`
+    Median value of an array.
+#### EXAMPLE
+  ```Fortran
+  > median([1, 2, 3, 4, 5])
+  3.0
+  > median([1, 2, 3, 4])
+  2.5
+  ```
 ## `WELFORD` - Welford's online variance
 #### DESCRIPTION
-[Welford's online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm)
-for calculating variance. Final variance must be "corrected" with `welford_finalize` call.
+  [Welford's online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm)
+  for calculating variance. Final variance must be "corrected" with `welford_finalize` call.
 #### USAGE
-```Fortran
-call welford(array, mean, variance, n)
-```
+  ```Fortran
+  call welford(array, mean, variance, n)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(IN) :: array`</br>
-Input array of kind `INT` or `REAL`.
-* `real(ANY), dimension(:), intent(INOUT) :: mean, variance`</br>
-Mean value and variance of array values. Must be same size as `array`.
-* `integer, intent(IN) :: n`</br>
-Sequential number of an array. Must be non-zero.
+  * `class(*), dimension(:), intent(IN) :: array`
+    Input array of kind `INT` or `REAL`.
+  * `real(ANY), dimension(:), intent(INOUT) :: mean, variance`
+    Mean value and variance of array values. Must be same size as `array`.
+  * `integer, intent(IN) :: n`
+    Sequential number of an array. Must be non-zero.
 #### EXAMPLE
-```Fortran
-> do i = 1, NP
->   call random_number(array)
->   call welford(array, mean, variance, i)
-> end do
-> call welford_finalize(mean, variance, NP)
-```
+  ```Fortran
+  > do i = 1, NP
+  >   call random_number(array)
+  >   call welford(array, mean, variance, i)
+  > end do
+  > call welford_finalize(mean, variance, NP)
+  ```
 ## `WELFORD_FINALIZE` - Correct Welford's online variance
 #### DESCRIPTION
-Correct final variance of Welford's online algorithm.
+  Correct final variance of Welford's online algorithm.
 #### USAGE
-```Fortran
-call welford_finalize(mean, variance, n)
-```
+  ```Fortran
+  call welford_finalize(mean, variance, n)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(:), intent(INOUT) :: mean, variance`</br>
-Mean value and variance of arrays. Must be same size.
-* `integer, intent(IN) :: n`</br>
-Total number of averaged arrays. Must be non-zero.
+  * `real(ANY), dimension(:), intent(INOUT) :: mean, variance`
+    Mean value and variance of arrays. Must be same size.
+  * `integer, intent(IN) :: n`
+    Total number of averaged arrays. Must be non-zero.
 #### EXAMPLE
-```Fortran
-> do i = 1, NP
->   call random_number(array)
->   call welford(array, mean, variance, i)
-> end do
-> call welford_finalize(mean, variance, NP)
-```
+  ```Fortran
+  > do i = 1, NP
+  >   call random_number(array)
+  >   call welford(array, mean, variance, i)
+  > end do
+  > call welford_finalize(mean, variance, NP)
+  ```
 ## `HISTOGRAM` - Get histogram of an array.
 #### DESCRIPTION
-Calculate histogram distribution of an array.
+  Calculate histogram distribution of an array.
 #### USAGE
-```Fortran
-out = histogram(array, nbins, min=min, max=max)
-```
+  ```Fortran
+  out = histogram(array, nbins, min=min, max=max)
+  ```
 #### PARAMETERS
-* `class(*), dimension(:), intent(IN) :: array`</br>
-Input array of kind `INT` or `REAL`.
-* `integer, intent(IN) :: nbins`</br>
-Number of equal-width bins in the given range.
-* `real, intent(IN), OPTIONAL :: min, max`</br>
-The lower and upper range of the bins. If not provided, ranges are
-simply: `min(array)` and `max(array)`, respectively.
-* `integer, dimension(nbins) :: out`</br>
-The values of the histogram.
+  * `class(*), dimension(:), intent(IN) :: array`
+    Input array of kind `INT` or `REAL`.
+  * `integer, intent(IN) :: nbins`
+    Number of equal-width bins in the given range.
+  * `real, intent(IN), OPTIONAL :: min, max`
+    The lower and upper range of the bins. If not provided, ranges are
+    simply: `min(array)` and `max(array)`, respectively.
+  * `integer, dimension(nbins) :: out`
+    The values of the histogram.
 #### EXAMPLE
-```Fortran
-> call random_number(array)
-> histogram(array, 5, MIN=0.0, MAX=1.0)
-[9, 10, 8, 11, 11]
-```
+  ```Fortran
+  > call random_number(array)
+  > histogram(array, 5, MIN=0.0, MAX=1.0)
+  [9, 10, 8, 11, 11]
+  ```
 --------------------------------------------------------------------------------
 # `TIME` - Time functions
-Module `xslib_time` contains functions for timing and displaying time.
+  Module `xslib_time` contains functions for timing and displaying time.
 ## `WTIME` - Precise time
 #### DESCRIPTION
-Returns precise wall time in seconds since an unspecified time. The absolute
-value of `wtime` is meaningless, only differences between subsequent calls to
-this function should be used.
+  Returns precise wall time in seconds since an unspecified time. The absolute
+  value of `wtime` is meaningless, only differences between subsequent calls to
+  this function should be used.
 #### USAGE
-```Fortran
-out = wtime()
-```
+  ```Fortran
+  out = wtime()
+  ```
 #### PARAMETERS
-* `real(REAL64) :: out`</br>
-Precise time in seconds.
+  * `real(REAL64) :: out`
+    Precise time in seconds.
 #### EXAMPLE
-```Fortran
-> wtime()
-1234.567890000
-```
+  ```Fortran
+  > wtime()
+  1234.567890000
+  ```
 ## `WRITETIME` - Write precise time
 #### DESCRIPTION
-Transforms time in seconds from `wtime` or `OMP_get_wtime` to string
-in format `ddd-hh:mm:ss.sss`. Format can be shorter depending on the length of time.
+  Transforms time in seconds from `wtime` or `OMP_get_wtime` to string
+  in format `ddd-hh:mm:ss.sss`. Format can be shorter depending on the length of time.
 #### USAGE
-```Fortran
-out = writeTime(time)
-```
+  ```Fortran
+  out = writeTime(time)
+  ```
 #### PARAMETERS
-* `real(REAL64), intent(IN) :: time`</br>
-Precise time in seconds.
-* `character(64) :: out`</br>
-Time string in format `ddd-hh:mm:ss.sss`.
+  * `real(REAL64), intent(IN) :: time`
+    Precise time in seconds.
+  * `character(64) :: out`
+    Time string in format `ddd-hh:mm:ss.sss`.
 #### EXAMPLE
-```Fortran
-> writeTime(151501.992d0)
-"1-18:05:01.992"
-```
+  ```Fortran
+  > writeTime(151501.992d0)
+  "1-18:05:01.992"
+  ```
 ## `MSLEEP` - Suspend execution for time interval
 #### DESCRIPTION
-Suspends execution for specified millisecond interval.
+  Suspends execution for specified millisecond interval.
 #### USAGE
-```Fortran
-call msleep(time)
-```
+  ```Fortran
+  call msleep(time)
+  ```
 #### PARAMETERS
-* `integer, intent(IN) :: time`</br>
-Time interval in milliseconds.
+  * `integer, intent(IN) :: time`
+    Time interval in milliseconds.
 #### EXAMPLE
-```Fortran
-> call msleep(1000)
-```
+  ```Fortran
+  > call msleep(1000)
+  ```
 --------------------------------------------------------------------------------
 # `VECTOR` - Vector functions
-Module `xslib_vector` contains function for vector operations. Default dimension of vectors is `DIM = 3`.
-Supports both single and double precision (`DP`).
+  Module `xslib_vector` contains function for vector operations. Default dimension of vectors is `DIM = 3`.
+  Supports both single and double precision (`DP`).
 ## `CROSS` - Vector cross product
 #### DESCRIPTION
-Return the cross product of two vectors i.e. `u × v`. Note that
-cross product is anti-commutative *i.e.* `(u × v) = -(v × u)`.
+  Return the cross product of two vectors i.e. `u × v`. Note that
+  cross product is anti-commutative *i.e.* `(u × v) = -(v × u)`.
 #### USAGE
-```Fortran
-out = cross(u, v)
-```
+  ```Fortran
+  out = cross(u, v)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: u, v`</br>
-Input vectors.
-* `real(ANY), dimension(DIM) :: out`</br>
-Output vector.
+  * `real(ANY), dimension(DIM), intent(IN) :: u, v`
+    Input vectors.
+  * `real(ANY), dimension(DIM) :: out`
+    Output vector.
 #### EXAMPLE
-```Fortran
-> cross([1.0, 0.0, 0.0], [0.0, 1.0, 0.0])
-[0.0, 0.0, 1.0]
-```
+  ```Fortran
+  > cross([1.0, 0.0, 0.0], [0.0, 1.0, 0.0])
+  [0.0, 0.0, 1.0]
+  ```
 ## `ROTATE` - Vector rotation
 #### DESCRIPTION
-Rotate vector by specified angle `angle` around vector `vec` or axis.
+  Rotate vector by specified angle `angle` around vector `vec` or axis.
 #### USAGE
-```Fortran
-out = rotate(v, vector, angle)
-out = rotate(v, axis, angle)
-```
+  ```Fortran
+  out = rotate(v, vector, angle)
+  out = rotate(v, axis, angle)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: v`</br>
-Input vector.
-* `real(ANY), dimension(DIM), intent(IN) :: vector`</br>
-Vector of rotation.
-* `character, intent(IN) :: axis`</br>
-Axis of rotation: `x`, `y`, or `z`.
-* `real(ANY), intent(IN) :: angle`</br>
-Angle of rotation in radians.
-* `real(ANY), dimension(DIM) :: out`</br>
-Output vector.
+  * `real(ANY), dimension(DIM), intent(IN) :: v`
+    Input vector.
+  * `real(ANY), dimension(DIM), intent(IN) :: vector`
+    Vector of rotation.
+  * `character, intent(IN) :: axis`
+    Axis of rotation: `x`, `y`, or `z`.
+  * `real(ANY), intent(IN) :: angle`
+    Angle of rotation in radians.
+  * `real(ANY), dimension(DIM) :: out`
+    Output vector.
 #### EXAMPLE
-```Fortran
-> rotate([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], PI/2)
-[0.0, 0.0, -1.0]
-> rotate([1.0, 0.0, 0.0], "y", PI/2)
-[0.0, 0.0, -1.0]
-```
+  ```Fortran
+  > rotate([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], PI/2)
+  [0.0, 0.0, -1.0]
+  > rotate([1.0, 0.0, 0.0], "y", PI/2)
+  [0.0, 0.0, -1.0]
+  ```
 ## `DEG2RAD` - Degrees to radians
 #### DESCRIPTION
-Convert angles from degrees to radians.
+  Convert angles from degrees to radians.
 #### USAGE
-```Fortran
-out = deg2rad(angle)
-```
+  ```Fortran
+  out = deg2rad(angle)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: angle`</br>
-Input angle in degrees.
-* `real(ANY) :: out`</br>
-Output angle in radians.
+  * `real(ANY), intent(IN) :: angle`
+    Input angle in degrees.
+  * `real(ANY) :: out`
+    Output angle in radians.
 #### EXAMPLE
-```Fortran
-> deg2rad(180.0)
-DIM.14159274
-```
+  ```Fortran
+  > deg2rad(180.0)
+  DIM.14159274
+  ```
 ## `RAD2DEG` - Radians to degrees
 #### DESCRIPTION
-Convert angles from radians to degrees.
+  Convert angles from radians to degrees.
 #### USAGE
-```Fortran
-out = rad2deg(angle)
-```
+  ```Fortran
+  out = rad2deg(angle)
+  ```
 #### PARAMETERS
-* `real(ANY), intent(IN) :: angle`</br>
-Input angle in radians.
-* `real(ANY) :: out`</br>
-Output angle in degrees.
+  * `real(ANY), intent(IN) :: angle`
+    Input angle in radians.
+  * `real(ANY) :: out`
+    Output angle in degrees.
 #### EXAMPLE
-```Fortran
-> rad2deg(PI)
-180.0
-```
+  ```Fortran
+  > rad2deg(PI)
+  180.0
+  ```
 ## `CRT2SPH` - Cartesian to spherical
 #### DESCRIPTION
-Convert vector from cartesian to spherical coordinate system: `[x, y, z]` → `[r, theta, phi]`.
+  Convert vector from cartesian to spherical coordinate system: `[x, y, z]` → `[r, theta, phi]`.
 #### USAGE
-```Fortran
-out = crt2sph(v)
-```
+  ```Fortran
+  out = crt2sph(v)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: v`</br>
-Input vector in cartesian coordinate system.
-* `real(ANY) :: out`</br>
-Output vector in spherical coordinate system.
+  * `real(ANY), dimension(DIM), intent(IN) :: v`
+    Input vector in cartesian coordinate system.
+  * `real(ANY) :: out`
+    Output vector in spherical coordinate system.
 #### EXAMPLE
-```Fortran
-> crt2sph([1.0, 0.0, 0.0])
-[1.0, 1.5707964, 0.0]
-```
+  ```Fortran
+  > crt2sph([1.0, 0.0, 0.0])
+  [1.0, 1.5707964, 0.0]
+  ```
 ## `SPH2CRT` - Spherical to cartesian
 #### DESCRIPTION
-Convert vector from spherical to cartesian coordinate system: `[r, theta, phi]` → `[x, y, z]`.
+  Convert vector from spherical to cartesian coordinate system: `[r, theta, phi]` → `[x, y, z]`.
 #### USAGE
-```Fortran
-out = sph2crt(v)
-```
+  ```Fortran
+  out = sph2crt(v)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: v`</br>
-Input vector in spherical coordinate system.
-* `real(ANY) :: out`</br>
-Output vector in cartesian coordinate system.
+  * `real(ANY), dimension(DIM), intent(IN) :: v`
+    Input vector in spherical coordinate system.
+  * `real(ANY) :: out`
+    Output vector in cartesian coordinate system.
 #### EXAMPLE
-```Fortran
-> sph2crt([1.0, PI/2, 0.0])
-[1.0, 0.0, 0.0]
-```
+  ```Fortran
+  > sph2crt([1.0, PI/2, 0.0])
+  [1.0, 0.0, 0.0]
+  ```
 ## `CRT2CYL` - Cartesian to cylindrical
 #### DESCRIPTION
-Convert vector from cartesian to cylindrical coordinate system: `[x, y, z]` → `[r, theta, z]`.
-<!-- TODO: Add image of cylindrical coordinate system -->
+  Convert vector from cartesian to cylindrical coordinate system: `[x, y, z]` → `[r, theta, z]`.
+  <!-- TODO: Add image of cylindrical coordinate system -->
 #### USAGE
-```Fortran
-out = crt2cyl(v)
-```
+  ```Fortran
+  out = crt2cyl(v)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: v`</br>
-Input vector in cartesian coordinate system.
-* `real(ANY) :: out`</br>
-Output vector in cylindrical coordinate system.
+  * `real(ANY), dimension(DIM), intent(IN) :: v`
+    Input vector in cartesian coordinate system.
+  * `real(ANY) :: out`
+    Output vector in cylindrical coordinate system.
 #### EXAMPLE
-```Fortran
-> crt2cyl([0.0, 1.0, 0.0])
-[1.0, 1.5707964, 0.0]
-```
+  ```Fortran
+  > crt2cyl([0.0, 1.0, 0.0])
+  [1.0, 1.5707964, 0.0]
+  ```
 ## `CYL2CRT` - Cylindrical to cartesian
 #### DESCRIPTION
-Convert vector from cylindrical to cartesian coordinate system: `[r, theta, z]` → `[x, y, z]`.
+  Convert vector from cylindrical to cartesian coordinate system: `[r, theta, z]` → `[x, y, z]`.
 #### USAGE
-```Fortran
-out = cyl2crt(v)
-```
+  ```Fortran
+  out = cyl2crt(v)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: v`</br>
-Input vector in cylindrical coordinate system.
-* `real(ANY) :: out`</br>
-Output vector in cartesian coordinate system.
+  * `real(ANY), dimension(DIM), intent(IN) :: v`
+    Input vector in cylindrical coordinate system.
+  * `real(ANY) :: out`
+    Output vector in cartesian coordinate system.
 #### EXAMPLE
-```Fortran
-> cyl2crt([1.0, PI/2, 0.0])
-[0.0, 1.0, 0.0]
-```
+  ```Fortran
+  > cyl2crt([1.0, PI/2, 0.0])
+  [0.0, 1.0, 0.0]
+  ```
 ## `DISTANCE` - Vector distance
 #### DESCRIPTION
-Calculates distance (norm) between two points (vectors).
+  Calculates distance (norm) between two points (vectors).
 #### USAGE
-```Fortran
-out = distance(a, b)
-```
+  ```Fortran
+  out = distance(a, b)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: a, b`</br>
-Input vector points.
-* `real(ANY) :: out`</br>
-Output distance.
+  * `real(ANY), dimension(DIM), intent(IN) :: a, b`
+    Input vector points.
+  * `real(ANY) :: out`
+    Output distance.
 #### EXAMPLE
-```Fortran
-> distance([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-1.73205
-```
+  ```Fortran
+  > distance([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+  1.73205
+  ```
 ## `ANGLE` - Vector angle
 #### DESCRIPTION
-Calculates angle between three points (vectors).
+  Calculates angle between three points (vectors).
 #### USAGE
-```Fortran
-out = angle(a, b, c)
-```
+  ```Fortran
+  out = angle(a, b, c)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: a, b, c`</br>
-Input vector points.
-* `real(ANY) :: out`</br>
-Output angle in radians.
+  * `real(ANY), dimension(DIM), intent(IN) :: a, b, c`
+    Input vector points.
+  * `real(ANY) :: out`
+    Output angle in radians.
 #### EXAMPLE
-```Fortran
-> angle([1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0])
-1.57079637
-```
+  ```Fortran
+  > angle([1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0])
+  1.57079637
+  ```
 ## `DIHEDRAL` - Vector dihedral angle
 #### DESCRIPTION
-Calculates dihedral angle (theta) between four points (vectors).
+  Calculates dihedral angle (theta) between four points (vectors).
 #### USAGE
-```Fortran
-out = dihedral(a, b, c, d)
-```
+  ```Fortran
+  out = dihedral(a, b, c, d)
+  ```
 #### PARAMETERS
-* `real(ANY), dimension(DIM), intent(IN) :: a, b, c, d`</br>
-Input vector points.
-* `real(ANY) :: out`</br>
-Output dihedral angle in radians.
+  * `real(ANY), dimension(DIM), intent(IN) :: a, b, c, d`
+    Input vector points.
+  * `real(ANY) :: out`
+    Output dihedral angle in radians.
 #### EXAMPLE
-```Fortran
-> dihedral([0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0])
-1.57079637
-```
+  ```Fortran
+  > dihedral([0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0])
+  1.57079637
+  ```
 --------------------------------------------------------------------------------
 # `XMALLOC` - Memory allocation
-Modules `xslib_xmalloc` contains functions for memory allocation.
-Currently supported types are: `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER`
+  Modules `xslib_xmalloc` contains functions for memory allocation.
+  Currently supported types are: `INT32`, `INT64`, `REAL32`, `REAL64`, and `CHARACTER`
 ## `XMALLOC` - Allocate memory
 #### DESCRIPTION
-Allocates a block of memory for an array of num. elements. It's just
-a nice wrapper for built-in allocation but with error handling.
+  Allocates a block of memory for an array of num. elements. It's just
+  a nice wrapper for built-in allocation but with error handling.
 #### USAGE
-```Fortran
-call xmalloc(object, spec, stat=stat, errmsg=errmsg)
-```
+  ```Fortran
+  call xmalloc(object, spec, stat=stat, errmsg=errmsg)
+  ```
 #### PARAMETERS
-* `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`</br>
-Object to be allocated.
-`integer, dimension(:), intent(IN) :: spec`
-Object shape specification. Must be same size as `rank(object)`.
-* `integer, intent(OUT), OPTIONAL :: stat`</br>
-Error status code. Returns zero if no error.
-* `character(*), intent(OUT), OPTIONAL :: errmsg`</br>
-Error status message. Empty if no error.
+  * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+    Object to be allocated.
+  `integer, dimension(:), intent(IN) :: spec`
+    Object shape specification. Must be same size as `rank(object)`.
+  * `integer, intent(OUT), OPTIONAL :: stat`
+    Error status code. Returns zero if no error.
+  * `character(*), intent(OUT), OPTIONAL :: errmsg`
+    Error status message. Empty if no error.
 #### EXAMPLE
-```Fortran
-> call xmalloc(array, [10, 10], STAT=status, ERRMSG=message)
-```
+  ```Fortran
+  > call xmalloc(array, [10, 10], STAT=status, ERRMSG=message)
+  ```
 ## `XCALLOC` - Allocate and initialize memory
 #### DESCRIPTION
-Allocates and initializes a block of memory for an array of num. elements.
-It's just a nice wrapper for built-in allocation but with error handling.
+  Allocates and initializes a block of memory for an array of num. elements.
+  It's just a nice wrapper for built-in allocation but with error handling.
 #### USAGE
-```Fortran
-call xcalloc(object, spec, stat=stat, errmsg=errmsg)
-```
+  ```Fortran
+  call xcalloc(object, spec, stat=stat, errmsg=errmsg)
+  ```
 #### PARAMETERS
-* `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`</br>
-Object to be allocated.
-`integer, dimension(:), intent(IN) :: spec`
-Object shape specification. Must be same size as `rank(object)`.
-* `integer, intent(OUT), OPTIONAL :: stat`</br>
-Error status code. Returns zero if no error.
-* `character(*), intent(OUT), OPTIONAL :: errmsg`</br>
-Error status message. Empty if no error.
+  * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+    Object to be allocated.
+  `integer, dimension(:), intent(IN) :: spec`
+    Object shape specification. Must be same size as `rank(object)`.
+  * `integer, intent(OUT), OPTIONAL :: stat`
+    Error status code. Returns zero if no error.
+  * `character(*), intent(OUT), OPTIONAL :: errmsg`
+    Error status message. Empty if no error.
 #### EXAMPLE
-```Fortran
-> call xcalloc(array, [10, 10], STAT=status, ERRMSG=message)
-```
+  ```Fortran
+  > call xcalloc(array, [10, 10], STAT=status, ERRMSG=message)
+  ```
 ## `XREALLOC` - Reallocate memory
 #### DESCRIPTION
-Changes the size of memory block. Allocates a new memory block if
-not allocated. The content of the memory block is preserved up to
-the lesser of the new and old sizes, even if the block is moved to
-a new location. If the new size is larger, the value of the newly
-allocated portion is indeterminate.
+  Changes the size of memory block. Allocates a new memory block if
+  not allocated. The content of the memory block is preserved up to
+  the lesser of the new and old sizes, even if the block is moved to
+  a new location. If the new size is larger, the value of the newly
+  allocated portion is indeterminate.
 #### USAGE
-```Fortran
-call xrealloc(object, spec, stat=stat, errmsg=errmsg)
-```
+  ```Fortran
+  call xrealloc(object, spec, stat=stat, errmsg=errmsg)
+  ```
 #### PARAMETERS
-* `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`</br>
-Object to be allocated.
-* `integer, dimension(:), intent(IN) :: spec`</br>
-Object shape specification. Must be same size as `rank(object)`.
-* `integer, intent(OUT), OPTIONAL :: stat`</br>
-Error status code. Returns zero if no error.
-* `character(*), intent(OUT), OPTIONAL :: errmsg`</br>
-Error status message. Empty if no error.
+  * `class(*), ALLOCATABLE, dimension(..), intent(INOUT) :: object`
+    Object to be allocated.
+  * `integer, dimension(:), intent(IN) :: spec`
+    Object shape specification. Must be same size as `rank(object)`.
+  * `integer, intent(OUT), OPTIONAL :: stat`
+    Error status code. Returns zero if no error.
+  * `character(*), intent(OUT), OPTIONAL :: errmsg`
+    Error status message. Empty if no error.
 #### EXAMPLE
-```Fortran
-> call xrealloc(array, [10, 10], STAT=status, ERRMSG=message)
-```
+  ```Fortran
+  > call xrealloc(array, [10, 10], STAT=status, ERRMSG=message)
+  ```
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
