@@ -23,7 +23,7 @@ module xslib_dict
     public :: dict_t
 
     ! %%%
-    ! #  `LIST` - Dictionary (hash table)
+    ! # `DICT` - Dictionary (hash table)
     !   Module `xslib_dict` contains primitive of unlimited polymorphic dictionary (hash table). It supports
     !   `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER(*)` variable types (single or double precision).
     !   To add new custom derived TYPE support you only have to write extension to `hash_function` and `copy` functions.
@@ -53,7 +53,7 @@ module xslib_dict
     ! Initial bucket size and max number of items in bucket
     ! TODO: Optimize this values!  
     integer, parameter :: INIT_BUCKETS = 128
-    integer, parameter :: MAX_LENGTH = 64
+    integer, parameter :: MAX_LENGTH = 32
 
     type :: dict_t
         ! %%%
@@ -88,8 +88,8 @@ module xslib_dict
 
 contains
 
-! Return DJB2 hash for a given key
 function hash_function (key) result (hash)
+    !! Return DJB2 hash for a given key
     implicit none
     class(*), intent(in) :: key
     integer(HDP) :: hash
@@ -124,19 +124,19 @@ function hash_function (key) result (hash)
 end function hash_function
 
 
-! Copy value from src to dest of two unlimited polymorphic variables
 subroutine copy (src, dest, strict, stat, errmsg)
+    !! Copy value from src to dest of two unlimited polymorphic variables.
     implicit none
     class(*), intent(IN) :: src
-    !> Unlimited polymorphic variable to copy FROM.
+    !! Unlimited polymorphic variable to copy FROM.
     class(*), intent(OUT) :: dest
-    !> Unlimited polymorphic variable to copy TO.
+    !! Unlimited polymorphic variable to copy TO.
     logical, intent(IN), OPTIONAL :: strict
-    !> Raise error if not same type. Default: .False.
+    !! Raise error if not same type. Default: .False.
     integer, intent(OUT), OPTIONAL :: stat
-    !> Error status code. Returns zero if no error.
+    !! Error status code. Returns zero if no error.
     character(*), intent(OUT), OPTIONAL :: errmsg
-    !> Error message.
+    !! Error message.
     character(256) :: buffer, message
     integer :: status
 
@@ -339,43 +339,43 @@ subroutine copy (src, dest, strict, stat, errmsg)
 end subroutine copy
 
 
-! Create a new link w/ key-value pair
 function link_constructor (hash, key, value) result (link)
-  implicit none
-  class(link_t), pointer :: link
-  integer(HDP), intent(IN) :: hash
-  class(*), intent(IN) :: key, value
+    !! Create a new link w/ key-value pair
+    implicit none
+    class(link_t), pointer :: link
+    integer(HDP), intent(IN) :: hash
+    class(*), intent(IN) :: key, value
 
-  allocate (link)
-  link%hash = hash
-  allocate (link%key, SOURCE=key)
-  allocate (link%value, SOURCE=value)
+    allocate (link)
+    link%hash = hash
+    allocate (link%key, SOURCE=key)
+    allocate (link%value, SOURCE=value)
 
 end function link_constructor
 
 
-! Destroy link and return link's next pointer
 function link_destructor (link) result (next)
-  implicit none
-  class(link_t), pointer :: link
-  class(link_t), pointer :: next
+    !! Destroy link and return link's next pointer
+    implicit none
+    class(link_t), pointer :: link
+    class(link_t), pointer :: next
 
-  next => null()
-  if (associated(link)) then
-    next => link%next
-    deallocate (link%key, link%value)
-    link%key => null()
-    link%value => null()
-    link%next => null()
-    deallocate (link)
-    link => null()
-  end if
+    next => null()
+    if (associated(link)) then
+        next => link%next
+        deallocate (link%key, link%value)
+        link%key => null()
+        link%value => null()
+        link%next => null()
+        deallocate (link)
+        link => null()
+    end if
 
 end function link_destructor
 
 
-! Append or replace key-value pair to the list
 subroutine list_append (this, hash, key, value)
+    !! Append or replace key-value pair to the list
     implicit none
     class(list_t) :: this
     integer(HDP) :: hash
@@ -417,8 +417,8 @@ subroutine list_append (this, hash, key, value)
 end subroutine list_append
 
 
-! Removes all key-value pairs from the list
 subroutine list_clear (this)
+    !! Removes all key-value pairs from the list
     implicit none
     class(list_t) :: this
     class(link_t), pointer :: curr => null()
@@ -434,8 +434,8 @@ subroutine list_clear (this)
 end subroutine list_clear
 
 
-! Removes key-value pair with specified hash value from the list
 subroutine list_pop (this, hash)
+    !! Removes key-value pair with specified hash value from the list
     implicit none
     class(list_t) :: this
     integer, intent(in) :: hash
@@ -484,8 +484,8 @@ subroutine list_pop (this, hash)
 end subroutine list_pop
 
 
-! Get key-value with pair from the list
 subroutine list_get (this, hash, key, value)
+    !! Get key-value with pair from the list
     implicit none
     class(list_t) :: this
     integer, intent(IN) :: hash
@@ -511,10 +511,10 @@ subroutine list_get (this, hash, key, value)
 end subroutine list_get
 
 
-! Clear all key-value pairs from dictionary
 subroutine dict_clear (this)
+    !! Remove all items from dictionary
     ! %%%
-    ! ## `DICT_T%CLEAR` - Removes all items from dictionary
+    ! ## `DICT%CLEAR` - Remove all items from dictionary
     ! #### DESCRIPTION
     !   Removes ALL items from dictionary.
     ! #### USAGE
@@ -543,8 +543,8 @@ subroutine dict_clear (this)
 end subroutine dict_clear
 
 
-! Get key-value pair from the n-th position in dictionary
 subroutine dict_fetch (this, pos, key, value)
+    !! Get key-value pair from the n-th position in dictionary
     implicit none
     class(dict_t) :: this
     integer, intent(IN) :: pos
@@ -583,10 +583,10 @@ subroutine dict_fetch (this, pos, key, value)
 end subroutine dict_fetch
 
 
-! Get value from dictionary
 subroutine dict_get (this, key, value, default)
+    !! Get value from dictionary
     ! %%%
-    ! ## `DICT_T%GET` - Get value from dictionary
+    ! ## `DICT%GET` - Get value from dictionary
     ! #### DESCRIPTION
     !   Get the value of the item with the specified key. Returns default value if item is not
     !   in the dictionary if present, other raises an error.
@@ -615,15 +615,18 @@ subroutine dict_get (this, key, value, default)
     implicit none
     class(dict_t) :: this
     class(*), intent(IN) :: key
+    !! The key of the item you want to return the value from.
     class(*), intent(OUT) :: value
+    !! A value of specified key.
     class(*), intent(IN), optional :: default
+    !! A value to return if the specified key does not exist. Default: None
     class(*), pointer :: k, v
     integer(HDP) :: hash
     integer :: i
 
     if (allocated(this%bucket)) then
         hash = this%hash_function(key)
-        i = modulo(hash, this%n_buckets)
+        i = modulo(hash, this%n_buckets) + 1
         call this%bucket(i)%get(hash, k, v)
     end if
 
@@ -638,10 +641,10 @@ subroutine dict_get (this, key, value, default)
 end subroutine dict_get
 
 
-! Get n-th key-value pair from dictionary
 subroutine dict_items (this, pos, key, value)
+    !! Get n-th item from dictionary
     ! %%%
-    ! ## `DICT_T%ITEMS` - Get n-th item from dictionary
+    ! ## `DICT%ITEMS` - Get n-th item from dictionary
     ! #### DESCRIPTION
     !   Get the key-value item pair from `pos`-th position in dictionary. Raises error
     !   if index is out of range. Order of items in dictionary is not the same as order
@@ -680,10 +683,10 @@ subroutine dict_items (this, pos, key, value)
 end subroutine dict_items
 
 
-! Get n-th key from dictionary
 subroutine dict_keys (this, pos, key)
+    !! Get n-th key from dictionary
     ! %%%
-    ! ## `DICT_T%KEYS` - Get n-th key from dictionary
+    ! ## `DICT%KEYS` - Get n-th key from dictionary
     ! #### DESCRIPTION
     !   Get the key from `pos`-th position in dictionary. Raises error if index is out
     !   of range. Order of items in dictionary is not the same as order they were put in.
@@ -718,10 +721,10 @@ subroutine dict_keys (this, pos, key)
 end subroutine dict_keys
 
 
-! Get number of items stored in dictionary
 function dict_len (this) result (length)
+    !! Count number of items in the dictionary
     ! %%%
-    ! ## `DICT_T%LEN` - Count number of items in the dictionary
+    ! ## `DICT%LEN` - Count number of items in the dictionary
     ! #### DESCRIPTION
     !   Count number of items in the dictionary
     ! #### USAGE
@@ -754,12 +757,12 @@ function dict_len (this) result (length)
 end function dict_len
 
 
-! Put value to dictionary
 subroutine dict_put (this, key, value)
+    !! Add new item to dictionary
     ! %%%
-    ! ## `DICT_T%PUT` - Add item to dictionary
+    ! ## `DICT%PUT` - Add new item to dictionary
     ! #### DESCRIPTION
-    !   Add the value of the item with the specified key. If key is already exists,
+    !   Add the value of the item with the specified key. If key already exists,
     !   value will be replaced.
     ! #### USAGE
     !   ```Fortran
@@ -794,21 +797,22 @@ subroutine dict_put (this, key, value)
 
     ! Add entry to bucker
     hash = this%hash_function(key)
-    i = modulo(hash, this%n_buckets)
+    i = modulo(hash, this%n_buckets) + 1
     call this%bucket(i)%append(hash, key, value)
 
     ! Check if bucket is full and resize if exceeded
     if (this%bucket(i)%length > MAX_LENGTH) then
+        print *, "resizing to:", 2 * this%n_buckets
         call this%resize(2 * this%n_buckets)
     end if
 
 end subroutine dict_put
 
 
-! Remove value from dictionary
 subroutine dict_remove (this, key)
+    !! Remove item from dictionary
     ! %%%
-    ! ## `DICT_T%REMOVE` - Remove item from dictionary
+    ! ## `DICT%REMOVE` - Remove item from dictionary
     ! #### DESCRIPTION
     !   Removes the element with the specified key from dictionary
     ! #### USAGE
@@ -835,15 +839,15 @@ subroutine dict_remove (this, key)
 
     if (allocated(this%bucket)) then
         hash = this%hash_function(key)
-        i = modulo(hash, this%n_buckets)
+        i = modulo(hash, this%n_buckets) + 1
         call this%bucket(i)%pop(hash)
     end if
 
 end subroutine dict_remove
 
 
-! Resize dictionary bucket
 subroutine dict_resize (this, new_size)
+    !! Resize dictionary bucket
     implicit none
     class(dict_t), intent(INOUT) :: this
     integer, intent(IN) :: new_size
@@ -864,8 +868,10 @@ subroutine dict_resize (this, new_size)
         do i = 1, this%n_buckets
             curr => this%bucket(i)%first
             do while (associated(curr))
-                j = modulo(curr%hash, new_size)
+                j = modulo(curr%hash, new_size) + 1
                 call new_bucket(j)%append(curr%hash, curr%key, curr%value)
+                ! curr => link_destructor(curr)
+                curr => curr%next
             end do
             call this%bucket(i)%clear()
         end do
@@ -878,10 +884,10 @@ subroutine dict_resize (this, new_size)
 end subroutine dict_resize
 
 
-! Check if key is same type as reference
 function dict_same_type_as (this, key, elem) result (result)
+    !! Check if value is the same type as reference
     ! %%%
-    ! ## `DICT_T%SAME_TYPE_AS` - Check if value is the same type as reference
+    ! ## `DICT%SAME_TYPE_AS` - Check if value is the same type as reference
     ! #### DESCRIPTION
     !   Returns `.True.` if the dynamic type of key value is the same as the dynamic 
     !   type of `elem`. Returns `.False.` if key value is empty.
@@ -916,7 +922,7 @@ function dict_same_type_as (this, key, elem) result (result)
 
     if (allocated(this%bucket)) then
         hash = this%hash_function(key)
-        i = modulo(hash, this%n_buckets)
+        i = modulo(hash, this%n_buckets) + 1
         call this%bucket(i)%get(hash, k, v)
     end if
 
@@ -929,10 +935,10 @@ function dict_same_type_as (this, key, elem) result (result)
 end function dict_same_type_as
 
 
-! Get n-th value from dictionary
 subroutine dict_values (this, pos, value)
+    !! Get n-th value from dictionary
     ! %%%
-    ! ## `DICT_T%VALUES` - Get n-th value from dictionary
+    ! ## `DICT%VALUES` - Get n-th value from dictionary
     ! #### DESCRIPTION
     !   Get value from the `pos`-th position in dictionary. Raises error if index is out
     !   of range. Order of items in dictionary is not the same as order they were put in.
@@ -966,10 +972,10 @@ subroutine dict_values (this, pos, value)
 end subroutine dict_values
 
 
-! Formatted write for dictionary
 subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
+    !! Formatted and unformatted write for dictionary
     ! %%%
-    ! ## `DICT_T%WRITE` - Formatted and unformatted write 
+    ! ## `DICT%WRITE` - Formatted and unformatted write for dictionary
     ! #### DESCRIPTION
     !   Allows for formatted and unformatted write of `dict_t`.
     ! #### USAGE
