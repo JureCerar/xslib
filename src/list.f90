@@ -25,9 +25,9 @@ module xslib_list
   ! %%%
   ! #  `LIST` - Linked list functions
   !   Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
-  !   List currently supports only `INT32`, `INT64`, `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)`
-  !   variable types. To add new derived TYPE support you only have write extension to `equal`, `copy`,
-  !   and (optional) `write` functions.
+  !   List currently supports only `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER` variable
+  !   types (single or double precision). To add new derived TYPE support you only have write extension
+  !   to `equal`, and `copy` functions.
   ! %%%
 
   type link_t
@@ -39,9 +39,10 @@ module xslib_list
     ! %%%
     ! ## `LIST_T` - Polymorphic linked list
     ! #### DESCRIPTION
-    !   Implementation of unlimited polymorphic linked list derived type variable. Supports `INT32`, `INT64`, 
-    !   `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)` variable types. Variables on list cannot be directly
-    !   accessed and can be set via `append`, `extend`, and `set` functionality or retrieved via `get` functionality.  
+    !   Implementation of unlimited polymorphic linked list derived type variable. Supports `INTEGER`, `REAL` 
+    !   `COMPLEX`, `LOGICAL`, and `CHARACTER` variable types (single or double precision). Variables on 
+    !   list cannot be directly accessed and can be set via `append`, `extend`, and `set` functionality or
+    !   retrieved via `get` functionality.  
     ! #### USAGE
     !   ```Fortran
     !   > type(list_t) :: list
@@ -75,7 +76,7 @@ module xslib_list
 contains
 
 logical function equal (a, b)
-  ! Strictly compare (===) two unlimited polymorphic variables
+  !! Strictly compare (===) two unlimited polymorphic variables
   implicit none
   class(*), intent(in) :: a, b
   
@@ -106,6 +107,18 @@ logical function equal (a, b)
       equal = (a == b)
     end select
 
+  type is (complex(REAL32))
+    select type (b)
+    type is (complex(REAL32))
+      equal = (a == b)
+    end select
+
+  type is (complex(REAL64))
+    select type (b)
+    type is (complex(REAL64))
+      equal = (a == b)
+    end select
+
   type is (logical)
     select type (b)
     type is (logical)
@@ -123,105 +136,217 @@ logical function equal (a, b)
 end function equal
 
 
-subroutine copy (src, dest)
-  ! Copy value from src to dest of two unlimited polymorphic variables
-  implicit none
-  class(*), intent(in) :: src
-  class(*), intent(out) :: dest
-  character(128) :: buffer
+subroutine copy (src, dest, strict, stat, errmsg)
+    !! Copy value from src to dest of two unlimited polymorphic variables.
+    implicit none
+    class(*), intent(IN) :: src
+    !! Unlimited polymorphic variable to copy FROM.
+    class(*), intent(OUT) :: dest
+    !! Unlimited polymorphic variable to copy TO.
+    logical, intent(IN), OPTIONAL :: strict
+    !! Raise error if not same type. Default: .False.
+    integer, intent(OUT), OPTIONAL :: stat
+    !! Error status code. Returns zero if no error.
+    character(*), intent(OUT), OPTIONAL :: errmsg
+    !! Error message.
+    character(256) :: buffer, message
+    integer :: status
 
-  select type (dest)
-  type is (integer(INT32))
-    select type (src)
-    type is (integer(INT32))
-      dest = int(src, INT32)
-    type is (integer(INT64))
-      dest = int(src, INT32)
-    type is (real(REAL32))
-      dest = int(src, INT32)
-    type is (real(REAL64))
-      dest = int(src, INT32)
-    class default
-      error stop "Cannot convert data types"
-    end select
+    status = 0
+    catch: block 
+ 
+        ! Check if strict copy
+        if (present(strict)) then
+            if (.not. same_type_as(src, dest) .and. strict) then
+                status = 2
+                message = "Type Error: Not same type"
+                exit catch
+            end if  
+        end if
 
-  type is (integer(INT64))
-    select type (src)
-    type is (integer(INT32))
-      dest = int(src, INT64)
-    type is (integer(INT64))
-      dest = int(src, INT64)
-    type is (real(REAL32))
-      dest = int(src, INT64)
-    type is (real(REAL64))
-      dest = int(src, INT64)
-    class default
-      error stop "Cannot convert data types"
-    end select
+        select type (dest)
+        type is (integer(INT32))
+            select type (src)
+            type is (integer(INT32))
+                dest = int(src, kind=INT32)
+            type is (integer(INT64))
+                dest = int(src, kind=INT32)
+            type is (real(REAL32))
+                dest = int(src, kind=INT32)
+            type is (real(REAL64))
+                dest = int(src, kind=INT32)
+            type is (complex(REAL32))
+                dest = int(src, kind=INT32)
+            type is (complex(REAL64))
+                dest = int(src, kind=INT32)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'int32'"
+            end select
 
-  type is (real(REAL32))
-    select type (src)
-    type is (integer(INT32))
-      dest = real(src, REAL32)
-    type is (integer(INT64))
-      dest = real(src, REAL32)
-    type is (real(REAL32))
-      dest = real(src, REAL32)
-    type is (real(REAL64))
-      dest = real(src, REAL32)
-    class default
-      error stop "Cannot convert data types"
-    end select
+        type is (integer(INT64))
+            select type (src)
+            type is (integer(INT32))
+                dest = int(src, kind=INT64)
+            type is (integer(INT64))
+                dest = int(src, kind=INT64)
+            type is (real(REAL32))
+                dest = int(src, kind=INT64)
+            type is (real(REAL64))
+                dest = int(src, kind=INT64)
+            type is (complex(REAL32))
+                dest = int(src, kind=INT32)
+            type is (complex(REAL64))
+                dest = int(src, kind=INT32)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'int64'"
+            end select
 
-  type is (real(REAL64))
-    select type (src)
-    type is (integer(INT32))
-      dest = real(src, REAL64)
-    type is (integer(INT64))
-      dest = real(src, REAL64)
-    type is (real(REAL32))
-      dest = real(src, REAL64)
-    type is (real(REAL64))
-      dest = real(src, REAL64)
-    class default
-      error stop "Cannot convert data types"
-    end select
+        type is (real(REAL32))
+            select type (src)
+            type is (integer(INT32))
+                dest = real(src, kind=REAL32)
+            type is (integer(INT64))
+                dest = real(src, kind=REAL32)
+            type is (real(REAL32))
+                dest = real(src, kind=REAL32)
+            type is (real(REAL64))
+                dest = real(src, kind=REAL32)
+            type is (complex(REAL32))
+                dest = real(src, kind=REAL32)
+            type is (complex(REAL64))
+                dest = real(src, kind=REAL32)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'real32'"
+            end select
 
-  type is (logical)
-    select type (src)
-    type is (logical)
-      dest = src
-    class default
-      error stop "Cannot convert data types"
-    end select
+        type is (real(REAL64))
+            select type (src)
+            type is (integer(INT32))
+                dest = real(src, kind=REAL64)
+            type is (integer(INT64))
+                dest = real(src, kind=REAL64)
+            type is (real(REAL32))
+                dest = real(src, kind=REAL64)
+            type is (real(REAL64))
+                dest = real(src, kind=REAL64)
+            type is (complex(REAL32))
+                dest = real(src, kind=REAL64)
+            type is (complex(REAL64))
+                dest = real(src, kind=REAL64)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'real64'"
+            end select
 
-  type is (character(*))
-    select type (src)
-    type is (integer(INT32))
-      write (buffer,*) src
-      dest = trim(adjustl(buffer))
-    type is (integer(INT64))
-      write (buffer,*) src
-      dest = trim(adjustl(buffer))
-    type is (real(REAL32))
-      write (buffer,*) src
-      dest = trim(adjustl(buffer))
-    type is (real(REAL64))
-      write (buffer,*) src
-      dest = trim(adjustl(buffer))
-    type is (logical)
-      write (buffer,*) src
-      dest = trim(adjustl(buffer))
-    type is (character(*))
-      dest = src
-    class default
-      error stop "Cannot convert data types"
-    end select
+        type is (complex(REAL32))
+            select type (src)
+            type is (integer(INT32))
+                dest = cmplx(src, kind=REAL32)
+            type is (integer(INT64))
+                dest = cmplx(src, kind=REAL32)
+            type is (real(REAL32))
+                dest = cmplx(src, kind=REAL32)
+            type is (real(REAL64))
+                dest = cmplx(src, kind=REAL32)
+            type is (complex(REAL32))
+                dest = cmplx(src, kind=REAL32)
+            type is (complex(REAL64))
+                dest = cmplx(src, kind=REAL32)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'complex32'"
+            end select
 
-  class default
-    error stop "Cannot convert data types"
+        type is (complex(REAL64))
+            select type (src)
+            type is (integer(INT32))
+                dest = cmplx(src, kind=REAL64)
+            type is (integer(INT64))
+                dest = cmplx(src, kind=REAL64)
+            type is (real(REAL32))
+                dest = cmplx(src, kind=REAL64)
+            type is (real(REAL64))
+                dest = cmplx(src, kind=REAL64)
+            type is (complex(REAL32))
+                dest = cmplx(src, kind=REAL64)
+            type is (complex(REAL64))
+                dest = cmplx(src, kind=REAL64)
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'complex64'"
+            end select
 
-  end select 
+        type is (logical)
+            select type (src)
+            type is (logical)
+                dest = src
+            type is (character(*))
+                read (src, *, iostat=status, iomsg=message) dest
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'logical'"
+            end select
+
+        type is (character(*))
+            select type (src)
+            type is (integer(INT32))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (integer(INT64))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (real(REAL32))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (real(REAL64))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (logical)
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (complex(REAL32))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (complex(REAL64))
+                write (buffer,*) src
+                dest = trim(adjustl(buffer))
+            type is (character(*))
+                dest = src
+            class default
+                status = 1
+                message = "Type Error: Could not convert for type 'character'"
+            end select
+
+        class default
+            status = 1
+            message = "Type Error: Unsupported data type"
+
+        end select
+
+    end block catch
+
+    ! Error handling
+    if (present(stat)) then
+        stat = status
+    else if (status /= 0) then
+        error stop message
+    end if
+    if (present(errmsg)) errmsg = trim(message)
 
 end subroutine copy
 
@@ -269,7 +394,7 @@ function list_constructor (value) result (list)
   rank (1)
     call list%extend(value)
   rank default
-    error stop "Unsupported RANK size"
+    error stop "Value Error: Unsupported RANK size"
   end select
 
 end function list_constructor
@@ -594,7 +719,7 @@ subroutine list_get (this, pos, elem)
   integer :: i
 
   if (.not. associated(this%first)) then
-    error stop "No elements present on list"
+    error stop "Index Error: No elements present on list"
   end if
     
   curr => this%first
@@ -638,7 +763,7 @@ subroutine list_pop (this, pos)
   integer :: i
 
   if (.not. associated(this%first)) then
-    error stop "No elements present on list"
+    error stop "Index Error: No elements present on list"
   end if
 
   if (associated(this%first, this%last)) then
@@ -788,7 +913,7 @@ function list_same_type_as (this, pos, elem) result (out)
   integer :: i
 
   if (.not. associated(this%first)) then
-    error stop "No elements present on list"
+    error stop "Index Error: No elements present on list"
   end if
     
   curr => this%first
@@ -833,7 +958,7 @@ subroutine list_set (this, pos, elem)
   integer :: i
 
   if (.not. associated(this%first)) then
-    error stop "No elements present on list"
+    error stop "Index Error: No elements present on list"
   end if
     
   curr => this%first
@@ -914,23 +1039,13 @@ subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
     if (associated(this%first)) then
       curr => this%first
       do while (associated(curr))
-        select type (value => curr%value)
-        type is (integer(INT32))
-          write (tmp, *) value
-        type is (integer(INT64))
-          write (tmp, *) value
-        type is (real(REAL32))
-          write (tmp, *) value
-        type is (real(REAL64))
-          write (tmp, *) value
-        type is (logical)
-          write (tmp, *) value
+        call copy(curr%value, tmp, stat=iostat, errmsg=iomsg)
+        if (iostat /= 0) exit catch
+
+        ! Add quotation marks if string
+        select type (v => curr%value)
         type is (character(*))
-          write (tmp, *) "'" // value // "'"
-        class default
-          iostat = 1
-          iomsg = "Usupported variable KIND"
-          exit catch
+          tmp = "'" // trim(tmp) // "'"
         end select
 
         ! Add delimiter to string if not last element
@@ -954,7 +1069,7 @@ subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
 
     else if (iotype == "DT") then
       if (size(v_list) /= 0) then
-        iomsg = "Integer-list for DT descriptor not supported"
+        iomsg = "I/O Error: Integer-list for DT descriptor not supported"
         iostat = 1
         exit catch
       end if
@@ -964,7 +1079,7 @@ subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
 
     else
       iostat = 1
-      iomsg = "Unsupported iotype"
+      iomsg = "I/O Error: Unsupported iotype"
       exit catch
 
     end if
