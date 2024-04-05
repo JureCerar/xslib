@@ -30,10 +30,10 @@ module xslib_dict
     ! %%%
 
     ! Hash value default precision
-    integer, parameter :: HDP = INT32
+    integer, parameter :: HASH_KIND = INT32
 
     type :: link_t
-        integer(HDP) :: hash
+        integer(HASH_KIND) :: hash
         class(*), pointer :: key => null()
         class(*), pointer :: value => null()
         type(link_t), pointer :: next => null()
@@ -92,7 +92,7 @@ function hash_function (key) result (hash)
     !! Return DJB2 hash for a given key
     implicit none
     class(*), intent(in) :: key
-    integer(HDP) :: hash
+    integer(HASH_KIND) :: hash
     character(256) :: buffer
     integer :: n
 
@@ -343,7 +343,7 @@ function link_constructor (hash, key, value) result (link)
     !! Create a new link w/ key-value pair
     implicit none
     class(link_t), pointer :: link
-    integer(HDP), intent(IN) :: hash
+    integer(HASH_KIND), intent(IN) :: hash
     class(*), intent(IN) :: key, value
 
     allocate (link)
@@ -378,7 +378,7 @@ subroutine list_append (this, hash, key, value)
     !! Append or replace key-value pair to the list
     implicit none
     class(list_t) :: this
-    integer(HDP) :: hash
+    integer(HASH_KIND) :: hash
     class(*), intent(in) :: key, value
     class(link_t), pointer :: curr, prev, new
     
@@ -621,7 +621,7 @@ subroutine dict_get (this, key, value, default)
     class(*), intent(IN), optional :: default
     !! A value to return if the specified key does not exist. Default: None
     class(*), pointer :: k, v
-    integer(HDP) :: hash
+    integer(HASH_KIND) :: hash
     integer :: i
 
     if (allocated(this%bucket)) then
@@ -834,7 +834,7 @@ subroutine dict_remove (this, key)
     implicit none
     class(dict_t) :: this
     class(*), intent(IN) :: key
-    integer(HDP) :: hash
+    integer(HASH_KIND) :: hash
     integer :: i
 
     if (allocated(this%bucket)) then
@@ -917,7 +917,7 @@ function dict_same_type_as (this, key, elem) result (result)
     class(*), intent(IN) :: key
     class(*), intent(IN) :: elem
     class(*), pointer :: k, v
-    integer(HDP) :: hash
+    integer(HASH_KIND) :: hash
     integer :: i
 
     if (allocated(this%bucket)) then
