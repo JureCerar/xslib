@@ -79,6 +79,9 @@
   * [`DIRNAME` - Get base name of pathname](#dirname---get-base-name-of-pathname)
   * [`EXTNAME` - Get extension name of pathname](#extname---get-extension-name-of-pathname)
   * [`BACKUP` - Backup existing file](#backup---backup-existing-file)
+* [`SIGNAL` - Basic signal processing functions](#signal---basic-signal-processing-functions)
+  * [`SAVGOL_FILTER` - Apply Savitzky-Golay filter](#savgolfilter---apply-savitzky-golay-filter)
+  * [`SAVGOL_COEFF` - Calculate Savitzky-Golay filter coefficients](#savgolcoeff---calculate-savitzky-golay-filter-coefficients)
 * [`SORT` - Sorting functions](#sort---sorting-functions)
   * [`SWAP` - Swap input values](#swap---swap-input-values)
   * [`SORT` - Sort input array](#sort---sort-input-array)
@@ -999,14 +1002,15 @@
 --------------------------------------------------------------------------------
 #  `LIST` - Linked list functions
   Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
-  List currently supports only `INT32`, `INT64`, `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)`
-  variable types. To add new derived TYPE support you only have write extension to `equal`, `copy`,
-  and (optional) `write` functions.
+  List currently supports only `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER` variable
+  types (single or double precision). To add new derived TYPE support you only have write extension
+  to `equal`, and `copy` functions.
 ## `LIST_T` - Polymorphic linked list
 #### DESCRIPTION
-  Implementation of unlimited polymorphic linked list derived type variable. Supports `INT32`, `INT64`,
-  `REAL32`, `REAL64`, `LOGICAL`, and `CHARACTER(*)` variable types. Variables on list cannot be directly
-  accessed and can be set via `append`, `extend`, and `set` functionality or retrieved via `get` functionality.
+  Implementation of unlimited polymorphic linked list derived type variable. Supports `INTEGER`, `REAL`
+  `COMPLEX`, `LOGICAL`, and `CHARACTER` variable types (single or double precision). Variables on
+  list cannot be directly accessed and can be set via `append`, `extend`, and `set` functionality or
+  retrieved via `get` functionality.
 #### USAGE
   ```Fortran
   > type(list_t) :: list
@@ -1583,6 +1587,82 @@
   ```Fortran
   call backup("file.txt", status)
   if (status != 0) error stop "Backup failed."
+  ```
+--------------------------------------------------------------------------------
+# `SIGNAL` - Basic signal processing functions
+  Module `xslib_signal` contains basic signal processing functions. Supports both single and double precision (`DP`).
+## `SAVGOL_FILTER` - Apply Savitzky-Golay filter
+#### DESCRIPTION
+  Apply a [Savitzky-Golay](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter)
+  filter to an array.
+#### USAGE
+  ```Fortran
+  result = savgol_filter(y, window, polyorder, deriv, mode, STAT=stat, ERRMSG=errmsg)
+  ```
+#### PARAMETERS
+  * `real(*), dimension(:), intent(IN) :: y`
+    The data to be filtered.
+  * `integer, intent(IN) :: window`
+    The length of the filter window (i.e., the number of coefficients). Must be
+    less than or equal to the size of `y`.
+  * `integer, intent(IN) :: polyorder`
+    The order of the polynomial used to fit the samples. Must be less than `window`.
+  * `integer, intent(IN) :: deriv`
+    The order of the derivative to compute. This must be a non-negative integer. Value of 0
+    means to filter the data without differentiating.
+  * `character(*), intent(IN) :: mode`
+    Must be `none`, `nearest`, `mirror`, or `wrap`. This determines the type of extension
+    to use for the padded signal to which the filter is applied. See notes bellow.
+  * `integer, intent(OUT), OPTIONAL :: stat`
+    Error status code. Returns zero if no error.
+  * `character(:), intent(OUT), OPTIONAL :: errmsg`
+    Error message.
+  * `real(*):: result`
+    The filtered data. Size is equal to `y`.
+#### SOURCE
+  Peng Jun, https://github.com/cran/tgcd
+#### NOTES
+   Assuming `window` is 7, the following shows the extended data for the various mode options:
+   ```
+   mode       |   Ext   |         Input          |   Ext
+   -----------+---------+------------------------+---------
+   'none'     |         | 1  2  3  4  5  6  7  8 |
+   'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
+   'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
+   'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
+   ```
+#### EXAMPLE
+  ```Fortran
+  > ny = savgol_filter(y, 5, 2, 0, 'nearest')
+  [1.74, 3.03, ..., 4.60, 7.97]
+  ```
+## `SAVGOL_COEFF` - Calculate Savitzky-Golay filter coefficients
+#### DESCRIPTION
+  This routine is used to calculate a set of Savitzky-Golay filter coefficients.
+#### USAGE
+  ```Fortran
+  result = savgol_coeff(window, polyorder, deriv, STAT=stat, ERRMSG=errmsg)
+  ```
+#### PARAMETERS
+  * `integer, intent(IN) :: window`
+    The length of the filter window (i.e., the number of coefficients).
+  * `integer, intent(IN) :: polyorder`
+    The order of the polynomial used to fit the samples. Must be less than `window`.
+  * `integer, intent(IN) :: deriv`
+    The order of the derivative to compute. This must be a non-negative integer. Value of 0
+    means to filter the data without differentiating.
+  * `integer, intent(OUT), OPTIONAL :: stat`
+    Error status code. Returns zero if no error.
+  * `character(:), intent(OUT), OPTIONAL :: errmsg`
+    Error message.
+  * `real(*):: result`
+    The filter coefficients. Size is equal to `window`.
+#### SOURCE
+  Peng Jun, https://github.com/cran/tgcd
+#### EXAMPLE
+  ```Fortran
+  > coeff = savgol_coeff(5, 2, deriv=1)
+  [ 2.000e-01,  1.000e-01,  2.075e-16, -1.000e-01, -2.000e-01]
   ```
 --------------------------------------------------------------------------------
 # `SORT` - Sorting functions
