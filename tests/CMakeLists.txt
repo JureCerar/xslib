@@ -22,6 +22,7 @@ include_directories ( "${CMAKE_BINARY_DIR}/include" )
 
 # Get test source files and copy sample files.
 file ( GLOB "TEST_SRC" RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.f90" "*.F90" )
+file ( COPY "${CMAKE_CURRENT_SOURCE_DIR}/files/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/files/" )
 
 # Make custom 'check' compile target.
 add_custom_target ( check COMMAND ${CMAKE_CTEST_COMMAND} )
@@ -47,6 +48,7 @@ add_test ( NAME "list" COMMAND list )
 add_test ( NAME "math" COMMAND math )
 add_test ( NAME "pathlib" COMMAND pathlib )
 add_test ( NAME "sort" COMMAND sort )
+add_test ( NAME "signal" COMMAND signal "files/savgol.dat" )
 add_test ( NAME "stats" COMMAND stats )
 add_test ( NAME "time" COMMAND time )
 add_test ( NAME "vector" COMMAND vector )
