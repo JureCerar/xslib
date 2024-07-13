@@ -22,10 +22,13 @@ module xslib_signal
     private
     public :: savgol_filter, savgol_coeff
 
-  ! %%%
-  ! # `SIGNAL` - Basic signal processing functions
-  !   Module `xslib_signal` contains basic signal processing functions. Supports both single and double precision (`DP`).
-  ! %%%
+    ! Length of error string
+    integer, parameter :: ERR_LEN = 128 
+
+    ! %%%
+    ! # `SIGNAL` - Basic signal processing functions
+    !   Module `xslib_signal` contains basic signal processing functions. Supports both single and double precision (`DP`).
+    ! %%%
 
 contains
 
@@ -83,7 +86,7 @@ function savgol_filter(y, window, polyorder, deriv, mode, stat, errmsg) result (
     character(*), intent(IN) :: mode
     integer, intent(OUT), OPTIONAL :: stat
     character(*), intent(OUT), OPTIONAL :: errmsg
-    character(128) :: message
+    character(ERR_LEN) :: message
     real(REAL64) :: result(size(y))
     real(REAL64) :: temp(window+size(y)-1)
     integer :: np, left, right, status
@@ -178,7 +181,7 @@ subroutine savgol(y, window, polyorder, deriv, stat, errmsg)
     integer, intent(in):: window, deriv, polyorder
     integer, intent(OUT), OPTIONAL :: stat
     character(*), intent(OUT), OPTIONAL :: errmsg
-    character(128) :: message 
+    character(ERR_LEN) :: message 
     integer :: i, j, nr, nl, n1, xl(window), status
     real(REAL64):: y0(size(y)), coef(window)
 
@@ -269,7 +272,7 @@ function savgol_coeff(window, polyorder, deriv, stat, errmsg) result (result)
     integer, intent(out), OPTIONAL :: stat
     character(*), intent(out), OPTIONAL :: errmsg
     real(REAL64):: result(window)
-    character(128) :: message
+    character(ERR_LEN) :: message
     integer :: imj, ipj, k, kk, mm, nl, nr, indx(polyorder+1), status
     real(REAL64):: d, fac, summ, a(polyorder+1, polyorder+1), b(polyorder+1)
 
@@ -379,6 +382,7 @@ subroutine ludcmp(a, n, indx, d, stat)
     indx = 0
     stat = 0
     d = 1.0
+    imax = 0
 
     do i = 1, n
         aamax = 0.0
