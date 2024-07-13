@@ -48,7 +48,6 @@ end function random_string
 subroutine hash_test ()
     implicit none
     type(dict_t) :: dict
-    integer :: hash
 
     ! Try Different variable types
     print *, dict%hash_function(1)
@@ -267,7 +266,6 @@ end subroutine remove_test
 subroutine count_test ()
     implicit none
     type(dict_t) :: dict
-    integer :: cnt
 
     if (dict%len() /= 0) error stop
 
