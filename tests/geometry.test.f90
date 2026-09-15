@@ -18,12 +18,9 @@
 
 program main
   use iso_fortran_env, only: REAL32, REAL64
-  use xslib_vector
+  use xslib_geometry
   implicit none
   real, parameter :: DELTA = 0.01
-
-  call cross_test_real32 ()
-  call cross_test_real64 ()
 
   call rotate_test_real32 ()
   call rotate_test_real64 ()
@@ -42,67 +39,12 @@ program main
 
 contains
 
-! Test vector cross product.
-subroutine cross_test_real32 ()
-  implicit none
-  integer, parameter :: DIM = 3
-  real(REAL32) :: a(DIM), b(DIM), c(DIM)
-
-  a = [1.0, 1.0, 1.0]
-  b = [1.0, 1.0, 1.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 0.0, 0.0]) > DELTA)) error stop  
-
-  a = [1.0, 0.0, 0.0]
-  b = [0.0, 1.0, 0.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 0.0, 1.0]) > DELTA)) error stop  
-
-  a = [0.0, 1.0, 0.0]
-  b = [0.0, 0.0, 1.0]
-  c = cross(a, b)
-  if (any(abs(c - [1.0, 0.0, 0.0]) > DELTA)) error stop  
-
-  a = [0.0, 0.0, 1.0]
-  b = [1.0, 0.0, 0.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 1.0, 0.0]) > DELTA)) error stop  
-
-end subroutine cross_test_real32
-
-subroutine cross_test_real64 ()
-  implicit none
-  integer, parameter :: DIM = 3
-  real(REAL64) :: a(DIM), b(DIM), c(DIM)
-
-  a = [1.0, 1.0, 1.0]
-  b = [1.0, 1.0, 1.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 0.0, 0.0]) > DELTA)) error stop  
-
-  a = [1.0, 0.0, 0.0]
-  b = [0.0, 1.0, 0.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 0.0, 1.0]) > DELTA)) error stop  
-
-  a = [0.0, 1.0, 0.0]
-  b = [0.0, 0.0, 1.0]
-  c = cross(a, b)
-  if (any(abs(c - [1.0, 0.0, 0.0]) > DELTA)) error stop  
-
-  a = [0.0, 0.0, 1.0]
-  b = [1.0, 0.0, 0.0]
-  c = cross(a, b)
-  if (any(abs(c - [0.0, 1.0, 0.0]) > DELTA)) error stop  
-
-end subroutine cross_test_real64
-
 ! Test vector rotation functions.
 subroutine rotate_test_real32 ()
   implicit none
   integer, parameter :: DIM = 3
   real, parameter :: PI = acos(-1.0)
-  real(REAL32) :: a(DIM), b(DIM), c(DIM), vec(DIM),  angle
+  real(REAL32) :: a(DIM), b(DIM), c(DIM), vec(DIM), angle
 
   a = [1.0, 0.0, 0.0]
   vec = [1.0, 0.0, 0.0]

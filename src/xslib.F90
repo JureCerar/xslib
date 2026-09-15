@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2022 Jure Cerar
+! Copyright (C) 2019-2024 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -19,8 +19,11 @@
 module xslib
   use xslib_array
   use xslib_cstring
+  use xslib_dict
   use xslib_errorh
   use xslib_fitting
+  use xslib_geometry
+  use xslib_linalg
   use xslib_list
   ! use xslib_logger
   use xslib_math
@@ -28,7 +31,6 @@ module xslib
   use xslib_sort
   use xslib_stats
   use xslib_time
-  use xslib_vector
   use xslib_xmalloc
   implicit none
   

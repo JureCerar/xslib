@@ -25,8 +25,8 @@ CC_FLAGS := -g -Og -march=native -fPIC
 INSTALL := install
 INSTALL_DIR := /usr/local
 # Source
-SRC  = array.f90  cstring.f90  errorh.f90  fitting.f90  list.f90  math.f90 
-SRC += pathlib.F90  sort.f90  stats.f90  time.f90  vector.f90  xmalloc.f90  xslib.f90
+SRC  = array.f90  cstring.f90  dict.f90  errorh.f90  fitting.f90  list.f90  geometry.f90  linalg.f90
+SRC += math.f90  pathlib.F90  signal.f90  sort.f90  stats.f90  time.f90  xmalloc.f90  xslib.f90
 # Objects
 OBJ  = $(SRC)
 OBJ := $(OBJ:.F90=.o)

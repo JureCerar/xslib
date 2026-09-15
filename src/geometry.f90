@@ -16,25 +16,21 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-module xslib_vector
+module xslib_geometry
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: cross, rotate, deg2rad, rad2deg, crt2sph, sph2crt, crt2cyl, cyl2crt, &
+  public :: rotate, deg2rad, rad2deg, crt2sph, sph2crt, crt2cyl, cyl2crt, &
   & distance, angle, dihedral
 
   ! Default vector dimension
   integer, parameter :: DIM = 3
 
   ! %%%
-  ! # `VECTOR` - Vector functions
-  !   Module `xslib_vector` contains function for vector operations. Default dimension of vectors is `DIM = 3`.
+  ! # `GEOMETRY` - Geometry functions
+  !   Module `xslib_geometry` contains function for vector operations. Default dimension of vectors is `DIM = 3`.
   !   Supports both single and double precision (`DP`).
   ! %%%
-
-  interface cross
-    module procedure :: cross_real32, cross_real64
-  end interface cross
 
   interface rotate
     module procedure :: rotate_real32, rotate_real64, rotate_axis_real32, rotate_axis_real64
@@ -78,48 +74,27 @@ module xslib_vector
 
 contains
 
-function cross_real32 (u, v) result (out)
-  ! %%%
-  ! ## `CROSS` - Vector cross product
-  ! #### DESCRIPTION
-  !   Return the cross product of two vectors i.e. `u × v`. Note that 
-  !   cross product is anti-commutative *i.e.* `(u × v) = -(v × u)`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = cross(u, v)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: u, v`
-  !     Input vectors.
-  !   * `real(ANY), dimension(DIM) :: out`
-  !     Output vector.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > cross([1.0, 0.0, 0.0], [0.0, 1.0, 0.0])
-  !   [0.0, 0.0, 1.0]
-  !   ```
-  ! %%%
+function cross32 (u, v) result (out)
   implicit none
-  real(REAL32) :: out(3)
+  real :: out(3)
   real, intent(in) :: u(3), v(3)
 
   out(1) = u(2) * v(3) - u(3) * v(2)
   out(2) = u(3) * v(1) - u(1) * v(3)
   out(3) = u(1) * v(2) - u(2) * v(1)
 
-end function cross_real32
+end function cross32
 
-
-function cross_real64 (u, v) result (out)
+function cross64 (u, v) result (out)
   implicit none
-  real(REAL64) :: out(3)
-  real(REAL64), intent(in) :: u(3), v(3)
+  double precision :: out(3)
+  double precision, intent(in) :: u(3), v(3)
 
   out(1) = u(2) * v(3) - u(3) * v(2)
   out(2) = u(3) * v(1) - u(1) * v(3)
   out(3) = u(1) * v(2) - u(2) * v(1)
 
-end function cross_real64
+end function cross64
 
 
 function rotate_real32 (v, vector, angle) result (out)
@@ -158,7 +133,7 @@ function rotate_real32 (v, vector, angle) result (out)
   
   ! SOURCE: https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
   k = vector / norm2(vector)
-  out = v * cos(angle) + cross(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
+  out = v * cos(angle) + cross32(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
 
 end function rotate_real32
 
@@ -170,7 +145,7 @@ function rotate_real64 (v, vector, angle) result (out)
   real(REAL64) :: k(DIM)
 
   k = vector / norm2(vector)
-  out = v * cos(angle) + cross(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
+  out = v * cos(angle) + cross64(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
 
 end function rotate_real64
 
@@ -571,7 +546,7 @@ function angle_real32 (a, b, c) result (out)
 
   u = a - b
   v = c - b
-  out = atan2(norm2(cross(u, v)), dot_product(u, v))
+  out = atan2(norm2(cross32(u, v)), dot_product(u, v))
 
 end function angle_real32
 
@@ -584,7 +559,7 @@ function angle_real64 (a, b, c) result (out)
 
   u = a - b
   v = c - b
-  out = atan2(norm2(cross(u, v)), dot_product(u, v))
+  out = atan2(norm2(cross64(u, v)), dot_product(u, v))
 
 end function angle_real64
 
@@ -618,9 +593,9 @@ function dihedral_real32 (a, b, c, d) result (out)
   b1 = b - a
   b2 = c - a
   b3 = d - a
-  n1 = cross(b1, b2)
-  n2 = cross(b2, b3)
-  n3 = cross(n1, b2)
+  n1 = cross32(b1, b2)
+  n2 = cross32(b2, b3)
+  n3 = cross32(n1, b2)
   n1 = n1 / norm2(n1)
   n2 = n2 / norm2(n2)
   n3 = n3 / norm2(n3)
@@ -639,9 +614,9 @@ function dihedral_real64 (a, b, c, d) result (out)
   b1 = b - a
   b2 = c - a
   b3 = d - a
-  n1 = cross(b1, b2)
-  n2 = cross(b2, b3)
-  n3 = cross(n1, b2)
+  n1 = cross64(b1, b2)
+  n2 = cross64(b2, b3)
+  n3 = cross64(n1, b2)
   n1 = n1 / norm2(n1)
   n2 = n2 / norm2(n2)
   n3 = n3 / norm2(n3)
@@ -650,4 +625,4 @@ function dihedral_real64 (a, b, c, d) result (out)
 
 end function dihedral_real64
 
-end module xslib_vector
+end module xslib_geometry

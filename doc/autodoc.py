@@ -26,7 +26,7 @@ for file in files:
                 # * Strip Fortran comment symbol (!)
                 # * Add trailing spaces for MD formatting
                 i = line.find("!")
-                line = line[i+1:].strip()
+                line = line[i+2:].rstrip()
                 if line.startswith("*"):
                     line += "</br>"
                 lines.append(line)

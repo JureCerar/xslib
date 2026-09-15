@@ -25,6 +25,7 @@ module xslib_fitting
   ! %%%
   ! # `FITTING` - Function fitting
   !   Module `xslib_fitting` contains basic regression functions. Supports both single and double precision (`DP`). 
+  !   If you are planning on doing _serious_ linear algebra, please use [LAPACK](https://www.netlib.org/lapack/) or similar library instead!
   ! %%%
 
   interface linfit
