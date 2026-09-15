@@ -897,6 +897,3 @@ end subroutine jacobi_eigenvalue
 
 
 end module xslib_linalg
-
-
-   

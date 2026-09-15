@@ -90,48 +90,52 @@ end subroutine cross_test_real64
 ! Test some matrix operations
 subroutine matrix_test_real32 ()
     implicit none
-    integer, parameter :: N = 3
+    integer, parameter :: N = 4
     real :: v(N), m(N,N), w(N,N-1), mat(N,N)
     real :: eigval(N), eigvec(N,N)
-    integer :: i
 
-    mat(1,:) = [1.0,  2.0,  4.0]
-    mat(2,:) = [2.0,  2.0, -2.0]
-    mat(3,:) = [3.0, -2.0,  4.0]
+    mat(1,:) = [    4,   -30,    60,   -35]
+    mat(2,:) = [  -30,   300,  -675,   420]
+    mat(3,:) = [   60,  -675,  1620, -1050]
+    mat(4,:) = [  -35,   420, -1050,   700]
 
     ! Determinant
-    if (abs(det(mat) + 64.0) > DELTA) error stop 
+    if (abs(det(mat) - 23625) > DELTA) error stop 
 
     ! Diagonal
-    v = [1, 2, 4]
+    v = [4, 300, 1620, 700]
     if (any((diag(mat) - v) > DELTA)) error stop 
 
     ! Eigenvalue & Eigenvector
     call eig(mat, eigval, eigvec)
-    v = [-2.86867160,  3.50685835,  6.36181324]
+    v = [ 0.16664286,  1.47805480,  37.1014910,  2585.25380]
+
     if (any((eigval - v) > DELTA)) error stop 
-    m(1,:) = [ 0.73544981, -0.56063186,  0.56617560]
-    m(2,:) = [-0.49304284, -0.82577585, -0.11467404]
-    m(3,:) = [-0.46478203,  0.06153176,  0.81626898] 
+    m(1,:) = [0.792608,  0.582076,  0.179186,  0.0291933]
+    m(2,:) = [0.451923, -0.370502, -0.741918, -0.328712 ]
+    m(3,:) = [0.322416, -0.509579,  0.100228,  0.791411 ]
+    m(4,:) = [0.252161, -0.514048,  0.638283, -0.514553 ]
     if (any((eigvec - m) > DELTA)) error stop
     
     ! Eigenvalue
     eigval = eigvals(mat)
-    v = [-2.86867160,  3.50685835,  6.36181324]
+    v = [ 0.16664286,  1.47805480,  37.1014910,  2585.25380]
     if (any((eigval - v) > DELTA)) error stop 
 
     ! Inversion
-    m(1,:) = [-0.06250,  0.25000,  0.18750]
-    m(2,:) = [ 0.21875,  0.12500, -0.15625]
-    m(3,:) = [ 0.15625, -0.12500,  0.03125]
+    m(1,:) = [4.0000, 2.0000, 1.3333, 1.0000]
+    m(2,:) = [2.0000, 1.3333, 1.0000, 0.8000]
+    m(3,:) = [1.3333, 1.0000, 0.8000, 0.6667]
+    m(4,:) = [1.0000, 0.8000, 0.6667, 0.5714]
     if (any((inv(mat) - m) > DELTA)) error stop
     
     ! is_diagonal
-    m(1,:) = [1., 0., 0.]
-    m(2,:) = [0., 1., 0.]
-    m(3,:) = [0., 0., 1.]
+    m(1,:) = [1, 0, 0, 0]
+    m(2,:) = [0, 1, 0, 0]
+    m(3,:) = [0, 0, 1, 0]
+    m(4,:) = [0, 0, 0, 1]
     if (.not. is_diagonal(m)) error stop
-    m(3, 1) = 1.0
+    m(4, 1) = 1
     if (is_diagonal(m)) error stop
 
     ! is_square
@@ -139,11 +143,12 @@ subroutine matrix_test_real32 ()
     if (is_square(w)) error stop
 
     ! is_symmetric
-    m(1,:) = [1., 2., 3.]
-    m(2,:) = [2., 1., 2.]
-    m(3,:) = [3., 2., 1.]
+    m(1,:) = [1, 2, 3, 4]
+    m(2,:) = [2, 1, 2, 3]
+    m(3,:) = [3, 2, 1, 2]
+    m(4,:) = [4, 3, 2, 1]
     if (.not. is_symmetric(m)) error stop 
-    m(3, 1) = 1.0
+    m(4, 1) = 1
     if (is_symmetric(m)) error stop 
 
 end subroutine matrix_test_real32    
@@ -151,48 +156,52 @@ end subroutine matrix_test_real32
 
 subroutine matrix_test_real64 ()
     implicit none
-    integer, parameter :: N = 3
-    double precision :: v(N), m(N,N), w(N,N-1), mat(N,N)
-    double precision :: eigval(N), eigvec(N,N)
-    integer :: i
+    integer, parameter :: N = 4
+    real(REAL64) :: v(N), m(N,N), w(N,N-1), mat(N,N)
+    real(REAL64) :: eigval(N), eigvec(N,N)
 
-    mat(1,:) = [1.0,  2.0,  4.0]
-    mat(2,:) = [2.0,  2.0, -2.0]
-    mat(3,:) = [3.0, -2.0,  4.0]
+    mat(1,:) = [    4,   -30,    60,   -35]
+    mat(2,:) = [  -30,   300,  -675,   420]
+    mat(3,:) = [   60,  -675,  1620, -1050]
+    mat(4,:) = [  -35,   420, -1050,   700]
 
     ! Determinant
-    if (abs(det(mat) + 64.0) > DELTA) error stop 
+    if (abs(det(mat) - 23625) > DELTA) error stop 
 
     ! Diagonal
-    v = [1, 2, 4]
+    v = [4, 300, 1620, 700]
     if (any((diag(mat) - v) > DELTA)) error stop 
 
     ! Eigenvalue & Eigenvector
     call eig(mat, eigval, eigvec)
-    v = [-2.86867160,  3.50685835,  6.36181324]
+    v = [ 0.16664286,  1.47805480,  37.1014910,  2585.25380]
+
     if (any((eigval - v) > DELTA)) error stop 
-    m(1,:) = [ 0.73544981, -0.56063186,  0.56617560]
-    m(2,:) = [-0.49304284, -0.82577585, -0.11467404]
-    m(3,:) = [-0.46478203,  0.06153176,  0.81626898] 
+    m(1,:) = [0.792608,  0.582076,  0.179186,  0.0291933]
+    m(2,:) = [0.451923, -0.370502, -0.741918, -0.328712 ]
+    m(3,:) = [0.322416, -0.509579,  0.100228,  0.791411 ]
+    m(4,:) = [0.252161, -0.514048,  0.638283, -0.514553 ]
     if (any((eigvec - m) > DELTA)) error stop
     
     ! Eigenvalue
     eigval = eigvals(mat)
-    v = [-2.86867160,  3.50685835,  6.36181324]
+    v = [ 0.16664286,  1.47805480,  37.1014910,  2585.25380]
     if (any((eigval - v) > DELTA)) error stop 
 
     ! Inversion
-    m(1,:) = [-0.06250,  0.25000,  0.18750]
-    m(2,:) = [ 0.21875,  0.12500, -0.15625]
-    m(3,:) = [ 0.15625, -0.12500,  0.03125]
+    m(1,:) = [4.0000, 2.0000, 1.3333, 1.0000]
+    m(2,:) = [2.0000, 1.3333, 1.0000, 0.8000]
+    m(3,:) = [1.3333, 1.0000, 0.8000, 0.6667]
+    m(4,:) = [1.0000, 0.8000, 0.6667, 0.5714]
     if (any((inv(mat) - m) > DELTA)) error stop
     
     ! is_diagonal
-    m(1,:) = [1., 0., 0.]
-    m(2,:) = [0., 1., 0.]
-    m(3,:) = [0., 0., 1.]
+    m(1,:) = [1, 0, 0, 0]
+    m(2,:) = [0, 1, 0, 0]
+    m(3,:) = [0, 0, 1, 0]
+    m(4,:) = [0, 0, 0, 1]
     if (.not. is_diagonal(m)) error stop
-    m(3, 1) = 1.0
+    m(4, 1) = 1
     if (is_diagonal(m)) error stop
 
     ! is_square
@@ -200,11 +209,12 @@ subroutine matrix_test_real64 ()
     if (is_square(w)) error stop
 
     ! is_symmetric
-    m(1,:) = [1., 2., 3.]
-    m(2,:) = [2., 1., 2.]
-    m(3,:) = [3., 2., 1.]
+    m(1,:) = [1, 2, 3, 4]
+    m(2,:) = [2, 1, 2, 3]
+    m(3,:) = [3, 2, 1, 2]
+    m(4,:) = [4, 3, 2, 1]
     if (.not. is_symmetric(m)) error stop 
-    m(3, 1) = 1.0
+    m(4, 1) = 1
     if (is_symmetric(m)) error stop 
 
 end subroutine matrix_test_real64    

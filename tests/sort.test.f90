@@ -353,6 +353,7 @@ subroutine genRandom (array)
   type is (real(REAL64))
     array = [(real(rand()*1000, REAL64), i = 1, size(array))]
   type is (character(*))
+    array = [("", i = 1, size(array))]
     do i = 1, size(array)
       do j = 1, len(array)
         array(i)(j:j) = char(97 + int(rand()*25))
