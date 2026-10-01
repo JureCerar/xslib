@@ -1,7 +1,7 @@
 # This file is part of xslib
 # https://github.com/JureCerar/xslib
 #
-# Copyright (C) 2019-2022 Jure Cerar
+# Copyright (C) 2019-2026 Jure Cerar
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

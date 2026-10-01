@@ -1,7 +1,7 @@
 # This file is part of xslib
 # https://github.com/JureCerar/xslib
 #
-# Copyright (C) 2019-2022 Jure Cerar
+# Copyright (C) 2019-2026 Jure Cerar
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required ( VERSION 2.9 )
+cmake_minimum_required ( VERSION 3.18 )
 project ( xslib LANGUAGES C Fortran )
 
 # Add Cmake subdirectory and call packages.

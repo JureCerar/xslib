@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2022 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,15 +17,11 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_errorh
+  !! Module with functions for error and warning handling.
   use iso_fortran_env, only: ERROR_UNIT
   implicit none
   private
   public :: error, error_, warning, warning_, assert, assert_
-
-  ! %%%
-  ! # `ERRORH` - Error and warning handling
-  !   Module `xslib_errorh` contains functions of error and warning handling.
-  ! %%%
 
   ! Keywords for error and warning
   character(*), parameter, private :: errorKey = char(27)//"[1;91m"//"[Error]:"//char(27)//"[m"
@@ -34,30 +30,24 @@ module xslib_errorh
 contains
 
 subroutine error (message)
-  ! %%%
-  ! ## `ERROR` - Display error and exit
-  ! #### DESCRIPTION
-  !   Write error message to STDERR and terminate the program.
-  ! #### USAGE
-  !   ```Fortran
-  !   call error(message)
-  !   ```
-  ! #### PARAMETERS
-  !   * `character(*), intent(IN) :: message`
-  !     Error message to display.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > call error("Error message")
-  !   "[ERROR]: Error message"
-  !   ```
-  ! #### NOTES
-  !   Use with `__FILE__` and `__LINE__` macros to get extended error message.
-  !   ```Fortran
-  !   #define error(x) error_(x, __FILE__, __LINE__)
-  !   ```
-  ! %%%
+  !! Write error message to `STDERR` and terminate the program.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call error("Invalid input value")
+  !! >>> "Error: Invalid input value" 
+  !! ```
+  !! 
+  !! @note
+  !! Use with `__FILE__` and `__LINE__` macros to get extended error message:
+  !!
+  !! ```
+  !!  #define error(x) error_(x, __FILE__, __LINE__)
+  !! ```
+  !! @endnote
   implicit none
   character(*), intent(in) :: message
+  !! Error message to display.
 
   write (ERROR_UNIT, "(2(x,a))") errorKey, trim(message)
   call exit (1)
@@ -66,9 +56,20 @@ end subroutine error
 
 
 subroutine error_ (message, file, line)
+  !! Write extended error message to `STDERR` and terminate the program.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call error_("Invalid input value", __FILE__, __LINE__)
+  !! >>> "Error:main.f90:1107: Invalid input value" 
+  !! ```
   implicit none
-  character(*), intent(in)  :: message, file
+  character(*), intent(in)  :: message
+  !! Error message to display.
+  character(*), intent(in)  :: file
+  !! File name.
   integer, intent(in) :: line
+  !! Line number.
 
   write (ERROR_UNIT, "(x,2a,i0,2a,x,a)") trim(file), ":", line, ":", errorKey, trim(message)
   call exit (1)
@@ -77,40 +78,45 @@ end subroutine error_
 
 
 subroutine warning (message)
-  ! %%%
-  ! ## `WARNING` - Display warning and continue
-  ! #### DESCRIPTION
-  !   Write warning message to STDERR and continue the program.
-  ! #### USAGE
-  !   ```Fortran
-  !   call warning(message)
-  !   ```
-  ! #### PARAMETERS
-  !   * `character(*), intent(IN) :: message`
-  !     Warning message to display.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > call warning("Warning message")
-  !   "[WARNING]: Warning message"
-  !   ```
-  ! #### NOTES
-  !   Use with `__FILE__` and `__LINE__` macros to get extended warning message.
-  !   ```Fortran
-  !   #define warning(x) warning_(x, __FILE__, __LINE__)
-  !   ```
-  ! %%%
+  !! Write warning message to `STDERR`.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call warning("Invalid input value")
+  !! >>> "Warning: Invalid input value" 
+  !! ```
+  !! 
+  !! @note
+  !! Use with `__FILE__` and `__LINE__` macros to get extended warning message:
+  !!
+  !! ```
+  !!  #define warning(x) warning_(x, __FILE__, __LINE__)
+  !! ```
+  !! @endnote
   implicit none
   character(*), intent(in) :: message
+  !! Warning message to display.
 
   write (ERROR_UNIT, "(2(x,a))") warningKey, trim(message)
-
+ 
 end subroutine warning
 
 
 subroutine warning_ (message, file, line)
+  !! Write extended warning message to `STDERR`.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call warning("Invalid input value", __FILE__, __LINE__)
+  !! >>> "Warning:main.f90:1107: Invalid input value" 
+  !! ```
   implicit none
-  character(*), intent(in) :: message, file
+  character(*), intent(in)  :: message
+  !! Warning message to display.
+  character(*), intent(in)  :: file
+  !! File name.
   integer, intent(in) :: line
+  !! Line number.
 
   write (ERROR_UNIT, "(x,2a,i0,2a,x,a)") trim(file), ":", line, ":", warningKey, trim(message)
 
@@ -118,31 +124,31 @@ end subroutine warning_
 
 
 subroutine assert (expression)
-  ! %%%
-  ! ## `ASSERT` - Assert logical expression
-  ! #### DESCRIPTION
-  !   Assert logical expression. On fail write error message to STDERR and terminate the program.
-  ! #### USAGE
-  !   ```Fortran
-  !   call assert(expression)
-  !   ```
-  ! #### PARAMETERS
-  !   * `logical, dimension(..), intent(IN) :: expression`
-  !     Logical expression to be evaluated.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > call assert (array == 0)
-  !   "[ERROR]: Assertion failed at: [1,1]"
-  !   ```
-  ! #### NOTES
-  !   Use with `__FILE__` and `__LINE__` macros to get extended assertion message.
-  !   ```Fortran
-  !   #define assert(x) assert_ (x, __FILE__, __LINE__)
-  !   ```
-  ! %%%
+  !! Category: experimental
+  !! Assert logical expression. On fail write error message to `STDERR` and terminate the program.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call assert (array == 0)
+  !! >>> "Error: Assertion failed at (1,1)"
+  !! ```
+  !!
+  !! @note
+  !! Use with `__FILE__` and `__LINE__` macros to get extended assertion message:
+  !!
+  !! ```
+  !!  #define assert(x) assert_(x, __FILE__, __LINE__)
+  !! ```
+  !! @endnote
+  !! 
+  !! @warning
+  !! I don't know why, but somtimes GCC compiler incorectly optimizes the
+  !! function and the assertion fails as if the array is out of bounds.
+  !! @endwarning
   implicit none
   logical, intent(in) :: expression(..)
-  character(128) :: message 
+  !! Logical expression to be evaluated.
+  character(256) :: message 
   integer :: i, j
 
   select rank (expression)
@@ -153,15 +159,15 @@ subroutine assert (expression)
   rank (1)
     do i = 1, size(expression)
       if (.not. expression(i)) then
-        write (message, "(a,i0,a)") "Assertion failed at: [", i ,"]"
+        write (message, "(a,i0,a)") "Assertion failed at (", i ,")"
         call error (message)
       end if
     end do
   rank (2)
     do i = 1, size(expression, DIM=2)
       do j = 1, size(expression, DIM=1)
-        if (.not. expression(j,i)) then
-          write (message, "(a,i0,a,i0,a)") "Assertion failed at: [", j, ",", i ,"]"
+        if (.not. expression(j, i)) then
+          write (message, "(a,i0,a,i0,a)") "Assertion failed at (", j, ",", i ,")"
           call error (message)
         end if
       end do
@@ -174,23 +180,32 @@ end subroutine assert
 
 
 subroutine assert_ (expression, file, line)
+  !! Category: experimental
+  !! Assert logical expression. On fail write extended error message to `STDERR` and terminate the program.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! call assert_(array == 0, __FILE__, __LINE__)
+  !! >>> "Error:main.f90:1107: Assertion failed at (1,1)"
+  !! ```
   implicit none
   logical, intent(in) :: expression(..)
+  !! Logical expression to be evaluated.
   character(*), intent(in) :: file
   integer, intent(in) :: line
-  character(128) :: message
+  character(256) :: message
   integer :: i, j
 
   select rank (expression)
   rank (0)
-      if (.not. expression) then 
-        write (message, "(a)") "Assertion failed"
-        call error_ (message, file, line) 
-      end if
+    if (.not. expression) then 
+      write (message, "(a)") "Assertion failed"
+      call error_ (message, file, line) 
+    end if
   rank (1)
     do i = 1, size(expression)
       if (.not. expression(i)) then 
-        write (message, "(a,i0,a)") "Assertion failed at: [", i ,"]"
+        write (message, "(a,i0,a)") "Assertion failed at (", i ,")"
         call error_ (message, file, line)
       end if
     end do
@@ -198,7 +213,7 @@ subroutine assert_ (expression, file, line)
     do i = 1, size(expression, DIM=2)
       do j = 1, size(expression, DIM=1)
         if (.not. expression(j,i)) then
-          write (message, "(a,i0,a,i0,a)") "Assertion failed at: [", j, ",", i ,"]"
+          write (message, "(a,i0,a,i0,a)") "Assertion failed at (", j, ",", i ,")"
           call error_ (message, file, line)
         end if
       end do

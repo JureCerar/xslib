@@ -6,6 +6,12 @@
 
 The Extra-Small Library (xslib) is a modern Fortran library consisting of useful utilities and functions as stand-in for Fortran "standard" library. The library is written with primary purpose of learning modern Fortran language, good coding practices, and in hopes that it helps someone else on their quest of learning Fortran.
 
+> [!NOTE]  
+> For serious Fortran development you should consider using [Fortran-lang/stdlib](https://github.com/fortran-lang/stdlib) project.
+
+> [!NOTE]  
+> When writing this library I have purposely avoided using preprocessor for writing template code, to keep it simple and readable and instead used Fortran native features (generic interfaces and parameterized derived types) even if this results in some code duplication.
+
 ## Build & Install
 
 For latest build clone repository from GitHub (or download other [releases](https://github.com/JureCerar/xslib/releases)):
@@ -38,7 +44,19 @@ You should consider using the following [CMake options](https://cmake.org/cmake/
 
 ## Documentation
 
-Documentation is available at [doc/README.md](doc/README.md).  
+Documentation is a work in progress (as with any of my projects) but already available at [docs](doc/README.md). The API documentation is automatically generated from the source files using the [FORD](https://forddocs.readthedocs.io/en/stable/) tool.
+
+To compile documentation, the simplest way to install FORD is using pip:
+
+```bash
+pip install ford
+```
+
+Then, in the root directory of the project type:
+
+```bash
+ford xslib-doc.md
+```
 
 ## Usage
 
@@ -54,42 +72,43 @@ end program main
 
 When compiling your program add `-lxslib` flag to compiler options. You may also need to use `-I` flag to point to where the modules files are (default `-I/usr/local/include`) even with all of the right environment variables set. When linking use `-L` to point to library file (default `-L/usr/local/lib`).
 
-To make things easier __pkg-config__ file is also included to help you with your program compilation. You may need to add the config file to `PKG_CONFIG_PATH` environment variable (default '/usr/local/lib/pkgconfig').
+To make things easier __pkg-config__ file is also included to help you with your program compilation. You may need to add the config file to `PKG_CONFIG_PATH` environment variable (default '/usr/local/lib/pkgconfig'). Afterward you can simply include it in a regular Makefile for exanple: 
 
-```bash
-pkg-config xslib --libs --cflags
+```makefile
+# Compiler configuration
+FC       := gfortran
+FC_FLAGS := -g -Og -march=native -Wall -fcheck=all
+FC_FLAGS += $(shell pkg-config --cflags xslib)
+# Linker configuration
+LD       := gfortran
+LD_FLAGS := 
+LD_FLAGS += $(shell pkg-config --libs xslib)
 ```
 
 Alternatively, the library can be added with [CMake](https://cmake.org/). First, find the library on your computer:
 
-```cmake
+```CMake
 find_package ( xslib 3.0 REQUIRED )
 include_directories ( ${xslib_INCLUDE_DIRS} )
 ```
 
 Then link _shared_ or _static_ library to your target build:
 
-```cmake
+```CMake
 # Link shared library
 target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_LIBRARIES} )
 # OR link static library
 target_link_libraries ( ${CMAKE_PROJECT_NAME} ${xslib_STATIC_LIBRARIES} )
 ```
 
-__NOTE:__ In case of non-standard installation path use the following CMake option (with the appropriate value instead of `xxx`):
-- `-Dxslib_DIR=xxx` equal to CMake config file path (default is `/usr/local/lib/cmake/xslib-X.X.X`).
-
-## Notes
-
-Functions for handling molecular files are now available separately. See [atomlib](https://github.com/JureCerar/atomlib) for more information.
-
-Also check out (arguably _much_ better) [Fortran-lang/stdlib](https://github.com/fortran-lang/stdlib) project.
+> [!NOTE]  
+> In case of non-standard installation path you may need to add `-Dxslib_DIR=/path/to/lib` flag to point to the  CMake config file (default is `/usr/local/lib/cmake/xslib-X.X.X`).
 
 ## License
 
 This program is licensed under the __GNU General Public License v3.0__
 
-Copyright (C) 2019-2023 [Jure Cerar](https://github.com/JureCerar)
+Copyright (C) 2019-2026 [Jure Cerar](https://github.com/JureCerar)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

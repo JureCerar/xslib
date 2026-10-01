@@ -17,36 +17,34 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_fitting
+  !! Module with basic regression functions.
+  !!
+  !! @note
+  !! For large arrays please use [LAPACK](https://www.netlib.org/lapack/) or similar library instead!
+  !! @endnote
   use iso_fortran_env, only: REAL32, REAL64
   implicit none
   private
   public :: linfit, polyfit, polyval
 
-  ! %%%
-  ! # `FITTING` - Function fitting
-  !   Module `xslib_fitting` contains basic regression functions. Supports both single and double precision (`DP`). 
-  !   If you are planning on doing _serious_ linear algebra, please use [LAPACK](https://www.netlib.org/lapack/) or similar library instead!
-  ! %%%
-
   interface linfit
-    module procedure :: linfit_real32, linfit_real64
+    module procedure :: linfit_r32, linfit_r64
   end interface linfit
 
   interface polyfit
-    module procedure :: polyfit_real32, polyfit_real64
+    module procedure :: polyfit_r32, polyfit_r64
   end interface polyfit
 
   interface polyval
-    module procedure :: polyval_real32, polyval_real64
-    module procedure :: polyval_array_real32, polyval_array_real64
+    module procedure :: polyval_r32, polyval_r64
+    module procedure :: polyval_array_r32, polyval_array_r64
   end interface polyval
 
 contains
 
-subroutine inverse_real32 (matrix)
-  ! DESCRIPTION
-  !   Calculate inverse of given matrix.
-  !   See: https://ww2.odu.edu/~agodunov/computing/programs/book2/Ch06/Inverse.f90
+subroutine inverse_r32 (matrix)
+  !! Calculate inverse of given matrix.
+  ! See: https://ww2.odu.edu/~agodunov/computing/programs/book2/Ch06/Inverse.f90
   implicit none
   real(REAL32), intent(inout) :: matrix(:,:)
   real(REAL32), allocatable :: L(:,:), U(:,:), b(:), d(:), x(:)
@@ -107,10 +105,10 @@ subroutine inverse_real32 (matrix)
     b(k) = 0.0
   end do
 
-end subroutine inverse_real32
+end subroutine inverse_r32
 
 
-subroutine inverse_real64 (matrix)
+subroutine inverse_r64 (matrix)
   implicit none
   real(REAL64), intent(inout) :: matrix(:,:)
   real(REAL64), allocatable :: L(:,:), U(:,:), b(:), d(:), x(:)
@@ -171,36 +169,28 @@ subroutine inverse_real64 (matrix)
     b(k) = 0.0
   end do
 
-end subroutine inverse_real64
+end subroutine inverse_r64
 
 
-function linfit_real32 (x, y) result (out)
-  ! %%%
-  ! ## `LINFIT` - Least squares linear fit
-  ! #### DESCRIPTION
-  !   Calculate a linear least-squares regression for two sets of data.
-  ! #### USAGE
-  !   ```fortran
-  !   out = linfit(x, y)
-  !   ```
-  ! #### PARAMETERS
-  ! * `real(ANY), dimension(:), intent(IN) :: x, y`
-  !   Two sets of data points to be fitted. Both arrays must have the same length.  
-  ! * `real(ANY), dimension(2) :: out`
-  !   Linear coefficients: slope, and intercept (highest power first).
-  ! #### EXAMPLE
-  ! ```Fortran
-  ! > linfit([1.0, 2.0, 3.0], [2.0, 3.0, 4.0])
-  ! [1.0, 2.0]
-  ! ```
-  ! #### NOTE
-  !   For large array sizes use [LAPACK](https://www.netlib.org/lapack/).
-  ! %%%
+function linfit_r32 (x, y) result (out)
+  !! Calculate a linear least-squares regression for two sets of data.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! print *, linfit([1.0, 2.0, 3.0], [5.8, 8.0, 10.2])
+  !! >>> [2.2, 3.6]
+  !! ```
   implicit none
-  real(REAL32), intent(in) :: x(:), y(size(x))
+  real(REAL32), intent(in) :: x(:)
+  !! The x-coordinates of the sample points. Must be same size as `y`.
+  real(REAL32), intent(in) :: y(:)
+  !! The y-coordinates of the sample points. Must be same size as `x`.
   real(REAL32) :: out(2)
+  !! Linear coefficients: slope, and intercept (highest power first).
   real(REAL32) :: Sx, Sy, Sxx, Sxy
   integer :: np
+
+  if (size(x) /= size(y)) error stop "Input arrays must be same size"
 
   np = size(x)
   Sx = sum(x)
@@ -210,16 +200,18 @@ function linfit_real32 (x, y) result (out)
   out(1) = (Sxx * Sy - Sxy * Sx) / (np * Sxx - Sx * Sx)
   out(2) = (np * Sxy - Sx * Sy) / (np * Sxx - Sx * Sx)
 
-end function linfit_real32
+end function linfit_r32
 
 
-function linfit_real64 (x, y) result (out)
+function linfit_r64 (x, y) result (out)
   implicit none
-  real(REAL64), intent(in) :: x(:), y(size(x))
+  real(REAL64), intent(in) :: x(:), y(:)
   real(REAL64) :: out(2)
   real(REAL64) :: Sx, Sy, Sxx, Sxy
   integer :: np
 
+  if (size(x) /= size(y)) error stop "Input arrays must be same size"
+
   np = size(x)
   Sx = sum(x)
   Sy = sum(y)
@@ -228,40 +220,33 @@ function linfit_real64 (x, y) result (out)
   out(1) = (Sxx * Sy - Sxy * Sx) / (np * Sxx - Sx * Sx)
   out(2) = (np * Sxy - Sx * Sy) / (np * Sxx - Sx * Sx)
 
-end function linfit_real64
+end function linfit_r64
 
 
-function polyfit_real32 (x, y, deg) result (out)
-  ! %%%
-  ! ## `POLYFIT` - Least squares polynomial fit
-  ! #### DESCRIPTION
-  !   Calculate a polynomial least-squares regression for two sets of data.
-  ! #### USAGE
-  !   ```fortran
-  !   out = polyfit(x, y, deg)
-  !   ```
-  ! #### PARAMETERS
-  ! * `real(ANY), dimension(:), intent(IN) :: x, y`
-  !   Two sets of data points to be fitted. Both arrays must have the same length.
-  ! * `integer, intent(IN) :: deg`
-  !   Degree of the fitting polynomial.
-  ! * `real(ANY), dimension(DEG) :: out`
-  !   Polynomial coefficients: highest powers first.
-  ! #### EXAMPLE
-  ! ```Fortran
-  ! > polyfit([1.0, 2.0, 3.0], [6.0, 11.0, 18.0], 2)
-  ! [1.0, 2.0, 3.0]
-  ! ```
+function polyfit_r32 (x, y, deg) result (out)
+  !! Calculate a polynomial least-squares regression for two sets of data.
+  !!
+  !! Example:
+  !! ```Fortran
+  !! print *, polyfit([1.0, 2.0, 3.0], [6.0, 11.0, 18.0], 2)
+  !! >>> [1.0, 2.0, 3.0]
+  !! ```
   ! #### NOTE
   !   For large arrays use [LAPACK](https://rosettacode.org/wiki/Polynomial_regression#Fortran).
   ! %%%
   implicit none
-  real(REAL32), intent(in) :: x(:), y(size(x))
+  real(REAL32), intent(in) :: x(:)
+  !! The x-coordinates of the sample points. Must be same size as `y`.
+  real(REAL32), intent(in) :: y(:)
+  !! The y-coordinates of the sample points. Must be same size as `x`.
   integer, intent(in) :: deg
+  !! Degree of the fitting polynomial.
   real(REAL32) :: out(deg+1)
+  !! Polynomial coefficients: highest powers first.
   real(REAL32), allocatable :: M(:,:), MT(:,:), MTM(:,:)
   integer :: np, i, j
 
+  if (size(x) /= size(y)) error stop "Input arrays must be same size"
   np = size(x)
   allocate(M(np, deg+1), MT(deg+1, np), MTM(np, np))
   do i = 0, deg
@@ -271,13 +256,13 @@ function polyfit_real32 (x, y, deg) result (out)
   end do
   MT = transpose(M)
   MTM = matmul(MT, M)
-  call inverse_real32(MTM)
+  call inverse_r32(MTM)
   out = matmul(matmul(MTM, MT), y)
 
-end function polyfit_real32
+end function polyfit_r32
 
 
-function polyfit_real64 (x, y, deg) result (out)
+function polyfit_r64 (x, y, deg) result (out)
   implicit none
   real(REAL64), intent(in) :: x(:), y(size(x))
   integer, intent(in) :: deg
@@ -294,47 +279,42 @@ function polyfit_real64 (x, y, deg) result (out)
   end do
   MT = transpose(M)
   MTM = matmul(MT, M)
-  call inverse_real64(MTM)
+  call inverse_r64(MTM)
   out = matmul(matmul(MTM, MT), y)
 
-end function polyfit_real64
+end function polyfit_r64
 
 
-function polyval_real32 (p, x) result (out)
-  ! %%%
-  ! ## `POLYVAL` - Evaluate a polynomial 
-  ! #### DESCRIPTION
-  !   Evaluate a polynomial at specific values.
-  ! #### USAGE
-  !   ```fortran
-  !   out = polyval(p, x)
-  !   ```
-  ! #### PARAMETERS
-  ! * `real(ANY), dimension(:), intent(IN) :: p`
-  !   Polynomial coefficients: highest powers first.
-  ! * `real(ANY), dimension(..), intent(IN) :: x`
-  !   Value or array at which to evaluate the polynomial. 
-  ! * `real(ANY), dimension(..) :: out`
-  !   Value or array of polynomial.
-  ! #### EXAMPLE
-  ! ```Fortran
-  ! > polyval([1.0, 2.0, 3.0], 1.0)
-  ! 6.0
-  ! > polyval([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
-  ! [6.0, 11.0, 18.0]
-  ! ```
-  ! %%%  
+function polyval_r32 (p, x) result (out)
+  !! Evaluate a polynomial at specific values.
+  !!
+  !! If `p` is of length `N`, this function returns the value:
+  !! ```
+  !! p(1) * x ** (N-1) + p(2) * x ** (N-2) + ... + p(N-1) * x + p(N)
+  !! ```
+  !!
+  !! Example:
+  !! ```Fortran
+  !! print *, polyval([1.0, 2.0, 3.0], 1.0)
+  !! >>> 6.0
+  !! print *, polyval([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+  !! >>> [6.0, 11.0, 18.0]
+  !! ```
   implicit none
-  real(REAL32), intent(in) :: x, p(:)
+  real(REAL32), intent(in) :: p(:)
+  !! Polynomial coefficients: highest powers first.
+  real(REAL32), intent(in) :: x
+  !! Value or array at which to evaluate the polynomial. 
   real(REAL32) :: out
+  !! Evaluated values of polynomial.
   integer :: i
 
   out = sum([(p(i) * x ** (i-1), i = 1, size(p))])
 
-end function polyval_real32
+end function polyval_r32
 
 
-function polyval_real64 (p, x) result (out)
+function polyval_r64 (p, x) result (out)
   implicit none
   real(REAL64), intent(in) :: x, p(:)
   real(REAL64) :: out
@@ -342,10 +322,10 @@ function polyval_real64 (p, x) result (out)
 
   out = sum([(p(i) * x ** (i-1), i = 1, size(p))])
 
-end function polyval_real64
+end function polyval_r64
 
 
-function polyval_array_real32 (p, x) result (out)
+function polyval_array_r32 (p, x) result (out)
   implicit none
   real(REAL32), intent(in) :: x(:), p(:)
   real(REAL32) :: out(size(x))
@@ -356,10 +336,10 @@ function polyval_array_real32 (p, x) result (out)
     out = out + p(i) * x ** (i-1)
   end do
 
-end function polyval_array_real32
+end function polyval_array_r32
 
 
-function polyval_array_real64 (p, x) result (out)
+function polyval_array_r64 (p, x) result (out)
   implicit none
   real(REAL64), intent(in) :: x(:), p(:)
   real(REAL64) :: out(size(x))
@@ -370,7 +350,7 @@ function polyval_array_real64 (p, x) result (out)
     out = out + p(i) * x ** (i-1)
   end do
 
-end function polyval_array_real64
+end function polyval_array_r64
 
 end module xslib_fitting
 

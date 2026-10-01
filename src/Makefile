@@ -1,7 +1,7 @@
 # This file is part of xslib
 # https://github.com/JureCerar/xslib
 #
-# Copyright (C) 2019-2022 Jure Cerar
+# Copyright (C) 2019-2026 Jure Cerar
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ CC_FLAGS := -g -Og -march=native -fPIC
 INSTALL := install
 INSTALL_DIR := /usr/local
 # Source
-SRC  = array.f90  cstring.f90  dict.f90  errorh.f90  fitting.f90  list.f90  geometry.f90  linalg.f90
-SRC += math.f90  pathlib.F90  signal.f90  sort.f90  stats.f90  time.f90  xmalloc.f90  xslib.f90
+SRC  = array.f90  cstring.f90  dict.f90  errorh.f90  fitting.f90  linalg.f90  geometry.f90  list.f90  ansi.f90  
+SRC += logical.f90  math.f90  memory.f90  pathclib.c  pathlib.F90  signal.f90  sort.f90  stats.f90  time.f90  xslib.f90
 # Objects
 OBJ  = $(SRC)
 OBJ := $(OBJ:.F90=.o)
