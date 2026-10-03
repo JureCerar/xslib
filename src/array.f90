@@ -21,7 +21,7 @@ module xslib_array
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: linspace, logspace, arange, eye
+  public :: linspace, logspace, arange, eye, meshgrid
   
 
   interface linspace
@@ -31,7 +31,7 @@ module xslib_array
     !! Example:
     !! ```Fortran
     !! print *, linspace(0.0, 1.0, 5)
-    !! > [0.00, 0.25, 0.50, 0.75, 1.00]
+    !! >>> [0.00, 0.25, 0.50, 0.75, 1.00]
     !! ```
     module procedure :: linspace_r32, linspace_r64
   end interface linspace 
@@ -44,7 +44,7 @@ module xslib_array
     !! Example:
     !! ```Fortran
     !! print *, logspace(1.0, 10000.0, 5)
-    !! > [1.0, 10.0, 100.0, 1000.0, 10000.0]
+    !! >>> [1.0, 10.0, 100.0, 1000.0, 10000.0]
     !! ```
     module procedure :: logspace_r32, logspace_r64
   end interface logspace 
@@ -68,12 +68,29 @@ module xslib_array
     !! Example
     !! ```Fortran
     !! print *, eye(3)
-    !! > [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    !! >>> [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     !! print *, eye(3, mold=0_INT32)
-    !! > [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    !! >>> [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     !! ```
     module procedure :: eye_i32, eye_i64, eye_r32, eye_r64
   end interface eye
+
+
+  interface meshgrid
+    !! Creates a grid of coordinates over the interval of `[0, spec]`
+    !! for each dimension (creates a every possible combination of 
+    !! coordinates within specs for each dimension).
+    !! 
+    !! Example
+    !! ```Fortran
+    !! print *, meshgrid([2, 2])
+    !! >>> [[0, 0], [1, 0], [2, 0],
+    !! ...  [0, 1], [1, 1], [2, 1],
+    !! ...  [0, 2], [1, 2], [2, 2]]
+    !! ```
+    module procedure :: meshgrid_i32
+  end interface meshgrid
+
 
 contains
 
@@ -236,5 +253,58 @@ function eye_r64(n, mold) result (out)
     out(i, i) = 1
   end do
 end function eye_r64
+
+
+function meshgrid_i32 (spec, mold) result (out)
+  implicit none
+  integer(INT32), allocatable :: out(:,:)
+  !! Output meshgrid with `size(spec), product(spec+1)` dimensions.
+  integer, intent(in) :: spec(:)
+  !! Output array shape specification.
+  integer, optional :: mold
+  !! [Unused] Specify type of output array.
+  integer(INT32) :: n, i, j, k, l
+  
+  allocate(out(size(spec), product(spec + 1)))
+
+  n = 1
+  select case (size(spec))
+  case (1)
+    do i = 0, spec(1)
+      out(:,n) = i
+      n = n + 1
+    end do
+  case (2)
+    do j = 0, spec(2)
+      do i = 0, spec(1)
+        out(:,n) = [i, j]
+        n = n + 1
+      end do
+    end do
+  case (3)
+    do k = 0, spec(3)
+      do j = 0, spec(2)
+        do i = 0, spec(1)
+          out(:,n) = [i, j, k]
+          n = n + 1
+        end do
+      end do
+    end do
+  case (4)
+    do l = 0, spec(4)
+      do k = 0, spec(3)
+        do j = 0, spec(2)
+          do i = 0, spec(1)
+            out(:,n) = [i, j, k, l]
+            n = n + 1
+          end do
+        end do
+      end do
+    end do 
+  case default
+    error stop "Unsupported SPEC size"
+  end select
+
+end function meshgrid_i32
 
 end module xslib_array
