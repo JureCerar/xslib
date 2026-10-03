@@ -9,7 +9,7 @@ macro: PROJECT_VERSION="0.0.0"
        PROJECT_VERSION_MAJOR=0
        PROJECT_VERSION_MINOR=0
        PROJECT_VERSION_PATCH=0
-source: true
+source: False
 md_extensions: markdown.extensions.toc
 extra_mods: iso_fortran_env:https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fFORTRAN_005fENV.html
             iso_c_binding:https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html

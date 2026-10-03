@@ -113,7 +113,7 @@ end program main
 
 ## Documentation
 
-Documentation is a work in progress (as it is with all of my projects) but already available at [read-the-docs](doc/README.md). The API documentation is automatically generated from the source files using the [FORD](https://forddocs.readthedocs.io/en/stable/) tool.
+Documentation is a work in progress (as it is with all of my projects) but already available at [github.io/xslib](https://jurecerar.github.io/xslib/). The API documentation is automatically generated from the source files using the [FORD](https://forddocs.readthedocs.io/en/stable/) tool.
 
 To compile the documentation, in the root directory of the project type:
 
