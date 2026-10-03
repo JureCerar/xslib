@@ -1,14 +1,16 @@
 [x] Update inline FORD docs
 [x] Add FORD configuration
-[ ] Expand library with new functions
-    [ ] meshgrid
+[x] Expand library with new functions
+    [x] meshgrid
     [x] split
     [x] join
     [x] linear algebra
     [x] logic functions
-    [ ] .txt functions
+    [x] .txt functions
     [x] xmalloc (only reallocate)
     [ ] List iterator
-[ ] Simplify CMake configuration
-    [ ] Get rid of Cmake preprocessing
-    [ ] Add user definitions 
+[x] Simplify CMake configuration
+    [x] Get rid of Cmake preprocessing
+    [x] Add user definitions 
+[ ] Add missing tests
+[x] Try playing with FPM
