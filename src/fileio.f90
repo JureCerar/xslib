@@ -25,7 +25,7 @@ module xslib_fileio
     integer, parameter :: BUFLEN = 4096
     !! Max length of buffer
     
-    character(*), parameter :: DEFAULT_DELIM = ", "
+    character(*), parameter :: DEFAULT_DELIM = ","
     !! Default delimiters
 
     character(*), parameter :: DEFAULT_COMMENTS = "#"
@@ -57,7 +57,7 @@ function fromtxt_i32 (file, delimiters, comments, skiprows, usecols, mold, stat,
     !! Path to file.
     character(*), intent(in), optional :: delimiters
     !! The character (or multiple) to separate the values. The 
-    !! default is `,` or whitespace.
+    !! default is `,`.
     character(*), intent(in), optional :: comments
     !! The character (or multiple) used to indicate the start of
     !! a comment. Default is `#`.
