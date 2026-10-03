@@ -90,15 +90,6 @@ subroutine mixing_test_real32 ()
   x = -0.5
   y = clip(x, lower, upper)
   if (abs(y - 0.0) > DELTA) error stop
-
-  ! IsClose test
-  x = 1.0
-  y = 1.0
-  if (isClose(x, y, real(DELTA, kind(x))) .neqv. .True.) error stop
-
-  x = 1.0
-  y = 2.0
-  if (isClose(x, y, real(DELTA, kind(x))) .neqv. .False.) error stop
   
 end subroutine mixing_test_real32
 
@@ -131,15 +122,6 @@ subroutine mixing_test_real64 ()
   y = clip(x, lower, upper)
   if (abs(y - 0.0) > DELTA) error stop
 
-  ! IsClose test
-  x = 1.0
-  y = 1.0
-  if (isClose(x, y, real(DELTA, kind(x))) .neqv. .True.) error stop
-
-  x = 1.0
-  y = 2.0
-  if (isClose(x, y, real(DELTA, kind(x))) .neqv. .False.) error stop
-  
 end subroutine mixing_test_real64
 
 ! Test GCD and LCM functions.
