@@ -695,6 +695,8 @@ subroutine dict_get (this, key, value, default)
         hash = this%hash_function(key)
         i = modulo(hash, this%n_buckets) + 1
         call this%bucket(i)%get(hash, k, v)
+    else
+        v => null()
     end if
 
     if (associated(v)) then
