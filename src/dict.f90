@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2024 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,22 +17,21 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_dict
+    !! Module with primitive implementation of unlimited polymorphic dictionary (hash table).
+    !!
+    !! @note
+    !! To add new custom derived TYPE support you only have to write extension to `hash_function` and `copy` functions.
+    !! @endnote
     use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
     implicit none
     private
     public :: dict_t
 
-    ! %%%
-    ! # `DICT` - Dictionary (hash table)
-    !   Module `xslib_dict` contains primitive of unlimited polymorphic dictionary (hash table). It supports
-    !   `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER(*)` variable types (single or double precision).
-    !   To add new custom derived TYPE support you only have to write extension to `hash_function` and `copy` functions.
-    ! %%%
-
-    ! Hash value default precision
     integer, parameter :: HASH_KIND = INT32
+    !! Hash value default precision
 
     type :: link_t
+        !! Element of linked list
         integer(HASH_KIND) :: hash
         class(*), pointer :: key => null()
         class(*), pointer :: value => null()
@@ -40,6 +39,7 @@ module xslib_dict
     end type link_t
 
     type :: list_t
+        !! Linked list
         integer :: length = 0
         class(link_t), pointer :: first => null()
         class(link_t), pointer :: last => null()
@@ -51,39 +51,148 @@ module xslib_dict
     end type list_t
 
     ! Initial bucket size and max number of items in bucket
-    ! TODO: Optimize this values!  
+    ! TODO: Optimize this values.
     integer, parameter :: INIT_BUCKETS = 128
     integer, parameter :: MAX_LENGTH = 32
 
     type :: dict_t
-        ! %%%
-        ! ## `DICT_T` - Polymorphic dictionary (hash table)
-        ! #### DESCRIPTION
-        !   Implementation of unlimited polymorphic dictionary (hash table) derived type variable. Supports `INTEGER`, `REAL`, 
-        !   `COMPLEX`, `LOGICAL`, and `CHARACTER(*)` variable types (single or double precision). Values and keys cannot be
-        !   directly accessed, only via `put`, `get`, `keys`, `values` or `items` functionality.  
-        ! #### USAGE
-        !   ```Fortran
-        !   > type(dict_t) :: dict
-        !   ```
-        ! %%%
+        !! Implementation of unlimited polymorphic dictionary (hash table).
+        !!
+        !! A hash table stores data in key-value pairs. It operates on the hashing
+        !! concept, where each key is translated by a hash function into a distinct
+        !! index in an array. The index functions as a storage location for the matching
+        !! value. In simple words, it maps the keys with the value.
+        !!
+        !! Example:
+        !! ```Fortran
+        !! type(dict_t) :: dict
+        !! ```
         integer, private :: n_buckets = 0 
         type(list_t), allocatable, private :: bucket(:)  
     contains
         procedure :: clear => dict_clear
+        !! Remove all key-value pairs from dictionary.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! call dict%clear()
+        !! print *, dict
+        !! >>> {}
+        !! ```
         procedure, private :: fetch => dict_fetch
         procedure :: get => dict_get
+        !! Get the value of the item with the specified key. Returns default value
+        !! (if present) if item is not in the dictionary, otherwise raises an error.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! call dict%get("foo", value)
+        !! print *, value
+        !! >>> 1
+        !! call dict%get("bar", value, default=0)
+        !! print *, value
+        !! >>> 0
+        !! ```
         procedure, non_overridable, nopass :: hash_function
         procedure :: items => dict_items
+        !! Get the key-value item pair from `n`-th position in dictionary. Raises error
+        !! if index is out of range. Order of items in dictionary is not the same as order
+        !! they were put in. 
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! call dict%items(1, key, value)
+        !! print *, key, value
+        !! >>> "foo", 1
+        !! ```
         procedure :: keys => dict_keys
+        !! Get the key from `n`-th position in dictionary. Raises error if index is out
+        !! of range. Order of keys in dictionary is not the same as order they were put in.
+        !!
+        !! @note
+        !! Variable `key` must be exactly same type as dictionary key.
+        !! @endnote
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! call dict%keys(1, key)
+        !! print *, key
+        !! >>> "foo"
+        !! ```
         procedure :: len => dict_len
+        !! Count number of key-value pairs in the dictionary.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! print *, dict%len()
+        !! >>> 2
+        !! ```
         procedure :: put => dict_put
+        !! Add new key-value pair to dictionary.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! call dict%put("foo", 1)
+        !! call dict%put("bar", 2)
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! ```
         procedure :: remove => dict_remove
+        !! Remove value with the specified key from dictionary.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! call dict%remove("foo")
+        !! print *, dict
+        !! >>> {'bar': 2}
+        !! ```
         procedure, private :: resize => dict_resize
         procedure :: same_type_as => dict_same_type_as
+        !! Returns `.True.` if the dynamic type of key value is the same as the dynamic 
+        !! type of `elem`. Returns `.False.` if key value is empty.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! print *, dict%same_type_as("foo", 1)
+        !! >>> .True.
+        !! print *, dict%same_type_as("foo", 1.0)
+        !! >>> .False.
+        !! ```
         procedure :: values => dict_values
+        !! Get value from the `n`-th position in dictionary. Raises error if index is out
+        !! of range. Order of items in dictionary is not the same as order they were put in.
+        !! 
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! call dict%values(1, value)
+        !! print *, value
+        !! >>> 1
+        !! ```
         procedure, private :: write_formatted
         generic :: write(formatted) => write_formatted
+        !! Formatted and unformatted write of `dict_t`.
+        !!
+        !! Example:
+        !! ```Fortran
+        !! print *, dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! write (*,*) dict
+        !! >>> {'foo': 1, 'bar': 2}
+        !! ```
     end type dict_t
 
 contains
@@ -513,21 +622,6 @@ end subroutine list_get
 
 subroutine dict_clear (this)
     !! Remove all items from dictionary
-    ! %%%
-    ! ## `DICT%CLEAR` - Remove all items from dictionary
-    ! #### DESCRIPTION
-    !   Removes ALL items from dictionary.
-    ! #### USAGE
-    !   ```Fortran
-    !   call dict%clear()
-    !   ```
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%clear()
-    !   > print *, dict
-    !   {}
-    !   ```
-    ! %%%
     implicit none
     class(dict_t) :: this
     integer :: i
@@ -585,33 +679,6 @@ end subroutine dict_fetch
 
 subroutine dict_get (this, key, value, default)
     !! Get value from dictionary
-    ! %%%
-    ! ## `DICT%GET` - Get value from dictionary
-    ! #### DESCRIPTION
-    !   Get the value of the item with the specified key. Returns default value if item is not
-    !   in the dictionary if present, other raises an error.
-    ! #### USAGE
-    !   ```Fortran
-    !   call list%get(key, value, default=default)
-    !   ```
-    ! #### PARAMETERS
-    !   * `class(*), intent(IN) :: key`
-    !     The key of the item you want to return the value from.
-    !   * `class(*), intent(OUT) :: value`
-    !     A value of specified key.
-    !   * `class(*), intent(IN), OPTIONAL :: default`
-    !     A value to return if the specified key does not exist.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%get("one", value)
-    !   > print *, value
-    !   1
-    !   > call dict%get("one", value, default=0)
-    !   > print *, value
-    !   0
-    !   ```  
-    ! %%%
     implicit none
     class(dict_t) :: this
     class(*), intent(IN) :: key
@@ -628,6 +695,8 @@ subroutine dict_get (this, key, value, default)
         hash = this%hash_function(key)
         i = modulo(hash, this%n_buckets) + 1
         call this%bucket(i)%get(hash, k, v)
+    else
+        v => null()
     end if
 
     if (associated(v)) then
@@ -641,81 +710,38 @@ subroutine dict_get (this, key, value, default)
 end subroutine dict_get
 
 
-subroutine dict_items (this, pos, key, value)
+subroutine dict_items (this, n, key, value)
     !! Get n-th item from dictionary
-    ! %%%
-    ! ## `DICT%ITEMS` - Get n-th item from dictionary
-    ! #### DESCRIPTION
-    !   Get the key-value item pair from `pos`-th position in dictionary. Raises error
-    !   if index is out of range. Order of items in dictionary is not the same as order
-    !   they were put in. 
-    ! #### USAGE
-    !   ```Fortran
-    !   call list%items(pos, key, value)
-    !   ```
-    ! #### PARAMETERS
-    !   * `integer, intent(IN) :: pos`
-    !      A number specifying at which position to get element.
-    !   * `class(*), intent(OUT) :: key`
-    !     Corresponding key from to the dictionary.
-    !   * `class(*), intent(OUT) :: value`
-    !     Corresponding value from to the dictionary.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%items(1, key, value)
-    !   > print *, key, value
-    !   "one", 1
-    !   ```  
-    ! %%%
     implicit none
     class(dict_t) :: this
-    integer, intent(IN) :: pos
+    integer, intent(IN) :: n
+    !! A number specifying at which position to get value.
     class(*), intent(OUT) :: key
+    !! Corresponding key from to the dictionary.
     class(*), intent(OUT) :: value
+    !! Corresponding value from to the dictionary.
     class(*), pointer :: k, v
 
     ! Grab item from the list
-    call this%fetch(pos, k, v)
+    call this%fetch(n, k, v)
     call copy(k, key)
     call copy(v, value)
 
 end subroutine dict_items
 
 
-subroutine dict_keys (this, pos, key)
+subroutine dict_keys (this, n, key)
     !! Get n-th key from dictionary
-    ! %%%
-    ! ## `DICT%KEYS` - Get n-th key from dictionary
-    ! #### DESCRIPTION
-    !   Get the key from `pos`-th position in dictionary. Raises error if index is out
-    !   of range. Order of items in dictionary is not the same as order they were put in.
-    !   __NOTE:__ Variable `key` must be exactly same type as dictionary key.  
-    ! #### USAGE
-    !   ```Fortran
-    !   call list%keys(pos, key)
-    !   ```
-    ! #### PARAMETERS
-    !   * `integer, intent(IN) :: pos`
-    !      A number specifying at which position to get element.
-    !   * `class(*), intent(OUT) :: key`
-    !     Corresponding key from to the dictionary.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%keys(1, key)
-    !   > print *, key
-    !   "one"
-    !   ```  
-    ! %%%
     implicit none
     class(dict_t) :: this
-    integer, intent(IN) :: pos
+    integer, intent(IN) :: n
+    !! A number specifying at which position to get key.
     class(*), intent(OUT) :: key
+    !! Corresponding key from to the dictionary.
     class(*), pointer :: k, v
 
     ! Grab item from the list
-    call this%fetch(pos, k, v)
+    call this%fetch(n, k, v)
     call copy(k, key, strict=.True.)
 
 end subroutine dict_keys
@@ -723,30 +749,10 @@ end subroutine dict_keys
 
 function dict_len (this) result (length)
     !! Count number of items in the dictionary
-    ! %%%
-    ! ## `DICT%LEN` - Count number of items in the dictionary
-    ! #### DESCRIPTION
-    !   Count number of items in the dictionary
-    ! #### USAGE
-    !   ```Fortran
-    !   out = list%len()
-    !   ```
-    ! #### PARAMETERS
-    !   * `integer :: out`
-    !     Number of items in the dictionary.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > print *, dict%len()
-    !   1
-    !   > call dict%put("two", 2)
-    !   > print *, dict%len()
-    !   2
-    !   ```
-    ! %%%
     implicit none
     class(dict_t) :: this
     integer :: length
+    !! Number of items in the dictionary.
 
     if (allocated(this%bucket)) then
         length = sum(this%bucket(:)%length)
@@ -758,36 +764,13 @@ end function dict_len
 
 
 subroutine dict_put (this, key, value)
-    !! Add new item to dictionary
-    ! %%%
-    ! ## `DICT%PUT` - Add new item to dictionary
-    ! #### DESCRIPTION
-    !   Add the value of the item with the specified key. If key already exists,
-    !   value will be replaced.
-    ! #### USAGE
-    !   ```Fortran
-    !   call list%put(key, value)
-    !   ```
-    ! #### PARAMETERS
-    !   * `class(*), intent(IN) :: key`
-    !     The key of the item you want to store.
-    !   * `class(*), intent(IN) :: value`
-    !     The value of the item you want to store.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%put("two", 2)
-    !   > print *, dict
-    !   {'one':1, 'two':2}
-    !   > call dict%put("one", 0)
-    !   > print *, dict
-    !   {'one':0, 'two':2}
-    !   ```  
-    ! %%%
+    !! Add new key-value pair to dictionary
     implicit none
     class(dict_t) :: this
     class(*), intent(IN) :: key
+    !! The key of the key-value pair you want to store.
     class(*), intent(IN) :: value
+    !! The value of the key-value pair you want to store.
     integer :: i, hash
 
     ! Check if allocated
@@ -802,7 +785,7 @@ subroutine dict_put (this, key, value)
 
     ! Check if bucket is full and resize if exceeded
     if (this%bucket(i)%length > MAX_LENGTH) then
-        print *, "resizing to:", 2 * this%n_buckets
+        ! print *, "resizing to:", 2 * this%n_buckets
         call this%resize(2 * this%n_buckets)
     end if
 
@@ -810,30 +793,11 @@ end subroutine dict_put
 
 
 subroutine dict_remove (this, key)
-    !! Remove item from dictionary
-    ! %%%
-    ! ## `DICT%REMOVE` - Remove item from dictionary
-    ! #### DESCRIPTION
-    !   Removes the element with the specified key from dictionary
-    ! #### USAGE
-    !   ```Fortran
-    !   call dict%remove(key)
-    !   ```
-    ! #### PARAMETERS
-    !   * `class(*), intent(IN) :: key`
-    !     The key of the item you want to remove.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%put("two", 2)
-    !   > call list%remove("one")
-    !   > print *, dict
-    !   {'two':2}
-    !   ```
-    ! %%%
+    !! Remove key-value pair from dictionary
     implicit none
     class(dict_t) :: this
     class(*), intent(IN) :: key
+    !! The key of the key-value pair you want to remove.
     integer(HASH_KIND) :: hash
     integer :: i
 
@@ -886,36 +850,14 @@ end subroutine dict_resize
 
 function dict_same_type_as (this, key, elem) result (result)
     !! Check if value is the same type as reference
-    ! %%%
-    ! ## `DICT%SAME_TYPE_AS` - Check if value is the same type as reference
-    ! #### DESCRIPTION
-    !   Returns `.True.` if the dynamic type of key value is the same as the dynamic 
-    !   type of `elem`. Returns `.False.` if key value is empty.
-    ! #### USAGE
-    !   ```Fortran
-    !   result = list%key_same_type_as(key, elem)
-    !   ```
-    ! #### PARAMETERS
-    !   * `logical :: result`
-    !      A number specifying at which position to get element.
-    !   * `class(*), intent(IN) :: key`
-    !     Corresponding key from to the dictionary.
-    !   * `class(*), intent(IN) :: elem`
-    !     Corresponding value from to the dictionary.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > print *, dict%same_type_as("one", 1)
-    !   .True.
-    !   > print *, dict%same_type_as("one", 1.0)
-    !   .False.
-    !   ```  
-    ! %%%
     implicit none
     logical :: result
+    !! Check if TYPE of elem and value match.
     class(dict_t) :: this
     class(*), intent(IN) :: key
+    !! Corresponding key from to the dictionary.
     class(*), intent(IN) :: elem
+    !! Element to be checked against value from to the dictionary.
     class(*), pointer :: k, v
     integer(HASH_KIND) :: hash
     integer :: i
@@ -935,38 +877,18 @@ function dict_same_type_as (this, key, elem) result (result)
 end function dict_same_type_as
 
 
-subroutine dict_values (this, pos, value)
+subroutine dict_values (this, n, value)
     !! Get n-th value from dictionary
-    ! %%%
-    ! ## `DICT%VALUES` - Get n-th value from dictionary
-    ! #### DESCRIPTION
-    !   Get value from the `pos`-th position in dictionary. Raises error if index is out
-    !   of range. Order of items in dictionary is not the same as order they were put in.
-    ! #### USAGE
-    !   ```Fortran
-    !   call list%values(pos, value)
-    !   ```
-    ! #### PARAMETERS
-    !   * `integer, intent(IN) :: pos`
-    !      A number specifying at which position to get element.
-    !   * `class(*), intent(OUT) :: value`
-    !     Corresponding value from to the dictionary.
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%values(1, value)
-    !   > print *, value
-    !   1
-    !   ```  
-    ! %%%
     implicit none
     class(dict_t) :: this
-    integer, intent(IN) :: pos
+    integer, intent(IN) :: n
+    !! A number specifying at which position to get key-value pair.
     class(*), intent(OUT) :: value
+    !! Corresponding value from to the dictionary.
     class(*), pointer :: k, v
 
     ! Grab item from the list
-    call this%fetch(pos, k, v)
+    call this%fetch(n, k, v)
     call copy(v, value)
 
 end subroutine dict_values
@@ -974,25 +896,6 @@ end subroutine dict_values
 
 subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
     !! Formatted and unformatted write for dictionary
-    ! %%%
-    ! ## `DICT%WRITE` - Formatted and unformatted write for dictionary
-    ! #### DESCRIPTION
-    !   Allows for formatted and unformatted write of `dict_t`.
-    ! #### USAGE
-    !   ```Fortran
-    !   print *, dict_t
-    !   write (*, *) dict_t
-    !   ```
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > call dict%put("one", 1)
-    !   > call dict%put("two", 2)
-    !   > print *, dict
-    !   {'one':1, 'two':2}
-    !   > write (*, *) dict
-    !   {'one':1, 'two':2}
-    !   ```
-    ! %%% 
     implicit none
     class(dict_t), intent(IN) :: this
     integer, intent(IN) :: unit

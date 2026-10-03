@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2022 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,146 +17,188 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_geometry
+  !! Module for geometry operations.
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: rotate, deg2rad, rad2deg, crt2sph, sph2crt, crt2cyl, cyl2crt, &
-  & distance, angle, dihedral
-
-  ! Default vector dimension
-  integer, parameter :: DIM = 3
-
-  ! %%%
-  ! # `GEOMETRY` - Geometry functions
-  !   Module `xslib_geometry` contains function for vector operations. Default dimension of vectors is `DIM = 3`.
-  !   Supports both single and double precision (`DP`).
-  ! %%%
+  public :: rotate, deg2rad, rad2deg, crt2sph, sph2crt, crt2cyl, cyl2crt
+  public :: distance, angle, dihedral
 
   interface rotate
-    module procedure :: rotate_real32, rotate_real64, rotate_axis_real32, rotate_axis_real64
+    !! Rotate vector by specified angle `angle` around vector `vec` or axis.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, rotate([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], PI/2)
+    !! >>> [0.0, 0.0, -1.0]
+    !! print *, rotate([1.0, 0.0, 0.0], "Y", PI/2)
+    !! >>> [0.0, 0.0, -1.0]
+    !! ```
+    module procedure :: rotate_r32, rotate_r64
+    module procedure :: rotate_axis_r32, rotate_axis_r64
   end interface rotate
 
   interface rad2deg
-    module procedure :: rad2deg_real32, rad2deg_real64
+    !! Convert angles from degrees to radians.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, deg2rad(180.0)
+    !! >>> 3.14159274
+    !! ```
+    module procedure :: rad2deg_r32, rad2deg_r64
   end interface rad2deg
 
   interface deg2rad
-    module procedure :: deg2rad_real32, deg2rad_real64
+    !! Convert angles from radians to degrees.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, deg2rad(PI)
+    !! >>> 180.0
+    !! ```
+    module procedure :: deg2rad_r32, deg2rad_r64
   end interface deg2rad
 
   interface crt2sph
-    module procedure :: crt2sph_real32, crt2sph_real64
+    !! Convert vector from spherical to cartesian coordinate
+    !! system: `[x, y, z]` → `[r, theta, phi]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, crt2sph([1.0, 0.0, 0.0])
+    !! >>> [1.0, 1.5707964, 0.0]
+    !! ```
+    module procedure :: crt2sph_r32, crt2sph_r64
   end interface crt2sph
 
   interface sph2crt
-    module procedure :: sph2crt_real32, sph2crt_real64
+    !! Convert vector from cartesian to cylindrical coordinate
+    !! system: `[r, theta, phi]` → `[x, y, z]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, sph2crt([1.0, PI/2, 0.0])
+    !! >>> [1.0, 0.0, 0.0]
+    !! ```
+    module procedure :: sph2crt_r32, sph2crt_r64
   end interface sph2crt
 
   interface crt2cyl
-    module procedure :: crt2cyl_real32, crt2cyl_real64
+    !! Convert vector from cartesian to cylindrical coordinate
+    !! system: `[x, y, z]` → `[r, theta, z]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, crt2cyl([0.0, 1.0, 0.0])
+    !! >>> [1.0, 1.5707964, 0.0]
+    !! ```
+    module procedure :: crt2cyl_r32, crt2cyl_r64
   end interface crt2cyl
 
   interface cyl2crt
-    module procedure :: cyl2crt_real32, cyl2crt_real64
+    !! Convert vector from cylindrical to cartesian coordinate
+    !! system: `[r, theta, z]` → `[x, y, z]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, cyl2crt([1.0, PI/2, 0.0])
+    !! >>> [0.0, 1.0, 0.0]
+    !! ```
+    module procedure :: cyl2crt_r32, cyl2crt_r64
   end interface cyl2crt
 
   interface distance
-    module procedure :: distance_real32, distance_real64
+    !! Calculates distance (norm) between two points.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, distance([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+    !! >>> 1.73205
+    !! ```
+    module procedure :: distance_r32, distance_r64
   end interface distance
 
   interface angle
-    module procedure :: angle_real32, angle_real64
+    !! Calculates angle between three points.
+    !! ```
+    !! a        
+    !!  \
+    !!   b -- c
+    !! ```
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, angle([1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0])
+    !! >>> 1.57079637
+    !! ```
+    module procedure :: angle_r32, angle_r64
   end interface angle
 
   interface dihedral
-    module procedure :: dihedral_real32, dihedral_real64
+    !! Calculates dihedral angle (theta) between four points.
+    !! ```
+    !! a        d
+    !!  \      /
+    !!   b -- c
+    !! ```
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, dihedral([0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0])
+    !! >>> 1.57079637
+    !! ```
+    module procedure :: dihedral_r32, dihedral_r64
   end interface dihedral
 
 contains
 
-function cross32 (u, v) result (out)
+
+function rotate_r32 (v, vector, angle) result (out)
+  use xslib_linalg, only: cross
   implicit none
-  real :: out(3)
-  real, intent(in) :: u(3), v(3)
-
-  out(1) = u(2) * v(3) - u(3) * v(2)
-  out(2) = u(3) * v(1) - u(1) * v(3)
-  out(3) = u(1) * v(2) - u(2) * v(1)
-
-end function cross32
-
-function cross64 (u, v) result (out)
-  implicit none
-  double precision :: out(3)
-  double precision, intent(in) :: u(3), v(3)
-
-  out(1) = u(2) * v(3) - u(3) * v(2)
-  out(2) = u(3) * v(1) - u(1) * v(3)
-  out(3) = u(1) * v(2) - u(2) * v(1)
-
-end function cross64
-
-
-function rotate_real32 (v, vector, angle) result (out)
-  ! %%%
-  ! ## `ROTATE` - Vector rotation
-  ! #### DESCRIPTION
-  !   Rotate vector by specified angle `angle` around vector `vec` or axis.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = rotate(v, vector, angle)
-  !   out = rotate(v, axis, angle)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: v`
-  !     Input vector.
-  !   * `real(ANY), dimension(DIM), intent(IN) :: vector`
-  !     Vector of rotation.
-  !   * `character, intent(IN) :: axis`
-  !     Axis of rotation: `x`, `y`, or `z`.
-  !   * `real(ANY), intent(IN) :: angle`
-  !     Angle of rotation in radians.
-  !   * `real(ANY), dimension(DIM) :: out`
-  !     Output vector.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > rotate([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], PI/2)
-  !   [0.0, 0.0, -1.0]
-  !   > rotate([1.0, 0.0, 0.0], "y", PI/2)
-  !   [0.0, 0.0, -1.0]
-  !   ```
-  ! %%%
-  implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM), vector(DIM), angle
-  real(REAL32) :: k(DIM)
+  real(REAL32) :: out(3)
+  !! Rotated vector.
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: vector(3)
+  !! Vector of rotation.
+  real(REAL32), intent(in) :: angle
+  !! Angle of rotation in radians.
+  real(REAL32) :: k(3)
   
   ! SOURCE: https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
   k = vector / norm2(vector)
-  out = v * cos(angle) + cross32(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
+  out = v * cos(angle) + cross(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
 
-end function rotate_real32
+end function rotate_r32
 
 
-function rotate_real64 (v, vector, angle) result (out)
+function rotate_r64 (v, vector, angle) result (out)
+  use xslib_linalg, only: cross
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM), vector(DIM), angle
-  real(REAL64) :: k(DIM)
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3), vector(3), angle
+  real(REAL64) :: k(3)
 
   k = vector / norm2(vector)
-  out = v * cos(angle) + cross64(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
+  out = v * cos(angle) + cross(k, v) * sin(angle) + k * dot_product(k, v) * (1.0 - cos(angle))
 
-end function rotate_real64
+end function rotate_r64
 
 
-function rotate_axis_real32 (v, axis, angle) result (out)
+function rotate_axis_r32 (v, axis, angle) result (out)
   use ieee_arithmetic, only: ieee_value, IEEE_QUIET_NAN
   implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM), angle
+  real(REAL32) :: out(3)
+  !! Rotated vector.
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: angle
+  !! Angle of rotation in radians.
   character, intent(in) :: axis
-  real(REAL32) :: rotMat(DIM,DIM)
+  !! Axis of rotation: `x`, `y`, or `z`.
+  real(REAL32) :: rotMat(3, 3)
 
   ! SOURCE: https://en.wikipedia.org/wiki/Rotation_matrix
   ! NOTE: Rotation matrix is transposed compared to SOURCE,
@@ -182,17 +224,16 @@ function rotate_axis_real32 (v, axis, angle) result (out)
 
   out = matmul(rotMat, v)
 
-  return
-end function rotate_axis_real32
+end function rotate_axis_r32
 
 
-function rotate_axis_real64 (v, axis, angle) result (out) 
+function rotate_axis_r64 (v, axis, angle) result (out) 
   use ieee_arithmetic, only: ieee_value, IEEE_QUIET_NAN
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM), angle
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3), angle
   character, intent(in) :: axis
-  real(REAL64) :: rotMat(DIM,DIM)
+  real(REAL64) :: rotMat(3,3)
 
   select case (trim(axis))
   case ("x", "X")
@@ -214,110 +255,59 @@ function rotate_axis_real64 (v, axis, angle) result (out)
 
   out = matmul(rotMat, v)
 
-end function rotate_axis_real64
+end function rotate_axis_r64
 
 
-function deg2rad_real32 (angle) result (out)
-  ! %%%
-  ! ## `DEG2RAD` - Degrees to radians 
-  ! #### DESCRIPTION
-  !   Convert angles from degrees to radians.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = deg2rad(angle)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), intent(IN) :: angle`
-  !     Input angle in degrees.
-  !   * `real(ANY) :: out`
-  !     Output angle in radians.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > deg2rad(180.0)
-  !   DIM.14159274
-  !   ```
-  ! %%%
+function deg2rad_r32 (angle) result (out)
   implicit none
   real(REAL32) :: out
+  !! Output angle in radians.
   real(REAL32), intent(in) :: angle
+  !! Input angle in degrees.
 
   out = angle / 180.0 * acos(-1.0)
  
-end function deg2rad_real32
+end function deg2rad_r32
 
 
-function deg2rad_real64 (angle) result (out)
+function deg2rad_r64 (angle) result (out)
   implicit none
   real(REAL64) :: out
   real(REAL64), intent(in) :: angle
 
   out = angle / 180.0d0 * acos(-1.0d0)
 
-end function deg2rad_real64
+end function deg2rad_r64
 
 
-function rad2deg_real32 (angle) result (out)
-  ! %%%
-  ! ## `RAD2DEG` - Radians to degrees 
-  ! #### DESCRIPTION
-  !   Convert angles from radians to degrees.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = rad2deg(angle)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), intent(IN) :: angle`
-  !     Input angle in radians.
-  !   * `real(ANY) :: out`
-  !     Output angle in degrees.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > rad2deg(PI)
-  !   180.0
-  !   ```
-  ! %%%
+function rad2deg_r32 (angle) result (out)
   implicit none
   real(REAL32) :: out
+  !! Input angle in radians.
   real(REAL32), intent(in) :: angle
+  !! Output angle in degrees.
 
   out = angle / acos(-1.0) * 180.0
 
-end function rad2deg_real32
+end function rad2deg_r32
 
 
-function rad2deg_real64 (angle) result (out)
+function rad2deg_r64 (angle) result (out)
   implicit none
   real(REAL64) :: out
   real(REAL64), intent(in) :: angle
 
   out = angle / acos(-1.0d0) * 180.0d0
 
-end function rad2deg_real64
+end function rad2deg_r64
 
 
-function crt2sph_real32 (v) result (out)
-  ! %%%
-  ! ## `CRT2SPH` - Cartesian to spherical 
-  ! #### DESCRIPTION
-  !   Convert vector from cartesian to spherical coordinate system: `[x, y, z]` → `[r, theta, phi]`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = crt2sph(v)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: v`
-  !     Input vector in cartesian coordinate system.
-  !   * `real(ANY) :: out`
-  !     Output vector in spherical coordinate system.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > crt2sph([1.0, 0.0, 0.0])
-  !   [1.0, 1.5707964, 0.0]
-  !   ```
-  ! %%%
+function crt2sph_r32 (v) result (out)
   implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM)
+  real(REAL32) :: out(3)
+  !! Output vector in spherical coordinate system: `[r, theta, phi]`
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector in cartesian coordinate system: `[x, y, z]`.
 
   ! r = sqrt(x**2 + y**2 + z**2)
   ! theta = atan2(x**2 + y**2, z)
@@ -326,44 +316,27 @@ function crt2sph_real32 (v) result (out)
   out(2) = atan2(norm2(v(1:2)), v(3))
   out(3) = atan2(v(2), v(1))
 
-end function crt2sph_real32
+end function crt2sph_r32
 
 
-function crt2sph_real64 (v) result (out)
+function crt2sph_r64 (v) result (out)
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM)
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3)
 
   out(1) = norm2(v)
   out(2) = atan2(norm2(v(1:2)), v(3))
   out(3) = atan2(v(2), v(1))
 
-end function crt2sph_real64
+end function crt2sph_r64
 
 
-function sph2crt_real32 (v) result (out)
-  ! %%%
-  ! ## `SPH2CRT` - Spherical to cartesian
-  ! #### DESCRIPTION
-  !   Convert vector from spherical to cartesian coordinate system: `[r, theta, phi]` → `[x, y, z]`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = sph2crt(v)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: v`
-  !     Input vector in spherical coordinate system.
-  !   * `real(ANY) :: out`
-  !     Output vector in cartesian coordinate system.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > sph2crt([1.0, PI/2, 0.0])
-  !   [1.0, 0.0, 0.0]
-  !   ```
-  ! %%%
+function sph2crt_r32 (v) result (out)
   implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM)
+  real(REAL32) :: out(3)
+  !! Output vector in cartesian coordinate system: `[x, y, z]`.
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector in spherical coordinate system: `[r, theta, phi]`.
 
   ! x = r * sin(theta) * cos(phi)
   ! y = r * sin(theta) * sin(phi)
@@ -372,45 +345,27 @@ function sph2crt_real32 (v) result (out)
   out(2) = v(1) * sin(v(2)) * sin(v(3))
   out(3) = v(1) * cos(v(2))
 
-end function sph2crt_real32
+end function sph2crt_r32
 
 
-function sph2crt_real64 (v) result (out)
+function sph2crt_r64 (v) result (out)
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM)
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3)
 
   out(1) = v(1) * sin(v(2)) * cos(v(3))
   out(2) = v(1) * sin(v(2)) * sin(v(3))
   out(3) = v(1) * cos(v(2))
 
-end function sph2crt_real64
+end function sph2crt_r64
 
 
-function crt2cyl_real32 (v) result (out)
-  ! %%%
-  ! ## `CRT2CYL` - Cartesian to cylindrical
-  ! #### DESCRIPTION
-  !   Convert vector from cartesian to cylindrical coordinate system: `[x, y, z]` → `[r, theta, z]`.
-  !   <!-- TODO: Add image of cylindrical coordinate system -->
-  ! #### USAGE
-  !   ```Fortran
-  !   out = crt2cyl(v)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: v`
-  !     Input vector in cartesian coordinate system.
-  !   * `real(ANY) :: out`
-  !     Output vector in cylindrical coordinate system.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > crt2cyl([0.0, 1.0, 0.0])
-  !   [1.0, 1.5707964, 0.0]
-  !   ```
-  ! %%%
+function crt2cyl_r32 (v) result (out)
   implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM)
+  real(REAL32) :: out(3)
+  !!  Output vector in cylindrical coordinate system: `[r, theta, z]`
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector in cartesian coordinate system: `[x, y, z]`.
 
   ! r = sqrt(x**2 + y**2)
   ! theta =  atan2(y / x)
@@ -419,44 +374,27 @@ function crt2cyl_real32 (v) result (out)
   out(2) = merge(atan2(v(2), v(1)), 0.0, out(1) /= 0.0)
   out(3) = v(3)
 
-end function crt2cyl_real32
+end function crt2cyl_r32
 
 
-function crt2cyl_real64 (v) result (out)
+function crt2cyl_r64 (v) result (out)
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM)
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3)
 
   out(1) = sqrt(v(1)**2 + v(2)**2)
   out(2) = merge(atan2(v(2), v(1)), 0.0d0, out(1) /= 0.0d0)
   out(3) = v(3)
 
-end function crt2cyl_real64
+end function crt2cyl_r64
 
 
-function cyl2crt_real32 (v) result (out)
-  ! %%%
-  ! ## `CYL2CRT` - Cylindrical to cartesian 
-  ! #### DESCRIPTION
-  !   Convert vector from cylindrical to cartesian coordinate system: `[r, theta, z]` → `[x, y, z]`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = cyl2crt(v)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: v`
-  !     Input vector in cylindrical coordinate system.
-  !   * `real(ANY) :: out`
-  !     Output vector in cartesian coordinate system.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > cyl2crt([1.0, PI/2, 0.0])
-  !   [0.0, 1.0, 0.0]
-  !   ```
-  ! %%%
+function cyl2crt_r32 (v) result (out)
   implicit none
-  real(REAL32) :: out(DIM)
-  real(REAL32), intent(in) :: v(DIM)
+  real(REAL32) :: out(3)
+  !! Output vector in cartesian coordinate system: `[x, y, z]`.
+  real(REAL32), intent(in) :: v(3)
+  !! Input vector in cylindrical coordinate system: `[r, theta, z]`.
 
   ! x = r * cos(theta)
   ! y = r * sin(theta)
@@ -465,164 +403,129 @@ function cyl2crt_real32 (v) result (out)
   out(2) = v(1) * sin(v(2))
   out(3) = v(3)
 
-end function cyl2crt_real32
+end function cyl2crt_r32
 
 
-function cyl2crt_real64 (v) result (out)
+function cyl2crt_r64 (v) result (out)
   implicit none
-  real(REAL64) :: out(DIM)
-  real(REAL64), intent(in) :: v(DIM)
+  real(REAL64) :: out(3)
+  real(REAL64), intent(in) :: v(3)
 
   out(1) = v(1) * cos(v(2))
   out(2) = v(1) * sin(v(2))
   out(3) = v(3)
 
-end function cyl2crt_real64
+end function cyl2crt_r64
 
 
-function distance_real32 (a, b) result (out)
-  ! %%%
-  ! ## `DISTANCE` - Vector distance
-  ! #### DESCRIPTION
-  !   Calculates distance (norm) between two points (vectors).
-  ! #### USAGE
-  !   ```Fortran
-  !   out = distance(a, b)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: a, b`
-  !     Input vector points.
-  !   * `real(ANY) :: out`
-  !     Output distance.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > distance([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-  !   1.73205
-  !   ```
-  ! %%%
+function distance_r32 (a, b) result (out)
   implicit none
   real(REAL32) :: out
-  real(REAL32), intent(in) :: a(DIM), b(DIM)
+  !! Distance between `a` and `b`.
+  real(REAL32), intent(in) :: a(3)
+  !! Input point.
+  real(REAL32), intent(in) :: b(3)
+  !! Input point.
 
   out = norm2(a - b)
 
-end function distance_real32
+end function distance_r32
 
 
-function distance_real64 (a, b) result (out)
+function distance_r64 (a, b) result (out)
   implicit none
   real(REAL64) :: out
-  real(REAL64), intent(in) :: a(DIM), b(DIM)
+  real(REAL64), intent(in) :: a(3), b(3)
 
   out = norm2(a - b)
 
-end function distance_real64
+end function distance_r64
 
 
-function angle_real32 (a, b, c) result (out)
-  ! %%%
-  ! ## `ANGLE` - Vector angle
-  ! #### DESCRIPTION
-  !   Calculates angle between three points (vectors).
-  ! #### USAGE
-  !   ```Fortran
-  !   out = angle(a, b, c)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: a, b, c`
-  !     Input vector points.
-  !   * `real(ANY) :: out`
-  !     Output angle in radians.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > angle([1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0])
-  !   1.57079637
-  !   ```
-  ! %%%
+function angle_r32 (a, b, c) result (out)
+  use xslib_linalg, only: cross
   implicit none
   real(REAL32) :: out
-  real(REAL32), intent(in) :: a(DIM), b(DIM), c(DIM)
-  real(REAL32) :: u(DIM), v(DIM)
+  !! Output angle between points `a`, `b`, and `c` in radians.
+  real(REAL32), intent(in) :: a(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: b(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: c(3)
+  !! Input vector.
+  real(REAL32) :: u(3), v(3)
 
   u = a - b
   v = c - b
-  out = atan2(norm2(cross32(u, v)), dot_product(u, v))
+  out = atan2(norm2(cross(u, v)), dot_product(u, v))
 
-end function angle_real32
+end function angle_r32
 
 
-function angle_real64 (a, b, c) result (out)
+function angle_r64 (a, b, c) result (out)
+  use xslib_linalg, only: cross
   implicit none
   real(REAL64) :: out
-  real(REAL64), intent(in) :: a(DIM), b(DIM), c(DIM)
-  real(REAL64) :: u(DIM), v(DIM)
+  real(REAL64), intent(in) :: a(3), b(3), c(3)
+  real(REAL64) :: u(3), v(3)
 
   u = a - b
   v = c - b
-  out = atan2(norm2(cross64(u, v)), dot_product(u, v))
+  out = atan2(norm2(cross(u, v)), dot_product(u, v))
 
-end function angle_real64
+end function angle_r64
 
 
-function dihedral_real32 (a, b, c, d) result (out)
-  ! %%%
-  ! ## `DIHEDRAL` - Vector dihedral angle
-  ! #### DESCRIPTION
-  !   Calculates dihedral angle (theta) between four points (vectors).
-  ! #### USAGE
-  !   ```Fortran
-  !   out = dihedral(a, b, c, d)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(DIM), intent(IN) :: a, b, c, d`
-  !     Input vector points.
-  !   * `real(ANY) :: out`
-  !     Output dihedral angle in radians.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > dihedral([0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0])
-  !   1.57079637
-  !   ```
-  ! %%%
+function dihedral_r32 (a, b, c, d) result (out)
+  use xslib_linalg, only: cross
   implicit none
   real(REAL32) :: out
-  real(REAL32), intent(in) :: a(DIM), b(DIM), c(DIM), d(DIM)
-  real(REAL32) :: b1(DIM), b2(DIM), b3(DIM), n1(DIM), n2(DIM), n3(DIM)
+  !! Dihedral angle between points `a`, `b`, `c`, and `d` in radians.
+  real(REAL32), intent(in) :: a(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: b(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: c(3)
+  !! Input vector.
+  real(REAL32), intent(in) :: d(3)
+  !! Input vector.
+  real(REAL32) :: b1(3), b2(3), b3(3), n1(3), n2(3), n3(3)
 
   ! SOURCE: https://math.stackexchange.com/questions/47059/how-do-i-calculate-a-dihedral-angle-given-cartesian-coordinates
   b1 = b - a
   b2 = c - a
   b3 = d - a
-  n1 = cross32(b1, b2)
-  n2 = cross32(b2, b3)
-  n3 = cross32(n1, b2)
+  n1 = cross(b1, b2)
+  n2 = cross(b2, b3)
+  n3 = cross(n1, b2)
   n1 = n1 / norm2(n1)
   n2 = n2 / norm2(n2)
   n3 = n3 / norm2(n3)
   out = atan2(dot_product(n3, n2), dot_product(n1, n2))
   out = abs(out)
 
-end function dihedral_real32
+end function dihedral_r32
 
 
-function dihedral_real64 (a, b, c, d) result (out)
+function dihedral_r64 (a, b, c, d) result (out)
+  use xslib_linalg, only: cross
   implicit none
   real(REAL64) :: out
-  real(REAL64), intent(in) :: a(DIM), b(DIM), c(DIM), d(DIM)
-  real(REAL64) :: b1(DIM), b2(DIM), b3(DIM), n1(DIM), n2(DIM), n3(DIM)
+  real(REAL64), intent(in) :: a(3), b(3), c(3), d(3)
+  real(REAL64) :: b1(3), b2(3), b3(3), n1(3), n2(3), n3(3)
 
   b1 = b - a
   b2 = c - a
   b3 = d - a
-  n1 = cross64(b1, b2)
-  n2 = cross64(b2, b3)
-  n3 = cross64(n1, b2)
+  n1 = cross(b1, b2)
+  n2 = cross(b2, b3)
+  n3 = cross(n1, b2)
   n1 = n1 / norm2(n1)
   n2 = n2 / norm2(n2)
   n3 = n3 / norm2(n3)
   out = atan2(dot_product(n3, n2), dot_product(n1, n2))
   out = abs(out)
 
-end function dihedral_real64
+end function dihedral_r64
 
 end module xslib_geometry

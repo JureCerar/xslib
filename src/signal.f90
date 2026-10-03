@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2024 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,79 +17,62 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_signal
+    !! Module for basic signal processing functions.
     use iso_fortran_env, only: REAL64
     implicit none
     private
-    public :: savgol_filter, savgol_coeff
+    public :: savgol_filter
 
     ! Length of error string
     integer, parameter :: ERR_LEN = 128 
 
-    ! %%%
-    ! # `SIGNAL` - Basic signal processing functions
-    !   Module `xslib_signal` contains basic signal processing functions. Supports both single and double precision (`DP`).
-    ! %%%
-
 contains
 
 function savgol_filter(y, window, polyorder, deriv, mode, stat, errmsg) result (result)
-    ! %%%
-    ! ## `SAVGOL_FILTER` - Apply Savitzky-Golay filter
-    ! #### DESCRIPTION
-    !   Apply a [Savitzky-Golay](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter)
-    !   filter to an array. 
-    ! #### USAGE
-    !   ```Fortran
-    !   result = savgol_filter(y, window, polyorder, deriv, mode, STAT=stat, ERRMSG=errmsg)
-    !   ```
-    ! #### PARAMETERS
-    !   * `real(*), dimension(:), intent(IN) :: y`
-    !     The data to be filtered.
-    !   * `integer, intent(IN) :: window`
-    !     The length of the filter window (i.e., the number of coefficients). Must be 
-    !     less than or equal to the size of `y`.
-    !   * `integer, intent(IN) :: polyorder`
-    !     The order of the polynomial used to fit the samples. Must be less than `window`.
-    !   * `integer, intent(IN) :: deriv`
-    !     The order of the derivative to compute. This must be a non-negative integer. Value of 0
-    !     means to filter the data without differentiating.
-    !   * `character(*), intent(IN) :: mode`
-    !     Must be `none`, `nearest`, `mirror`, or `wrap`. This determines the type of extension
-    !     to use for the padded signal to which the filter is applied. See notes bellow.
-    !   * `integer, intent(OUT), OPTIONAL :: stat`
-    !     Error status code. Returns zero if no error.
-    !   * `character(:), intent(OUT), OPTIONAL :: errmsg`
-    !     Error message.
-    !   * `real(*):: result`
-    !     The filtered data. Size is equal to `y`.
-    ! #### SOURCE
-    !   Peng Jun, https://github.com/cran/tgcd
-    ! #### NOTES
-    !    Assuming `window` is 7, the following shows the extended data for the various mode options:
-    !    ```
-    !    mode       |   Ext   |         Input          |   Ext
-    !    -----------+---------+------------------------+---------
-    !    'none'     |         | 1  2  3  4  5  6  7  8 |        
-    !    'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
-    !    'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
-    !    'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
-    !    ```
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > ny = savgol_filter(y, 5, 2, 0, 'nearest')
-    !   [1.74, 3.03, ..., 4.60, 7.97]
-    !   ```
-    ! %%%
+    !! Apply a [Savitzky-Golay](https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter)
+    !! filter to an array. 
+    !! 
+    !! Assuming `window` is 7, the following shows the extended data for the various mode options:
+    !! ```
+    !! mode       |   Ext   |         Input          |   Ext
+    !! -----------+---------+------------------------+---------
+    !! 'none'     |         | 1  2  3  4  5  6  7  8 |        
+    !! 'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
+    !! 'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
+    !! 'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
+    !! ```
+    !!
+    !! Source:
+    !! - Peng Jun, https://github.com/cran/tgcd
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, savgol_filter(y, 5, 2, 0, 'nearest')
+    !! >>> [1.74, 3.03, ..., 4.60, 7.97]
+    !! ```
     implicit none
     real(REAL64), intent(IN) :: y(:)
-    integer, intent(IN) :: window, polyorder, deriv
+    !! The data to be filtered.
+    integer, intent(IN) :: window
+    !! The length of the filter window (i.e., the number of coefficients). Must be
+    !! less than or equal to the size of `y`.
+    integer, intent(IN) :: polyorder
+    !! The order of the polynomial used to fit the samples. Must be less than `window`.
+    integer, intent(IN) :: deriv
+    !! The order of the derivative to compute. This must be a non-negative integer.
+    !! Value of 0 means to filter the data without differentiating. 
     character(*), intent(IN) :: mode
+    !! Type of extension to use for the padded signal to which the filter is applied.
+    !! Must be `none`, `nearest`, `mirror`, or `wrap`. See notes for more info.
     integer, intent(OUT), OPTIONAL :: stat
+    !! Error status code. Returns zero if no error.
     character(*), intent(OUT), OPTIONAL :: errmsg
-    character(ERR_LEN) :: message
+    !! Error message.
     real(REAL64) :: result(size(y))
+    !! The filtered data. Size is equal to `y`.
     real(REAL64) :: temp(window+size(y)-1)
     integer :: np, left, right, status
+    character(ERR_LEN) :: message
 
     result = y
 
@@ -237,41 +220,31 @@ end subroutine savgol
 
 
 function savgol_coeff(window, polyorder, deriv, stat, errmsg) result (result)
-    ! %%%
-    ! ## `SAVGOL_COEFF` - Calculate Savitzky-Golay filter coefficients
-    ! #### DESCRIPTION
-    !   This routine is used to calculate a set of Savitzky-Golay filter coefficients.
-    ! #### USAGE
-    !   ```Fortran
-    !   result = savgol_coeff(window, polyorder, deriv, STAT=stat, ERRMSG=errmsg)
-    !   ```
-    ! #### PARAMETERS
-    !   * `integer, intent(IN) :: window`
-    !     The length of the filter window (i.e., the number of coefficients).
-    !   * `integer, intent(IN) :: polyorder`
-    !     The order of the polynomial used to fit the samples. Must be less than `window`.
-    !   * `integer, intent(IN) :: deriv`
-    !     The order of the derivative to compute. This must be a non-negative integer. Value of 0
-    !     means to filter the data without differentiating.
-    !   * `integer, intent(OUT), OPTIONAL :: stat`
-    !     Error status code. Returns zero if no error.
-    !   * `character(:), intent(OUT), OPTIONAL :: errmsg`
-    !     Error message.
-    !   * `real(*):: result`
-    !     The filter coefficients. Size is equal to `window`.
-    ! #### SOURCE
-    !   Peng Jun, https://github.com/cran/tgcd
-    ! #### EXAMPLE
-    !   ```Fortran
-    !   > coeff = savgol_coeff(5, 2, deriv=1)
-    !   [ 2.000e-01,  1.000e-01,  2.075e-16, -1.000e-01, -2.000e-01]
-    !   ```
-    ! %%%
+    !! This routine is used to calculate a set of Savitzky-Golay filter coefficients.
+    !!
+    !! Source:
+    !! - Peng Jun, https://github.com/cran/tgcd
+    !! 
+    !! Example
+    !! ```Fortran
+    !! print *, savgol_coeff(5, 2, deriv=1)
+    !! >>> [ 2.000e-01,  1.000e-01,  2.075e-16, -1.000e-01, -2.000e-01]
+    !! ```
     implicit none
-    integer, intent(in):: window, deriv, polyorder
-    integer, intent(out), OPTIONAL :: stat
-    character(*), intent(out), OPTIONAL :: errmsg
+    integer, intent(IN) :: window
+    !! The length of the filter window (i.e., the number of coefficients). Must be
+    !! less than or equal to the size of `y`.
+    integer, intent(IN) :: polyorder
+    !! The order of the polynomial used to fit the samples. Must be less than `window`.
+    integer, intent(IN) :: deriv
+    !! The order of the derivative to compute. This must be a non-negative integer.
+    !! Value of 0 means to filter the data without differentiating.
+    integer, intent(OUT), OPTIONAL :: stat
+    !! Error status code. Returns zero if no error.
+    character(*), intent(OUT), OPTIONAL :: errmsg
+    !! Error message.
     real(REAL64):: result(window)
+    !! The filter coefficients. Size is equal to `window`.
     character(ERR_LEN) :: message
     integer :: imj, ipj, k, kk, mm, nl, nr, indx(polyorder+1), status
     real(REAL64):: d, fac, summ, a(polyorder+1, polyorder+1), b(polyorder+1)

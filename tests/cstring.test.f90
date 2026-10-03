@@ -22,7 +22,6 @@ program main
   implicit none
 
   call str_test ()
-  call color_test ()
   call token_test ()
   call is_test ()
   call other_test ()
@@ -116,68 +115,6 @@ subroutine str_test ()
 
 end subroutine str_test
 
-! Test color functions. Feel the rainbow, taste the rainbow.
-subroutine color_test ()
-  implicit none
-  character(32), allocatable :: color(:), attribute(:)
-  character(32) :: buffer
-  integer :: i, status, ncolors, nattr
-
-  ! Check nocolor string
-  if (getColor() /= char(27)//"[m") error stop
-
-  ! Check setColor vs getColor
-  buffer = getColor(ATTR="bold", FG="red", BG="black") // "Foo" // getColor()
-  if (buffer /= setColor("Foo", ATTR="bold", FG="red", BG="black")) error stop
-
-  ncolors = 17
-  allocate (color(ncolors), STAT=status)
-  if (status /= 0) error stop
-  color(1) = "black"
-  color(2) = "red"
-  color(3) = "green"
-  color(4) = "yellow"
-  color(5) = "blue"
-  color(6) = "magenta"
-  color(7) = "cyan"
-  color(8) = "white"
-  color(9) = "lightblack"
-  color(10) = "lightred"
-  color(11) = "lightgreen"
-  color(12) = "lightyellow"
-  color(13) = "lightblue"
-  color(14) = "lightmagenta"
-  color(15) = "lightcyan"
-  color(16) = "lightwhite"
-  color(17) = "none"
-
-  ! Test foreground colors
-  do i = 1, ncolors
-    print *, getColor(FG=color(i)), trim(color(i)), getColor()
-  end do
-  
-  ! Test background colors
-  do i = 1, ncolors
-    print *, getColor(BG=color(i)), trim(color(i)), getColor()
-  end do
-
-  nattr = 8
-  allocate (attribute(nattr), STAT=status)
-  if (status /= 0) error stop
-  attribute(1) = "bold"
-  attribute(2) = "bright"
-  attribute(3) = "dim"
-  attribute(4) = "underline"
-  attribute(5) = "blink"
-  attribute(6) = "reverse"
-  attribute(7) = "hidden"
-  attribute(8) = "none"
-
-  do i = 1, nattr
-    print *, getColor(ATTR=attribute(i)), trim(attribute(i)), getColor()
-  end do
-
-end subroutine color_test
 
 ! Test string tokenization.
 subroutine token_test ()
@@ -187,18 +124,18 @@ subroutine token_test ()
   buffer = "Foo,Bar,Foobar"
   
   ! Test string tokenization
-  token = strtok(buffer, ",")
+  token = strtok(",", buffer)
   if (token /= "Foo") error stop
-  token = strtok(char(0), ",")
+  token = strtok(",")
   if (token /= "Bar") error stop
-  token = strtok(char(0), ",")
+  token = strtok(",")
   if (token /= "Foobar") error stop
-  token = strtok(char(0), ",")
+  token = strtok(",")
   if (token /= char(0)) error stop
 
-  token = strtok(buffer, ",")
+  token = strtok(",", buffer)
   do while (token /= char(0))
-    token = strtok(char(0), ",")
+    token = strtok(",", char(0))
   end do
 
   ! Test counting string tokens

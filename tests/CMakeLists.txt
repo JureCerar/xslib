@@ -1,7 +1,7 @@
 # This file is part of xslib
 # https://github.com/JureCerar/xslib
 #
-# Copyright (C) 2019-2022 Jure Cerar
+# Copyright (C) 2019-2026 Jure Cerar
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,19 +38,22 @@ endforeach ()
 
 # Add tests
 add_test ( NAME "xslib" COMMAND xslib )
+add_test ( NAME "ansi" COMMAND ansi )
 add_test ( NAME "array" COMMAND array )
 add_test ( NAME "cstring" COMMAND cstring )
 add_test ( NAME "dict" COMMAND dict )
 add_test ( NAME "errorh" COMMAND errorh )
 set_tests_properties ( "errorh" PROPERTIES WILL_FAIL TRUE )
+add_test ( NAME "fileio" COMMAND fileio "files/data.csv" "files/hetero.csv" )
 add_test ( NAME "fitting" COMMAND fitting )
 add_test ( NAME "geometry" COMMAND geometry )
 add_test ( NAME "linalg" COMMAND linalg )
 add_test ( NAME "list" COMMAND list )
+# add_test ( NAME "logical" COMMAND logical )
 add_test ( NAME "math" COMMAND math )
+add_test ( NAME "memory" COMMAND memory )
 add_test ( NAME "pathlib" COMMAND pathlib )
-add_test ( NAME "sort" COMMAND sort )
 add_test ( NAME "signal" COMMAND signal "files/savgol.dat" )
+add_test ( NAME "sort" COMMAND sort )
 add_test ( NAME "stats" COMMAND stats )
 add_test ( NAME "time" COMMAND time )
-add_test ( NAME "xmalloc" COMMAND xmalloc )

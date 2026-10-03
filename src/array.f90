@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2024 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,90 +17,104 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_array
+  !! Module for array creation and manipulation.
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
-  public :: linspace, logspace, arange, diff, cumsum, cumprod, interp, trapz, gradient
-
-  ! %%%
-  ! # `ARRAY` - Array operations
-  !   Module `xslib_array` contains function for array operations. Supports both single and double precision (`DP`) functions.
-  ! %%%
+  public :: linspace, logspace, arange, eye, meshgrid
+  
 
   interface linspace
-    module procedure :: linspace_real32, linspace_real64
+    !! Return evenly spaced numbers over a specified interval. Returns `num` evenly
+    !! spaced samples, calculated over the interval `[start, stop]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, linspace(0.0, 1.0, 5)
+    !! >>> [0.00, 0.25, 0.50, 0.75, 1.00]
+    !! ```
+    module procedure :: linspace_r32, linspace_r64
   end interface linspace 
 
+
   interface logspace
-    module procedure :: logspace_real32, logspace_real64
+    !! Return numbers spaced evenly on a logarithmic scale. Returns `num` samples
+    !! on a log scale in the closed interval `[start, stop]`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, logspace(1.0, 10000.0, 5)
+    !! >>> [1.0, 10.0, 100.0, 1000.0, 10000.0]
+    !! ```
+    module procedure :: logspace_r32, logspace_r64
   end interface logspace 
 
+
   interface arange
-    module procedure :: arange_real32, arange_real64
+    !! Return equally spaced values within a given interval.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, arange(0.0, 1.0, 0.25)
+    !! > [0.00, 0.25, 0.50, 0.75, 1.00]
+    !! ```
+    module procedure :: arange_r32, arange_r64
   end interface arange 
 
-  interface diff
-    module procedure :: diff_int32, diff_int64, diff_real32, diff_real64
-  end interface diff
 
-  interface cumsum
-    module procedure :: cumsum_int32, cumsum_int64, cumsum_real32, cumsum_real64
-  end interface cumsum
+  interface eye
+    !! Return a 2-D array with ones on the diagonal and zeros elsewhere.
+    !! 
+    !! Example
+    !! ```Fortran
+    !! print *, eye(3)
+    !! >>> [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    !! print *, eye(3, mold=0_INT32)
+    !! >>> [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    !! ```
+    module procedure :: eye_i32, eye_i64, eye_r32, eye_r64
+  end interface eye
 
-  interface cumprod
-    module procedure :: cumprod_int32, cumprod_int64, cumprod_real32, cumprod_real64
-  end interface cumprod
 
-  interface interp
-    module procedure :: interp_real32, interp_real64
-  end interface interp
+  interface meshgrid
+    !! Creates a grid of coordinates over the interval of `[0, spec]`
+    !! for each dimension (creates a every possible combination of 
+    !! coordinates within specs for each dimension).
+    !! 
+    !! Example
+    !! ```Fortran
+    !! print *, meshgrid([2, 2])
+    !! >>> [[0, 0], [1, 0], [2, 0],
+    !! ...  [0, 1], [1, 1], [2, 1],
+    !! ...  [0, 2], [1, 2], [2, 2]]
+    !! ```
+    module procedure :: meshgrid_i32
+  end interface meshgrid
 
-  interface trapz
-    module procedure :: trapz_real32, trapz_real64, trapz_dx_real32, trapz_dx_real64
-  end interface trapz
-
-  interface gradient
-    module procedure :: gradient_real32, gradient_real64, gradient_dx_real32, gradient_dx_real64
-  end interface gradient
 
 contains
 
-function linspace_real32 (start, stop, num) result (out)
-  ! %%%
-  ! ## `LINSPACE` - Generate evenly spaced numbers
-  ! #### DESCRIPTION
-  !   Return evenly spaced numbers over a specified interval.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = linspace(start, stop, num)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), intent(IN) :: start, stop`
-  !     The starting and end value of the sequence. `start` and `stop` values are included in sequence.
-  !   * `integer, intent(IN) :: num`
-  !     Number of samples to generate. Must be non-negative.
-  !   * `real(ANY), dimension(num) :: out`
-  !     Equally spaced numbers in the opened interval `(start, stop)`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > linspace(0.0, 1.0, 5)
-  !   [0.00, 0.25, 0.50, 0.75, 1.00] 
-  !   ```
-  ! %%%
+
+function linspace_r32 (start, stop, num) result (out)
   implicit none
   real(REAL32) :: out(num)
-  real(REAL32), intent(in) :: start, stop
+  !! Equally spaced samples in the closed interval `[start, stop]`.
+  real(REAL32), intent(in) :: start
+  !! The starting value of the sequence.
+  real(REAL32), intent(in) :: stop
+  !! The end value of the sequence.
   integer, intent(in) :: num
+  !! Number of samples to generate. Must be non-negative.
   real(REAL32) :: step
   integer :: i
 
   step = (stop - start) / (num - 1)
   out = [(start + (i - 1) * step, i = 1, num)]
 
-end function linspace_real32
+end function linspace_r32
 
 
-function linspace_real64 (start, stop, num) result (out)
+function linspace_r64 (start, stop, num) result (out)
   implicit none
   real(REAL64) :: out(num)
   real(REAL64), intent(in) :: start, stop
@@ -111,35 +125,19 @@ function linspace_real64 (start, stop, num) result (out)
   step = (stop - start) / (num - 1)
   out = [(start + (i - 1) * step, i = 1, num)]
 
-end function linspace_real64
+end function linspace_r64
 
 
-function logspace_real32 (start, stop, num) result (out)
-  ! %%%
-  ! ## `LOGSPACE` - Generate logarithmically spaced numbers
-  ! #### DESCRIPTION
-  !   Return evenly spaced numbers on a logarithmic scale over a specified interval.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = logspace(start, stop, num)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), intent(IN) :: start, stop`
-  !     The starting and end value of the sequence. `start` and `stop` values are included in sequence. Must be bigger than zero.
-  !   * `integer, intent(IN) :: num`
-  !     Number of samples to generate. Must be non-negative.
-  !   * `real(ANY), dimension(num) :: out`
-  !     Logarithmically spaced numbers in the opened interval `(start, stop)`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > logspace(1.0, 10000.0, 5)
-  !   [1.0, 10.0, 100.0, 1000.0, 10000.0] 
-  !   ```
-  ! %%%
+function logspace_r32 (start, stop, num) result (out)
   implicit none
   real(REAL32) :: out(num)
-  real(REAL32), intent(in) :: start, stop
+  !! Equally spaced samples on a log scale in the closed interval `[start, stop]`.
+  real(REAL32), intent(in) :: start
+  !! The starting value of the sequence. Must be bigger than zero.
+  real(REAL32), intent(in) :: stop
+  !! The end value of the sequence.
   integer, intent(in) :: num
+  !! Number of samples to generate. Must be non-negative.
   real(REAL32) :: step
   integer :: i
 
@@ -148,10 +146,10 @@ function logspace_real32 (start, stop, num) result (out)
   step = (stop / start) ** (1.0 / (num - 1))
   out = [(start * step ** (i - 1), i = 1, num)]
 
-end function logspace_real32
+end function logspace_r32
 
 
-function logspace_real64 (start, stop, num) result (out)
+function logspace_r64 (start, stop, num) result (out)
   implicit none
   real(REAL64) :: out(num)
   real(REAL64), intent(in) :: start, stop
@@ -164,43 +162,28 @@ function logspace_real64 (start, stop, num) result (out)
   step = (stop / start) ** (1.0 / (num - 1))
   out = [(start * step ** (i - 1), i = 1, num)]
 
-end function logspace_real64
+end function logspace_r64
 
 
-function arange_real32 (start, stop, step) result (out)
-  ! %%%
-  ! ## `ARANGE` - Generate equally spaced values
-  ! #### DESCRIPTION
-  !   Return equally spaced values within a given interval.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = arange(start, stop, step)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), intent(IN) :: start, stop`
-  !     The starting and end value of the sequence. `stop` value is not necessarily included in sequence.
-  !   * `real(ANY), intent(IN) :: step`
-  !     Spacing between values. 
-  !   * `real(ANY), dimension(LENGTH) :: out`
-  !     Equally spaced values. The `LENGTH` of the result is equal to `int((stop - start) / step) + 1`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > arange(0.0, 1.0, 0.25)
-  !   [0.00, 0.25, 0.50, 0.75, 1.00]
-  !   ```
-  ! %%%
+function arange_r32 (start, stop, step) result (out)
   implicit none
   real(REAL32), allocatable :: out(:)
-  real(REAL32), intent(in) :: start, stop, step
+  !! Equally spaced values. The size of the result is equal to `int((stop - start) / step) + 1`.
+  real(REAL32), intent(in) :: start
+  !! Start of interval. The interval includes this value.
+  real(REAL32), intent(in) :: stop
+  !! End of interval. Value is not necessarily included in sequence.
+  real(REAL32), intent(in) :: step
+  !! Spacing between values. For any output out, this is the distance between two adjacent values `out(i+1) - out(i)`.
   integer :: num, i
 
   num = int((stop - start) / step) + 1
   out = [(start + (i - 1) * step, i = 1, num)]
 
-end function arange_real32
+end function arange_r32
 
 
-function arange_real64 (start, stop, step) result (out)
+function arange_r64 (start, stop, step) result (out)
   implicit none
   real(REAL64), allocatable :: out(:)
   real(REAL64), intent(in) :: start, stop, step
@@ -209,520 +192,119 @@ function arange_real64 (start, stop, step) result (out)
   num = int((stop - start) / step) + 1
   out = [(start + (i - 1) * step, i = 1, num)]
 
-end function arange_real64
+end function arange_r64
 
 
-function diff_int32 (a, n) result (out)
-  ! %%%
-  ! ## `DIFF` - Generate equally spaced values
-  ! #### DESCRIPTION
-  !   Calculate the n-th discrete difference along the array.
-  !   The first difference is given by `out[i] = a[i+1] - a[i]`,
-  !   higher differences are calculated by using diff recursively.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = diff(a, n=n)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), dimension(:), intent(IN) :: a`
-  !     Input array.
-  !   * `integer, intent(IN), OPTIONAL :: n`
-  !     The number of times values are differentiated. If zero, the input is returned as-is.
-  !   * `class(*), dimension(LENGTH) :: out`
-  !     The n-th differences array. Size of output array is `size(a) - n`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > diff([1.0, 2.0, 4.0, 8.0])
-  !   [1.0, 2.0, 4.0]
-  !   > diff([1.0, 2.0, 4.0, 8.0], n=2)
-  !   [1.0, 2.0]
-  !   ```
-  ! %%%
+function eye_i32(n, mold) result (out)
   implicit none
-  integer(INT32), allocatable :: out(:)
-  integer(INT32), intent(in) :: a(:)
-  integer, intent(in), optional :: n
-  integer :: i, j
-
-  out = a
-  do i = 1, merge(n, 1, present(n))
-    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
-  end do
-
-end function diff_int32
-
-
-function diff_int64 (a, n) result (out)
-  implicit none
-  integer(INT64), allocatable :: out(:)
-  integer(INT64), intent(in) :: a(:)
-  integer, intent(in), optional :: n
-  integer :: i, j
-
-  out = a
-  do i = 1, merge(n, 1, present(n))
-    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
-  end do
-
-end function diff_int64
-
-
-function diff_real32 (a, n) result (out)
-  implicit none
-  real(REAL32), allocatable :: out(:)
-  real(REAL32), intent(in) :: a(:)
-  integer, intent(in), optional :: n
-  integer :: i, j
-
-  out = a
-  do i = 1, merge(n, 1, present(n))
-    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
-  end do
-
-end function diff_real32
-
-
-function diff_real64 (a, n) result (out)
-  implicit none
-  real(REAL64), allocatable :: out(:)
-  real(REAL64), intent(in) :: a(:)
-  integer, intent(in), optional :: n
-  integer :: i, j
-
-  out = a
-  do i = 1, merge(n, 1, present(n))
-    out = [(out(j+1) - out(j), j = 1, size(out)-1)]
-  end do
-
-end function diff_real64
-
-
-function cumsum_int32 (a) result (out)
-  ! %%%
-  ! ## `CUMSUM` - Calculate cumulative sum
-  ! #### DESCRIPTION
-  !   Return the cumulative sum of the elements of given array.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = cumsum(a)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), dimension(:), intent(IN) :: a`
-  !     Input array.
-  !   * `class(*), dimension(:) :: out`
-  !     Cumulative sum result. The result has the same size as `a`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > cumsum([1,0, 2.0, 3.0, 4.0, 5.0])
-  !   [1.0, 3.0, 6.0, 10.0, 15.0]
-  !   ```
-  ! %%%
-  implicit none
-  integer(INT32), allocatable :: out(:)
-  integer(INT32), intent(in) :: a(:)
+  integer, intent(in) :: n
+  !! Number of rows and columns in the output.
+  integer(INT32), intent(in) :: mold
+  !! Specify type of output array.
+  integer(INT32), allocatable :: out(:,:)
+  !! An array where all elements are equal to zero, except for the diagonal, whose values are equal to one.
   integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) + out(i-1)
+  allocate(out(n, n), mold=mold)
+  out = 0
+  do i = 1, n
+    out(i, i) = 1
   end do
+end function eye_i32
 
-end function cumsum_int32
 
-
-function cumsum_int64 (a) result (out)
+function eye_i64(n, mold) result (out)
   implicit none
-  integer(INT64), allocatable :: out(:)
-  integer(INT64), intent(in) :: a(:)
+  integer, intent(in) :: n
+  integer(INT64), intent(in) :: mold
+  integer(INT64), allocatable :: out(:,:)
   integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) + out(i-1)
+  allocate(out(n, n), mold=mold)
+  out = 0
+  do i = 1, n
+    out(i, i) = 1
   end do
+end function eye_i64
 
-end function cumsum_int64
 
-
-function cumsum_real32 (a) result (out)
+function eye_r32(n, mold) result (out)
   implicit none
-  real(REAL32), allocatable :: out(:)
-  real(REAL32), intent(in) :: a(:)
+  integer, intent(in) :: n
+  real(REAL32), intent(in), optional :: mold
+  ! Make variable optional to have unique signature 
+  real, allocatable :: out(:,:)
   integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) + out(i-1)
+  allocate(out(n, n), mold=mold)
+  out = 0
+  do i = 1, n
+    out(i, i) = 1
   end do
+end function eye_r32
 
-end function cumsum_real32
 
-
-function cumsum_real64 (a) result (out)
+function eye_r64(n, mold) result (out)
   implicit none
-  real(REAL64), allocatable :: out(:)
-  real(REAL64), intent(in) :: a(:)
+  integer, intent(in) :: n
+  real(REAL64), intent(in) :: mold
+  real(REAL64), allocatable :: out(:,:)
   integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) + out(i-1)
+  allocate(out(n, n), mold=mold)
+  out = 0
+  do i = 1, n
+    out(i, i) = 1
   end do
+end function eye_r64
 
-end function cumsum_real64
 
-
-function cumprod_int32 (a) result (out)
-  ! %%%
-  ! ## `CUMPROD` - Calculate cumulative product
-  ! #### DESCRIPTION
-  !   Return the cumulative product of the elements of given array.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = cumprod(a)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), dimension(:), intent(IN) :: a`
-  !     Input array.
-  !   * `class(*), dimension(:) :: out`
-  !     Cumulative product result. The result has the same size as `a`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > cumprod([1,0, 2.0, 3.0, 4.0, 5.0])
-  !   [1.0, 2.0, 6.0, 24.0, 120.0]
-  !   ```
-  ! %%%
+function meshgrid_i32 (spec, mold) result (out)
   implicit none
-  integer(INT32), allocatable :: out(:)
-  integer(INT32), intent(in) :: a(:)
-  integer :: i
+  integer(INT32), allocatable :: out(:,:)
+  !! Output meshgrid with `size(spec), product(spec+1)` dimensions.
+  integer, intent(in) :: spec(:)
+  !! Output array shape specification.
+  integer, optional :: mold
+  !! [Unused] Specify type of output array.
+  integer(INT32) :: n, i, j, k, l
+  
+  allocate(out(size(spec), product(spec + 1)))
 
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) * out(i-1)
-  end do
-
-end function cumprod_int32
-
-
-function cumprod_int64 (a) result (out)
-  implicit none
-  integer(INT64), allocatable :: out(:)
-  integer(INT64), intent(in) :: a(:)
-  integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) * out(i-1)
-  end do
-
-end function cumprod_int64
-
-
-function cumprod_real32 (a) result (out)
-  implicit none
-  real(REAL32), allocatable :: out(:)
-  real(REAL32), intent(in) :: a(:)
-  integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) * out(i-1)
-  end do
-
-end function cumprod_real32
-
-
-function cumprod_real64 (a) result (out)
-  implicit none
-  real(REAL64), allocatable :: out(:)
-  real(REAL64), intent(in) :: a(:)
-  integer :: i
-
-  out = a(:)
-  do i = 2, size(a)
-    out(i) = out(i) * out(i-1)
-  end do
-
-end function cumprod_real64
-
-
-function interp_real32 (x, xp, yp) result (out)
-  ! %%%
-  ! ## `INTERP` - Descritpion
-  ! #### DESCRIPTION
-  !   One-dimensional linear interpolation for monotonically increasing sample points.
-
-  !   Returns the one-dimensional piecewise linear interpolant to a function with given
-  !   discrete data points `(xp, fp)`, evaluated at `x`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = interp(x, xp, yp)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(:), intent(IN) :: x`
-  !     x-coordinates at which to evaluate the interpolated values.
-  !   * `real(ANY), dimension(:), intent(IN) :: xp, yp`
-  !     x- and y-coordinates of the data points to be interpolated. Must be same size. 
-  !   * `real(DP), dimension(:) :: out`
-  !     Interpolated values, same shape as `x`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > x = [0.00, 1.00, 1.50, 2.50, 3.50]
-  !   > out = interp(x, [1.0, 2.0, 3.0], [3.0, 2.0, 0.0])
-  !   [4.00, 3.00, 2.50, 1.00, -1.00]
-  !   ```
-  ! %%%
-  implicit none
-  real(REAL32), intent(in) :: x(:)
-  real(REAL32), intent(in) :: xp(:), yp(size(xp)) 
-  real(REAL32) :: out(size(x))
-  integer :: i, n
-
-  do n = 1, size(x)
-    i = 1
-    do while (i < size(x)-1)
-      if (xp(i+1) >= x(n)) exit
-      i = i + 1
+  n = 1
+  select case (size(spec))
+  case (1)
+    do i = 0, spec(1)
+      out(:,n) = i
+      n = n + 1
     end do
-    out(n) = (yp(i+1) - yp(i)) / (xp(i+1) - xp(i)) * (x(n) - xp(i)) + yp(i)
-  end do
-
-end function interp_real32
-
-
-function interp_real64 (x, xp, yp) result (out)
-  implicit none
-  real(REAL64), intent(in) :: x(:)
-  real(REAL64), intent(in) :: xp(:), yp(size(xp)) 
-  real(REAL64) :: out(size(x))
-  integer :: i, n
-
-  do n = 1, size(x)
-    i = 1
-    do while (i < size(x) - 1)
-      if (xp(i+1) >= x(n)) exit
-      i = i + 1
+  case (2)
+    do j = 0, spec(2)
+      do i = 0, spec(1)
+        out(:,n) = [i, j]
+        n = n + 1
+      end do
     end do
-    out(n) = (yp(i+1) - yp(i)) / (xp(i+1) - xp(i)) * (x(n) - xp(i)) + yp(i)
-  end do
-
-end function interp_real64
-
-
-function trapz_real32 (y, x) result (out)
-  ! %%%
-  ! ## `TRAPZ` - Trapezoidal rule integration 
-  ! #### DESCRIPTION
-  !   Integrate along the given axis using the composite trapezoidal rule.
-
-  !   If `x` is provided, the integration happens in sequence along its
-  !   elements - they are not sorted. If points are equidistant use `dx` option.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = trapz(y, x)
-  !   out = trapz(y, dx)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(:), intent(IN) :: y`
-  !     Input array to integrate.
-  !   * `real(ANY), dimension(:), intent(IN) :: x`
-  !     The sample points corresponding to the `y` values. Must be same size as `y`.
-  !   * `real(ANY), intent(IN), OPTIONAL :: dx`
-  !     The spacing between sample points. Default: 1.0.
-  !   * `real(ANY) :: out`
-  !     Definite integral of `y`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > out = trapz([0.0, 1.0], [0.0, 1.0])
-  !   0.50000
-  !   > out = trapz([0.0, 1.0], dx=1.0)
-  !   0.50000
-  !   > out = trapz([0.0, 1.0])
-  !   0.50000
-  !   ```
-  ! %%%
-  implicit none
-  real(REAL32) :: out
-  real(REAL32), intent(in) :: y(:), x(size(y))
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * (x(i+1) - x(i))
-  end do
- 
-end function trapz_real32
-
-
-function trapz_real64 (y, x) result (out)
-  implicit none
-  real(REAL64) :: out
-  real(REAL64), intent(in) :: y(:), x(size(y))
-  integer :: i
-
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * (x(i+1) - x(i))
-  end do
- 
-end function trapz_real64
-
-
-function trapz_dx_real32 (y, dx) result (out)
-  implicit none
-  real(REAL32) :: out, dx_
-  real(REAL32), intent(in) :: y(:)
-  real(REAL32), intent(in), optional :: dx
-  integer :: i
-
-  dx_ = merge(dx, 1.0, present(dx))
-  out = 0.
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * dx_
-  end do
- 
-end function trapz_dx_real32
-
-
-function trapz_dx_real64 (y, dx) result (out)
-  implicit none
-  real(REAL64) :: out, dx_
-  real(REAL64), intent(in) :: y(:)
-  real(REAL64), intent(in), optional :: dx
-  integer :: i
-
-  dx_ = merge(dx, 1.0d0, present(dx))
-  out = 0.0d0
-  do i = 1, size(y) - 1
-    out = out + 0.5 * (y(i+1) + y(i)) * dx_
-  end do
- 
-end function trapz_dx_real64
-
-
-function gradient_real32 (y, x) result (out)
-  ! %%%
-  ! ## `GRADIENT` - Calculate gradient of an array 
-  ! #### DESCRIPTION
-  !   Return the gradient (derivative) of an array using finite difference method.
-
-  !   The gradient is computed using second order accurate central differences in
-  !   the interior points and either first or second order accurate one-sides 
-  !   (forward or backwards) differences at the boundaries. The returned gradient 
-  !   hence has the same shape as the input array.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = gradient(y, x)
-  !   out = gradient(y, dx=dx)
-  !   ```
-  ! #### PARAMETERS
-  !   * `real(ANY), dimension(:), intent(IN) :: y`
-  !     Input array to derivate.
-  !   * `real(ANY), dimension(:), intent(IN) :: x`
-  !     The sample points corresponding to the `y` values. Must be same size as `y`.
-  !   * `real(ANY), intent(IN), OPTIONAL :: dx`
-  !     The spacing between sample points `y`. Default: 1.0.
-  !   * `real(ANY), dimension(:) :: out`
-  !     Derivative at each value of `y`. Is same shape as `y`.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > out = gradient([0.0, 1.0], [0.0, 1.0])
-  !   [1.00000,1.00000]
-  !   > out = gradient([0.0, 1.0], dx=1.0)
-  !   [1.00000,1.00000]
-  !   > out = gradient([0.0, 1.0])
-  !   [1.00000,1.00000]
-  !   ```
-  ! %%%
-  implicit none
-  real(REAL32), intent(in) :: y(:), x(size(y))
-  real(REAL32) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (-3 * x(1) + 4 * x(2) - x(3))
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (x(i+1) - x(i-1))
+  case (3)
+    do k = 0, spec(3)
+      do j = 0, spec(2)
+        do i = 0, spec(1)
+          out(:,n) = [i, j, k]
+          n = n + 1
+        end do
+      end do
     end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (x(np-2) - 4 * x(np-1) + 3 * x(np))
-  else if (np > 1) then
-    out = (y(2) - y(1)) / (x(2) - x(1))
-  else
-    out = 0.
-  end if
+  case (4)
+    do l = 0, spec(4)
+      do k = 0, spec(3)
+        do j = 0, spec(2)
+          do i = 0, spec(1)
+            out(:,n) = [i, j, k, l]
+            n = n + 1
+          end do
+        end do
+      end do
+    end do 
+  case default
+    error stop "Unsupported SPEC size"
+  end select
 
-end function gradient_real32
-
-
-function gradient_real64 (y, x) result (out)
-  implicit none
-  real(REAL64), intent(in) :: y(:), x(size(y))
-  real(REAL64) :: out(size(y))
-  integer :: i, np
-
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (-3 * x(1) + 4 * x(2) - x(3))
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (x(i+1) - x(i-1))
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (x(np-2) - 4 * x(np-1) + 3 * x(np))
-  else if (np > 1) then
-    out = (y(2) - y(1)) / (x(2) - x(1))
-  else
-    out = 0.
-  end if
-
-end function gradient_real64
-
-
-function gradient_dx_real32 (y, dx) result (out)
-  implicit none
-  real(REAL32), intent(in) :: y(:)
-  real(REAL32), intent(in), optional :: dx
-  real(REAL32) :: out(size(y)), dx_
-  integer :: i, np
-
-  dx_ = merge(dx, 1.0, present(dx))
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (2 * dx_)
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (2 * dx_)
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (2 * dx_)
-  else if (np > 1) then
-    out = (y(2) - y(1)) / dx_
-  else
-    out = 0.0
-  end if
-
-end function gradient_dx_real32
-
-
-function gradient_dx_real64 (y, dx) result (out)
-  implicit none
-  real(REAL64), intent(in) :: y(:)
-  real(REAL64), intent(in), optional :: dx
-  real(REAL64) :: out(size(y)), dx_
-  integer :: i, np
-
-  dx_ = merge(dx, 1.0d0, present(dx))
-  np = size(y)
-  if (np > 2) then
-    out(1) = (-3 * y(1) + 4 * y(2) - y(3)) / (2 * dx_)
-    do i = 2, np - 1
-      out(i) = (y(i+1) - y(i-1)) / (2 * dx_)
-    end do
-    out(np) = (y(np-2) - 4 * y(np-1) + 3 * y(np)) / (2 * dx_)
-  else if (np > 1) then
-    out = (y(2) - y(1)) / dx_
-  else
-    out = 0.0d0
-  end if
-
-end function gradient_dx_real64
+end function meshgrid_i32
 
 end module xslib_array

@@ -1,7 +1,7 @@
 ! This file is part of xslib
 ! https://github.com/JureCerar/xslib
 !
-! Copyright (C) 2019-2023 Jure Cerar
+! Copyright (C) 2019-2026 Jure Cerar
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -17,59 +17,223 @@
 ! along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 module xslib_list
+  !! Module with primitive implementation of unlimited polymorphic linked list.
+  !!
+  !! @note
+  !! To add new custom derived TYPE support you only have write extension
+  !! to `equal`, and `copy` functions.
+  !! @endnote
   use iso_fortran_env, only: INT32, INT64, REAL32, REAL64
   implicit none
   private
   public :: list_t
 
-  ! %%%
-  ! #  `LIST` - Linked list functions
-  !   Module `xslib_list` contains primitive implementation of unlimited polymorphic linked list.
-  !   List currently supports only `INTEGER`, `REAL`, `COMPLEX`, `LOGICAL`, and `CHARACTER` variable
-  !   types (single or double precision). To add new derived TYPE support you only have write extension
-  !   to `equal`, and `copy` functions.
-  ! %%%
-
-  type link_t
+  type :: link_t
+    !! Element of linked list
     class(*), pointer :: value => null()
     type(link_t), pointer :: next => null()
   end type link_t
 
-  type list_t
-    ! %%%
-    ! ## `LIST_T` - Polymorphic linked list
-    ! #### DESCRIPTION
-    !   Implementation of unlimited polymorphic linked list derived type variable. Supports `INTEGER`, `REAL` 
-    !   `COMPLEX`, `LOGICAL`, and `CHARACTER` variable types (single or double precision). Variables on 
-    !   list cannot be directly accessed and can be set via `append`, `extend`, and `set` functionality or
-    !   retrieved via `get` functionality.  
-    ! #### USAGE
-    !   ```Fortran
-    !   > type(list_t) :: list
-    !   ```
-    ! %%%
+  type :: list_t
+    !! Implementation of unlimited polymorphic linked list derived type variable.
+    !!
+    !! A linked list is a linear data structure composed of individual elements called nodes.
+    !! Unlike arrays, elements in a linked list are not stored in contiguous (adjacent) memory
+    !! locations. Main advantage of lists over arrays is they can be expanded (infinitely) 
+    !! without any memory allocation overhead.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! type(list_t) :: list
+    !! ```
     class(link_t), pointer, private :: first => null()
     class(link_t), pointer, private :: last => null()
   contains
     procedure :: append => list_append
+    !! Append new element to the end of the list. 
+    !!
+    !! Example:
+    !! ```Fortran
+    !! type(list_t) :: list
+    !! ```
     procedure :: clear => list_clear
+    !! Remove all elements from the list.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! call list%clear()
+    !! print *, list
+    !! >>> []
+    !! ```
     procedure :: count => list_count
+    !! Returns the number of `elem` elements (with the specified value) on the list.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! print *, list%count(1)
+    !! >>> 2
+    !! ```
     procedure :: extend => list_extend
+    !! Append array of elements to the end of the list. 
+    !!
+    !! Example:
+    !! ```Fortran
+    !! call list%extend([1, 1, 2, 3, 5, 8, 13])
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! ```
     procedure :: index => list_index
+    !! Returns the index of the first element on list with `elem`
+    !! value. Returns 0 if element is not present.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! print *, list%index(8)
+    !! >>> 6
+    !! print *, list%index(21)
+    !! >>> 0
+    !! ```
     procedure :: len => list_len
+    !! Returns number of all elements on the list.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! print *, list%len()
+    !! >>> 7
+    !! ```
     procedure :: insert => list_insert
+    !! Adds an element `elem` at the specified `pos` position on the list.
+    !! If position index is outside the list range it is either appended to
+    !! the list if the index is larger than the list or prepended in index
+    !! is smaller than one.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 1]
+    !! call list%insert(2, 0)
+    !! >>> [1, 0, 1, 1]
+    !! ```
     procedure :: get => list_get
+    !! Get element at `pos` index from the list. Raises error if `pos` index
+    !! is out of range.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! call list%get(1, value)
+    !! print *, value
+    !! >>> 1
+    !! ```
     procedure :: pop => list_pop
+    !! Removes the element at the specified position `pos`. Last element is 
+    !! removed if `pos` is not specified.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! call list%pop()
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8]
+    !! call list%pop(1)
+    !! print *, list
+    !! >>> [1, 2, 3, 5, 8]
+    !! ```
     procedure :: remove => list_remove
+    !! Removes the __first__ occurrence of `elem` from the list. Does
+    !!  nothing if elem is not on the list.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! call list%remove(2)
+    !! print *, list
+    !! >>> [1, 1, 3, 5, 8, 13]
+    !! call list%remove(2)
+    !! >>> [1, 1, 3, 5, 8, 13]
+    !! ```
     procedure :: reverse => list_reverse
+    !! Reverse element order on the list.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! call list%reverse()
+    !! print *, list
+    !! >>> [13, 8, 5, 3, 2, 1, 1]
+    !! ```
     procedure :: same_type_as => list_same_type_as
+    !! Returns `.True.` if the dynamic type of element at index `pos`
+    !! is the same as the dynamic type of `elem`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! print *, list%same_type_as(1, 0)
+    !! >>> .True.
+    !! print *, list%same_type_as(1, 0.0)
+    !! >>> .False.
+    !! ```
     procedure :: set => list_set
+    !! Change value of element at index `pos` on the list. Raises error if
+    !! `pos` index is out of list range.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! call list%set(1, 0)
+    !! print *, list
+    !! >>> [0, 1, 2, 3, 5, 8, 13]
+    !! ```
     procedure :: sort => list_sort
+    !! Sort elements on the list in ascending order.
+    !!
+    !! @warning
+    !! Implementation pending!
+    !! @endwarning
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [8, 3, 13, 1, 2, 5, 1]
+    !! call list%sort()
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! ```
     procedure, private :: write_formatted
     generic :: write(formatted) => write_formatted
+    !! Formatted and unformatted write of `list_t`.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! print *, list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! write (*, *) list
+    !! >>> [1, 1, 2, 3, 5, 8, 13]
+    !! ```
   end type list_t
 
   interface list_t
+    !! Custom list constructor from an array.
+    !!
+    !! Example:
+    !! ```Fortran
+    !! list = list_t([1, 2, 3])
+    !! print *, list
+    !! >>> [1, 2, 3]
+    !! ```
     module procedure :: list_constructor
   end interface list_t
  
@@ -352,7 +516,7 @@ end subroutine copy
 
 
 function constructor (value)
-  ! Create a new link w/ value
+  !! Create a new link w/ value
   implicit none
   class(link_t), pointer :: constructor
   class(*) :: value
@@ -364,7 +528,7 @@ end function constructor
 
 
 function destructor (this)
-  ! Destroy link (returns next pointer).
+  !! Destroy link (returns next pointer).
   implicit none
   class(link_t), pointer :: this
   class(link_t), pointer :: destructor
@@ -383,7 +547,7 @@ end function destructor
 
 
 function list_constructor (value) result (list)
-  ! List constructor
+  !! List constructor
   implicit none
   class(*), intent(in) :: value(..)
   type(list_t) :: list
@@ -401,28 +565,11 @@ end function list_constructor
 
 
 subroutine list_append (this, elem)
-  ! %%%
-  ! ## `LIST%APPEND` - Append element to the list
-  ! #### DESCRIPTION
-  !   Append new element to the end of the list. 
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%append(elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), intent(IN) :: elem`
-  !     Element to be added end of the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%append(4])
-  !   [1, 2, 3, 4]
-  !   ```
-  ! %%%
+  !! Append new element to the end of the list. 
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: elem
+  !! Element to be added end of the list.
   class(link_t), pointer :: new
 
   if (.not. associated(this%first)) then
@@ -442,22 +589,7 @@ end subroutine list_append
 
 
 subroutine list_clear (this)
-  ! %%%
-  ! ## `LIST%CLEAR` - Removes all elements from the list
-  ! #### DESCRIPTION
-  !   Remove ALL elements from the list.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%clear()
-  !   ```
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(lit_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%clear()
-  !   []
-  !   ```  
-  ! %%%
+  !! Remove all elements from the list.
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr => null()
@@ -473,31 +605,13 @@ end subroutine list_clear
 
 
 function list_count (this, elem) result (out)
-  ! %%%
-  ! ## `LIST%COUNT` - Count elements on the list
-  ! #### DESCRIPTION
-  !   Returns the number of `elem` elements (with the specified value) on the list.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = list%count(elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), intent(IN) :: elem`
-  !     Value of elements to search on the list.
-  !   * `integer :: out`
-  !     Number of elements with specified value on the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 1])
-  !   > list%count(1)
-  !   2
-  !   ```
-  ! %%%
+  !! Count number of `elem` elements on the list.
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: elem
+  !! Value of elements to search on the list.
   integer :: out
+  !! Number of elements with specified value on the list.
   class(link_t), pointer :: curr
 
   out = 0
@@ -511,28 +625,11 @@ end function list_count
 
 
 subroutine list_extend (this, array)
-  ! %%%
-  ! ## `LIST%EXTEND` - Append array of elements to the list
-  ! #### DESCRIPTION
-  !   Append array of elements to the end of the list. 
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%append(array)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), dimension(:), intent(IN) :: array`
-  !     Array of elements to be added to the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2])
-  !   > call list%extend([3, 4, 5])
-  !   [1, 2, 3, 4, 5]
-  !   ```
-  ! %%%
+  !! Append array of elements to the end of the list. 
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: array(:)
+  !! Array of elements to be added to the list.
   integer :: i
 
   do i = 1, size(array)
@@ -542,43 +639,24 @@ subroutine list_extend (this, array)
 end subroutine list_extend
 
 
-integer function list_index (this, elem)
-  ! %%%
-  ! ## `LIST%INDEX` - Return index of element on the list
-  ! #### DESCRIPTION
-  !   Returns the index of the first element on list with `elem` value.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = list%index(elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), intent(IN) :: elem`
-  !     Value of element to index.
-  !   * `integer :: out`
-  !     Index of element on the list. Returns zero if element is not present.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > list%index(1)
-  !   1
-  !   > list%index(4)
-  !   0
-  !   ```
-  ! %%%
+function list_index (this, elem) result (out)
+  !! Returns the index of the first element on list with `elem` value.
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: elem
+  !! Value of element to index.
+  integer :: out
+  !! Index of element on the list. Returns 0 if element is not present.
   class(link_t), pointer :: curr
   integer :: i
 
-  list_index = 0
+  out = 0
   i = 0
   curr => this%first
   do while (associated(curr))
     i = i + 1 
     if (equal(elem, curr%value)) then
-      list_index = i
+      out = i
       exit
     end if
     curr => curr%next
@@ -588,32 +666,13 @@ end function list_index
 
 
 subroutine list_insert (this, pos, elem)
-  ! %%%
-  ! ## `LIST%INSERT` - Append element to the list at specified position
-  ! #### DESCRIPTION
-  !   Adds an element `elem` at the specified `pos` position on the list. If position index is outside the list range
-  !   it is either appended to the list if the index is larger than the list or prepended in index is smaller than one.  
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%insert(pos, elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer, intent(IN) :: pos`
-  !     A number specifying in which position to insert the element.
-  !   * `class(*), intent(IN) :: elem`
-  !     Element to be added to the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > list%insert(2, 1.5)
-  !   [1, 1.5, 2, 3]
-  !   ```
-  ! %%%
+  !! Append element to the list at specified position
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
+  !! A number specifying in which position to insert the element.
   class(*), intent(in) :: elem
+  !! Element to be added to the list.
   class(link_t), pointer :: new, curr, prev
   integer :: i
 
@@ -653,34 +712,18 @@ subroutine list_insert (this, pos, elem)
 end subroutine list_insert
 
 
-integer function list_len (this)
-  ! %%%
-  ! ## `LIST%LEN` - Count number of elements on the list
-  ! #### DESCRIPTION
-  !   Get number of ALL elements on the list.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = list%len()
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer :: out`
-  !     Number of all elements on the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > list%len()
-  !   3
-  !   ```
-  ! %%%
+function list_len (this) result (out)
+  !! Count number of elements on the list.
   implicit none
   class(list_t) :: this
+  integer :: out
+  !! Number number of elements on the list.
   class(link_t), pointer :: curr
 
-  list_len = 0
+  out = 0
   curr => this%first
   do while (associated(curr))
-    list_len = list_len + 1
+    out = out + 1
     curr => curr%next
   end do
 
@@ -688,33 +731,13 @@ end function list_len
 
 
 subroutine list_get (this, pos, elem)
-  ! %%%
-  ! ## `LIST%GET` - Get an element from the list
-  ! #### DESCRIPTION
-  !   Get element at `pos` index from the list. Raises error if `pos` index
-  !   is out of range.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%get(pos, elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer, intent(IN) :: pos`
-  !     A number specifying at which position to get element.
-  !   * `class(*), intent(IN) :: elem`
-  !     Corresponding element from to the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%get(1, val)
-  !   > print *, val
-  !   1
-  !   ```
-  ! %%%
+  !! Get element at `pos` index from the list. Raises error if `pos` index is out of range.
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
+  !! A number specifying at which position to get element.
   class(*), intent(out) :: elem
+  !! Corresponding element from to the list.
   class(link_t), pointer :: curr
   integer :: i
 
@@ -733,32 +756,12 @@ end subroutine list_get
 
 
 subroutine list_pop (this, pos)
-  ! %%%
-  ! ## `LIST%POP` - Removes element at the specified position from the list
-  ! #### DESCRIPTION
-  !   Removes the element at the specified position `pos`. Last element is removed if
-  !   `pos` is not specified.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%pop(pos=pos)
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer, intent(IN), OPTIONAL :: pos`
-  !     A number specifying the position of the element you want to remove.
-  !     Last element is removed if not specified.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3, 4])
-  !   > call list%pop()
-  !   [1, 2, 3]
-  !   > call list%pop(1)
-  !   [2, 3]
-  !   ```
-  ! %%%
+  !! Removes the element at the specified position `pos`.
   implicit none
   class(list_t) :: this
   integer, intent(in), optional :: pos
+  !! A number specifying the position of the element you want to remove.
+  !! Last element is removed if not specified.
   class(link_t), pointer :: curr, prev
   integer :: i
 
@@ -811,28 +814,11 @@ end subroutine list_pop
 
 
 subroutine list_remove (this, elem)
-  ! %%%
-  ! ## `LIST%REMOVE` - Remove element from the list
-  ! #### DESCRIPTION
-  !   Removes the first occurrence of `elem` from the list.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%remove(value)
-  !   ```
-  ! #### PARAMETERS
-  !   * `class(*), intent(IN) :: elem`
-  !     Element to be removed from the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%remove(2)
-  !   [1, 3]
-  !   ```
-  ! %%%
+  !! Removes the first occurrence of `elem` from the list.
   implicit none
   class(list_t) :: this
   class(*), intent(in) :: elem
+  !! Element to be removed from the list.
   integer :: i
   
   i = this%index(elem)
@@ -842,27 +828,11 @@ end subroutine list_remove
 
 
 subroutine list_reverse (this)
-  ! %%%
-  ! ## `LIST%REVERSE` - Reverse element order on the list
-  ! #### DESCRIPTION
-  !   Reverse element order on the list.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%reverse()
-  !   ```
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%reverse()
-  !   [3, 2, 1]
-  !   ```
-  ! %%%
+  !! Reverse element order on the list
+  ! See: https://www.geeksforgeeks.org/reverse-a-linked-list/
   implicit none
   class(list_t) :: this
   class(link_t), pointer :: curr, prev, next
-
-  ! See: https://www.geeksforgeeks.org/reverse-a-linked-list/
 
   prev => null()
   curr => this%first
@@ -879,37 +849,16 @@ end subroutine list_reverse
 
 
 function list_same_type_as (this, pos, elem) result (out)
-  ! %%%
-  ! ## `LIST%SAME_TYPE_AS` - Check if element on list is same type as reference
-  ! #### DESCRIPTION
-  !   Returns `.True.` if the dynamic type of element at index `pos` is the same as the dynamic type of `elem`.
-  ! #### USAGE
-  !   ```Fortran
-  !   out = list%same_type_as(pos, elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer, intent(IN) :: pos`
-  !     A number specifying at which position to check the element.
-  !   * `class(*), intent(IN) :: elem`
-  !     Element against which to compare the type.
-  !   * `logical :: out`
-  !     Returns `.True.` if evaluated elements are of same type.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > call list%extend([1, 2])
-  !   > list%same_type_as(1, 0)
-  !   .True.
-  !   > list%same_type_as(1, "one")
-  !   .False.
-  !   ```
-  ! %%%
+  !! Check if element on list is same type as reference
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
+  !! A number specifying at which position to check the element.
   class(*), intent(in) :: elem
-  class(link_t), pointer :: curr
+  !! Element against which to compare the type.
   logical :: out
+  !! Returns `.True.` if evaluated elements are of same type.
+  class(link_t), pointer :: curr
   integer :: i
 
   if (.not. associated(this%first)) then
@@ -928,32 +877,14 @@ end function list_same_type_as
 
 
 subroutine list_set (this, pos, elem)
-  ! %%%
-  ! ## `LIST%SET` - Change element on the list
-  ! #### DESCRIPTION
-  !   Change value of element at index `pos` on the list. Raises error if `pos` index
-  !   is out of list range.
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%set(pos, elem)
-  !   ```
-  ! #### PARAMETERS
-  !   * `integer, intent(IN) :: pos`
-  !     A number specifying at which position to set element.
-  !   * `class(*), intent(IN) :: elem`
-  !     Element to be replaced on the list.
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([1, 2, 3])
-  !   > call list%set(1, 0)
-  !   [0, 2, 3]
-  !   ```
-  ! %%%
+  !! Change value of element at index `pos` on the list. Raises error 
+  !! if `pos` index is out of list range.
   implicit none
   class(list_t) :: this
   integer, intent(in) :: pos
+  !! A number specifying at which position to set element.
   class(*), intent(in) :: elem
+  !! Element to be replaced on the list.
   class(link_t), pointer :: curr
   integer :: i
 
@@ -974,53 +905,17 @@ end subroutine list_set
 
 
 subroutine list_sort (this)
-  ! %%%
-  ! ## `LIST%SORT` - Sort elements on the list
-  ! #### DESCRIPTION
-  !   Sort elements on the list in ascending order.
-  !   __WARING:__ Implementation pending!
-  ! #### USAGE
-  !   ```Fortran
-  !   call list%sort()
-  !   ```
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_t([3, 1, 2, 4])
-  !   > call list%sort()
-  !   [1, 2, 3, 4]
-  !   ```
-  ! %%%
+  !! Sort elements on the list in ascending order.
   implicit none
   class(list_t) :: this
-  class(link_t), pointer :: curr
 
-  curr => this%first
-  error stop "Pending implementation"
+  error stop "Not implemented"
 
 end subroutine list_sort
 
 
 subroutine write_formatted (this, unit, iotype, v_list, iostat, iomsg)
-  ! %%%
-  ! ## `LIST%WRITE` - Formatted and unformatted write 
-  ! #### DESCRIPTION
-  !   Allows for formatted and unformatted write of `list_t`.
-  ! #### USAGE
-  !   ```Fortran
-  !   print *, list_t
-  !   write (*, *) list_t
-  !   ```
-  ! #### EXAMPLE
-  !   ```Fortran
-  !   > type(list_t) :: list
-  !   > list = list_T([1, 2, 3])
-  !   > print *, list
-  !   [1, 2, 3]
-  !   > write (*, *) list_t
-  !   [1, 2, 3]
-  !   ```
-  ! %%%  
+  !! Formatted and unformatted write 
   implicit none
   class(list_t), intent(in) :: this
   integer, intent(in) :: unit

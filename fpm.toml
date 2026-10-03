@@ -1,0 +1,51 @@
+name = "xslib"
+version = "3.5.0"
+license = "GPL-3.0-or-later"
+author = "Jure Cerar"
+copyright = "Copyright (C) 2019-2026, Jure Cerar"
+description = "A modern Fortran library with useful utilities and functions as stand-in for Fortran 'standard' library"
+categories = ["stdlib",]
+
+[preprocess]
+[preprocess.cpp]
+macros = [
+  # "PROJECT_VERSION='{version}'",
+  "PROJECT_VERSION_MAJOR=3",
+  "PROJECT_VERSION_MINOR=5",
+  "PROJECT_VERSION_PATCH=0",
+]
+
+[build]
+auto-tests = true
+auto-examples = true
+auto-executables = true
+module-naming = false
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
+[library]
+# type = ["shared", "static"]
+type = "shared"
+
+[install]
+library = true
+test = false
+
+# [profiles]
+# debug = ["debug"]
+# release = ["release"]
+
+# [features]
+# debug.flags = "-g"
+# debug.gfortran.flags = "-Wall -Wextra -fcheck=bounds"
+# debug.ifort.flags = "-warn all -check bounds"
+
+# release.flags = "-O3"
+# release.gfortran.flags = "-funroll-loops"
+# release.ifort.flags = "-unroll"
+
+
+

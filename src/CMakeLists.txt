@@ -1,7 +1,7 @@
 # This file is part of xslib
 # https://github.com/JureCerar/xslib
 #
-# Copyright (C) 2019-2022 Jure Cerar
+# Copyright (C) 2019-2026 Jure Cerar
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,13 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-## Preprocess all source files
-file ( GLOB_RECURSE "FILES" RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.f90" "*.F90" "*.c" "*.h" )
-foreach ( "FILE" ${FILES} )
-  configure_file ( ${FILE} "${PROJECT_BINARY_DIR}/src/${FILE}" )
-  set ( SRC "${PROJECT_BINARY_DIR}/src/${FILE}" ${SRC} )
-endforeach ()
-include_directories ( "${PROJECT_BINARY_DIR}/src" )
+# Find all files
+file ( GLOB_RECURSE SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.f90" "*.F90" "*.c" "*.h" )
 
 # Create Object library
 add_library ( "ObjectLib" OBJECT ${SRC} )
@@ -58,8 +53,14 @@ set_target_properties ( ${CMAKE_PROJECT_NAME}_static
 )
 
 # Add some external definitions
+add_definitions (
+  "-DPROJECT_VERSION='${PROJECT_VERSION}'"
+  "-DPROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
+  "-DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
+  "-DPROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH}"
+)
 if ( CMAKE_BUILD_TYPE STREQUAL "DEBUG" )
-	add_definitions ( -D_DEBUG=.True. )
+	add_definitions ( "-D_DEBUG=.True." )
 endif ()
 
 # Link libraries
