@@ -29,7 +29,7 @@ module xslib_logical
 
     interface isAllClose
         !! Returns `.True.` if two arrays are element-wise equal within a tolerance.
-        module procedure :: isClose_r32, isClose_r64
+        module procedure :: isAllClose_r32, isAllClose_r64
     end interface isAllClose
 
 contains
