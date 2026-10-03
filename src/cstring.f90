@@ -495,17 +495,16 @@ function isSpace (string) result (out)
 end function isSpace
 
 
-function strtok (string, delim) result (out)
+function strtok (delim, string) result (out)
   !! A sequence of calls to this function split string into tokens, which are sequences
   !! of contiguous characters separated by the delimiter `delim`.
   !!
-  !! On a first call, the function a string as argument for str, whose first character
-  !! is used as the starting location to scan for tokens. In subsequent calls, the function
-  !! expects a null character `char(0)` and uses the position right after the end of the last
-  !! token as the new starting location for scanning.
+  !! On a first call, the function returns first token and saves the string. In subsequent
+  !! calls, if string parameter is not provided function continues at the position right 
+  !! after the end of the last token as the new starting location for scanning.
   !!
   !! Once the end character of string is found in a call to `strtok`, all subsequent calls to
-  !! this function (with a null character as the first argument) return a null character.
+  !! this function return a null (`char(0)`) character.
   !!
   !! See [`strtok`](https://cplusplus.com/reference/cstring/strtok) for full reference.
   !!
@@ -515,28 +514,30 @@ function strtok (string, delim) result (out)
   !!
   !! Example:
   !! ```Fortran
-  !! print *, strtok("Hello, World!", " ")
+  !! print *, strtok(" ", "Hello, World!")
   !! >>> "Hello,"
-  !! print *, strtok(char(0), " ")
+  !! print *, strtok(" ")
   !! >>> "World!"
-  !! print *, strtok(char(0), " ")
+  !! print *, strtok(" ")
   !! >>> NULL
   !! ```
   !!
   !! ```Fortran
-  !! str = strtok("Hello, World!", " ") 
+  !! str = strtok(" ", "Hello, World!")
   !! do while (str /= char(0))
   !!     print *, str
-  !!     str = strtok(char(0), " ")
-  !! end do 
+  !!     str = strtok(" ")
+  !! end do
+  !! >>> "Hello,"
+  !! ... "World!"
   !! ```
   implicit none
   character(:), allocatable :: out
   !! Next output character token.
-  character(*), intent(in) :: string
-  !! Input string. Feed null character `char(0)` to get next token on previous (saved) string.
   character(*), intent(in) :: delim
   !! Separator use for delimiting a string.
+  character(*), intent(in), optional :: string
+  !! Input string. If not present get next token on previous (saved) string.
   character(:), allocatable, save :: saved_string
   integer, save :: saved_start
   integer :: start, finish
@@ -545,7 +546,7 @@ function strtok (string, delim) result (out)
   ! SOURCE: http://fortranwiki.org/fortran/show/strtok
 
   ! Initialize stored copy of input string and pointer into input string on first call
-  if (string(1:1) /= char(0)) then
+  if (present(string)) then
     saved_start = 1                 ! Beginning of unprocessed data
     saved_string = trim(string)     ! Save input string from first call in series
   endif
