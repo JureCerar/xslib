@@ -38,6 +38,7 @@ module xslib
   use xslib_cstring
   use xslib_dict
   use xslib_errorh
+  use xslib_fileio
   use xslib_fitting
   use xslib_geometry
   use xslib_linalg
